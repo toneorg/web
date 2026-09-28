@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# tone: landing page and waitlist
 
-## Getting Started
+Next.js 16 + Tailwind 4. Three pages, all in Portuguese:
 
-First, run the development server:
+| Route | For | Form |
+|---|---|---|
+| `/` | People who buy foundation | Quiz-style waitlist: tone on the Monk scale, current foundation, how often they bought the wrong shade, e-mail, opt-in to test with a selfie (reveals WhatsApp) |
+| `/marcas` | Makeup brands | Pilot request that walks the commitment ladder: 30-min call → send swatch photos → 60-day A/B pilot |
+| `/privacidade` | Both | Plain-language data note linked from both consent boxes |
+
+Background and decisions: `../docs/source-brief.md` (what the project documents say) and
+`../docs/design-plan.md` (why the page looks and works the way it does).
+
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # optional in dev
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without `SUBMISSIONS_WEBHOOK_URL`, submissions go to `data/submissions.jsonl` (git-ignored).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Vercel works out of the box. Set these environment variables first:
 
-## Learn More
+- `SUBMISSIONS_WEBHOOK_URL`: required in production. See `docs/google-sheets-webhook.md` for a 5-minute Google Sheet setup.
+- `NEXT_PUBLIC_SITE_URL`: the public URL, so link previews in WhatsApp and Instagram show the image.
+- `NEXT_PUBLIC_CONTACT_EMAIL`: the address for deletion requests on `/privacidade`.
 
-To learn more about Next.js, take a look at the following resources:
+## QR codes for the event
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Each submission stores `utm_source`, `utm_medium`, `utm_campaign`, `ref` and the referrer, so use tagged links:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Consumers: `https://<domain>/?utm_source=evento&utm_medium=qr&utm_campaign=<nome-do-evento>`
+- Brands: `https://<domain>/marcas?utm_source=evento&utm_medium=qr&utm_campaign=<nome-do-evento>`
 
-## Deploy on Vercel
+Shares from the success screen arrive with `?ref=convite`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Where to edit
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Copy: `src/app/page.tsx`, `src/app/marcas/page.tsx`, `src/app/privacidade/page.tsx`
+- Form questions: `src/components/waitlist-form.tsx`, `src/components/brand-form.tsx`
+- Validation and saved fields: `src/app/actions.ts`
+- Colors and type: `src/app/globals.css` (tokens), `src/lib/tones.ts` (Monk scale)
+
+## Before publishing, check
+
+- The founders' note on `/` is signed "Vivian e Gabriel". Confirm the wording with Vivian.
+- The result card and the brand chart are marked "Exemplo ilustrativo". Replace them with real outputs once the pilot has them.
+- The privacy promises (selfie deleted within hours, nothing sold) match pilot task F3.3. Have a lawyer review them before the first selfie test.
+- Visits are not tracked yet, only submissions. For visit → signup rate, add Vercel Analytics or PostHog.
