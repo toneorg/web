@@ -8,8 +8,12 @@
 @theme {
   --color-paper: #f3f3f2;
   --color-ink: #292420;
+  --color-ink-hover: #3d3631;
+  --color-ink-disabled: #5b534d;
   --color-graphite: #5e5a57;
   --color-rule: #dad9d7;
+  --color-edge-hover: #b9b7b4;
+  --color-control: #8f8b87;
   --color-alert: #a8241c;
 
   --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
@@ -80,6 +84,11 @@
   &:active:not(:disabled) {
     scale: 0.96;
   }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      scale: 1;
+    }
+  }
 }
 
 /*
@@ -97,23 +106,18 @@
   }
 }
 
-.band-grow {
+@utility band-grow {
   clip-path: circle(7px at 50% 50%);
   animation: dot-to-band 1400ms var(--ease-soft) forwards;
   animation-delay: calc(var(--i) * 70ms + 250ms);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    clip-path: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-
-  .band-grow {
-    animation: none;
-    clip-path: none;
-  }
-
-  .press:active:not(:disabled) {
-    scale: 1;
   }
 }

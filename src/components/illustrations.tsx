@@ -1,6 +1,7 @@
+import { SAMPLE_RESULT } from "@/lib/sample";
 import { MONK, shadeRange } from "@/lib/tones";
 
-const SHADES = shadeRange(40);
+const SHADE_HEXES = shadeRange(40);
 const CLOSE = [21, 22, 23];
 
 /** What a foundation page looks like today: forty dots and a guess. */
@@ -15,7 +16,7 @@ export function ShadeGrid() {
         className="mt-5 grid grid-cols-8 gap-x-2.5 gap-y-3"
         aria-label="Quarenta cores de base em círculos pequenos"
       >
-        {SHADES.map((hex, i) => {
+        {SHADE_HEXES.map((hex, i) => {
           const close = CLOSE.includes(i);
           return (
             <li key={hex + i} className="flex justify-center">
@@ -38,10 +39,10 @@ export function ShadeGrid() {
 }
 
 const rows: [string, string][] = [
-  ["Seu tom", "7 de 10"],
-  ["Subtom", "Dourado"],
-  ["Cor desta marca", "38W"],
-  ["Se quiser mais cobertura", "40N"],
+  ["Seu tom", `${SAMPLE_RESULT.tone} de 10`],
+  ["Subtom", SAMPLE_RESULT.undertone],
+  ["Cor desta marca", SAMPLE_RESULT.shade],
+  ["Se quiser mais cobertura", SAMPLE_RESULT.alternative],
 ];
 
 /** Illustrative result, labelled as such. */
@@ -50,17 +51,17 @@ export function ResultCard() {
     <figure className="rounded-[28px] bg-white p-2 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.12)]">
       <div
         className="flex h-36 items-end justify-between rounded-[20px] p-4 sm:h-44"
-        style={{ background: MONK[6] }}
+        style={{ background: MONK[SAMPLE_RESULT.tone - 1] }}
       >
         <p className="rounded-full bg-white/90 px-3 py-1 text-[0.85rem] font-semibold">
           Confiança alta
         </p>
         {/* The matched shade sits on the skin and nearly disappears: that is the point. */}
         <div className="flex items-center gap-2 self-start">
-          <span className="text-[0.85rem] font-semibold text-white/90">38W</span>
+          <span className="text-[0.85rem] font-semibold text-white/90">{SAMPLE_RESULT.shade}</span>
           <span
             className="size-10 rounded-full shadow-[0_0_0_2px_rgb(255_255_255/0.9)]"
-            style={{ background: "#86603f" }}
+            style={{ background: SAMPLE_RESULT.shadeHex }}
           />
         </div>
       </div>

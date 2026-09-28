@@ -13,8 +13,6 @@ export const MONK = [
   "#292420",
 ] as const;
 
-export type MonkIndex = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
-
 type Rgb = [number, number, number];
 type Lab = [number, number, number];
 

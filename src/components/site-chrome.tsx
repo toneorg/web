@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonClass } from "./button";
 
 export function Container({
   className = "",
@@ -14,7 +15,7 @@ export function Container({
   );
 }
 
-export function Wordmark() {
+function Wordmark() {
   return (
     <Link
       href="/"
@@ -63,24 +64,9 @@ export function SiteFooter() {
   );
 }
 
-export function ButtonLink({
-  href,
-  children,
-  tone = "ink",
-}: {
-  href: string;
-  children: React.ReactNode;
-  tone?: "ink" | "paper";
-}) {
-  const colors =
-    tone === "ink"
-      ? "bg-ink text-paper hover:bg-[#3d3631]"
-      : "bg-paper text-ink hover:bg-white";
+export function ButtonLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link
-      href={href}
-      className={`press inline-flex min-h-13 items-center justify-center rounded-full px-7 text-[1.05rem] font-semibold ${colors}`}
-    >
+    <Link href={href} className={buttonClass()}>
       {children}
     </Link>
   );

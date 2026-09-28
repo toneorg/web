@@ -1,5 +1,6 @@
 "use client";
 
+import { TONE_UNKNOWN } from "@/lib/forms";
 import { MONK, isDeep } from "@/lib/tones";
 
 /**
@@ -64,14 +65,14 @@ export function TonePicker({
         <input
           type="radio"
           name="tone"
-          value="nd"
-          checked={value === "nd"}
-          onChange={() => onChange("nd")}
+          value={TONE_UNKNOWN}
+          checked={value === TONE_UNKNOWN}
+          onChange={() => onChange(TONE_UNKNOWN)}
           className="peer sr-only"
         />
         <span
           aria-hidden
-          className="grid size-6 place-items-center rounded-full bg-white shadow-[inset_0_0_0_1.5px_#8f8b87] transition-shadow duration-150 peer-checked:shadow-[inset_0_0_0_7px_var(--color-ink)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink"
+          className="grid size-6 place-items-center rounded-full bg-white shadow-[inset_0_0_0_1.5px_var(--color-control)] transition-shadow duration-150 peer-checked:shadow-[inset_0_0_0_7px_var(--color-ink)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink"
         />
         <span>Não sei dizer</span>
       </label>
