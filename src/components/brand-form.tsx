@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { requestPilot } from "@/app/actions";
-import { PILOT_STEPS, PLATFORMS, SHADE_COUNTS, type PilotStep } from "@/lib/forms";
+import { PILOT_STEPS, PLATFORMS, type PilotStep } from "@/lib/forms";
 import {
   AttributionFields,
   Checkbox,
@@ -21,33 +21,24 @@ import {
 const PILOT_STEP_LABELS: Record<PilotStep, string> = {
   conversa: "Uma conversa de 30 minutos",
   amostras: "Enviar fotos das amostras da nossa cartela",
-  piloto: "Um piloto de 60 dias com teste A/B",
+  piloto: "Um piloto de 60 dias com grupo de controle",
 };
 
 export function BrandForm() {
   const { state, formAction, pending, errors, alertRef, doneRef } = useFormAction(requestPilot);
-  const { bind } = useFields({
-    name: "",
-    role: "",
-    email: "",
-    brand: "",
-    site: "",
-    platform: "",
-    shades: "",
-    last_complaint: "",
-  });
+  const { bind } = useFields({ name: "", email: "", brand: "", site: "", platform: "" });
   const [steps, setSteps] = useState<PilotStep[]>(["conversa"]);
   const [consent, setConsent] = useState(false);
 
   if (state.status === "ok") {
     return (
-      <div className="flex flex-col gap-4" aria-live="polite">
-        <h3 ref={doneRef} tabIndex={-1} className="display-sm text-[2rem] focus:outline-none">
+      <div className="flex flex-col gap-4">
+        <h3 ref={doneRef} tabIndex={-1} className="display-md focus:outline-none">
           Pedido recebido.
         </h3>
-        <p className="max-w-[34rem] text-[1.1rem] leading-relaxed text-graphite">
-          Vamos responder no seu e-mail para marcar a conversa. Se puder, separe o número de tons
-          de base da sua cartela e onde a cliente mais trava hoje.
+        <p className="max-w-[34rem] leading-relaxed text-muted">
+          A gente responde no seu e-mail para marcar a conversa. Se puder, separe quantos tons de
+          base a cartela tem e onde a cliente mais trava hoje.
         </p>
       </div>
     );
@@ -58,38 +49,26 @@ export function BrandForm() {
       <Honeypot />
       <AttributionFields />
 
-      <div className="grid gap-8 sm:grid-cols-2 sm:gap-6">
+      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6">
         <div className="flex flex-col gap-3">
           <Label htmlFor="name">Seu nome</Label>
           <input autoComplete="name" className={inputClass} {...bind("name", errors)} />
           <FieldError id="name-error" message={errors.name} />
         </div>
         <div className="flex flex-col gap-3">
-          <Label htmlFor="role" optional>
-            Seu cargo
-          </Label>
+          <Label htmlFor="email">E-mail de trabalho</Label>
           <input
-            autoComplete="organization-title"
-            placeholder="Ex.: fundadora, e-commerce"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
             className={inputClass}
-            {...bind("role", errors)}
+            {...bind("email", errors)}
           />
+          <FieldError id="email-error" message={errors.email} />
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <Label htmlFor="email">E-mail de trabalho</Label>
-        <input
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          className={inputClass}
-          {...bind("email", errors)}
-        />
-        <FieldError id="email-error" message={errors.email} />
-      </div>
-
-      <div className="grid gap-8 sm:grid-cols-2 sm:gap-6">
+      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6">
         <div className="flex flex-col gap-3">
           <Label htmlFor="brand">Marca</Label>
           <input autoComplete="organization" className={inputClass} {...bind("brand", errors)} />
@@ -109,30 +88,11 @@ export function BrandForm() {
         </div>
       </div>
 
-      <div className="grid gap-8 sm:grid-cols-2 sm:gap-6">
-        <div className="flex flex-col gap-3">
-          <Label htmlFor="platform">Plataforma da loja</Label>
-          <Select options={PLATFORMS} {...bind("platform", errors)} />
-        </div>
-        <div className="flex flex-col gap-3">
-          <Label htmlFor="shades">Tons de base na cartela</Label>
-          <Select options={SHADE_COUNTS} {...bind("shades", errors)} />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <Label
-          htmlFor="last_complaint"
-          optional
-          hint="O que aconteceu da última vez que uma cliente reclamou de tom errado?"
-        >
-          A última reclamação de tom
+      <div className="flex flex-col gap-3 sm:max-w-[calc(50%-0.75rem)]">
+        <Label htmlFor="platform" optional>
+          Plataforma da loja
         </Label>
-        <textarea
-          rows={4}
-          className={`${inputClass} py-3 leading-relaxed`}
-          {...bind("last_complaint", errors)}
-        />
+        <Select options={PLATFORMS} {...bind("platform", errors)} />
       </div>
 
       <fieldset
@@ -140,10 +100,10 @@ export function BrandForm() {
         aria-describedby={errors.steps ? "steps-error" : undefined}
       >
         <legend className="flex flex-col gap-1">
-          <span className="font-semibold">Até onde vocês topariam ir agora?</span>
-          <span className="text-[0.95rem] text-graphite">Marque tudo que fizer sentido.</span>
+          <span className="font-medium">Até onde vocês topariam ir agora?</span>
+          <span className="text-[0.9375rem] text-muted">Marque tudo que fizer sentido.</span>
         </legend>
-        <div className="mt-3 flex flex-col gap-1">
+        <div className="mt-3 flex flex-col">
           {PILOT_STEPS.map((step) => (
             <Checkbox
               key={step}
@@ -162,17 +122,18 @@ export function BrandForm() {
         <FieldError id="steps-error" message={errors.steps} />
       </fieldset>
 
-      <ConsentField checked={consent} onChange={setConsent} error={errors.consent}>
-        Autorizo a tone a entrar em contato sobre o piloto.
-      </ConsentField>
-
-      <SubmitRow
-        state={state}
-        pending={pending}
-        alertRef={alertRef}
-        label="Pedir uma conversa"
-        pendingLabel="Enviando pedido…"
-      />
+      <div className="flex flex-col gap-6">
+        <ConsentField checked={consent} onChange={setConsent} error={errors.consent}>
+          Autorizo a tone a entrar em contato sobre o piloto.
+        </ConsentField>
+        <SubmitRow
+          state={state}
+          pending={pending}
+          alertRef={alertRef}
+          label="Pedir uma conversa"
+          pendingLabel="Enviando pedido…"
+        />
+      </div>
     </form>
   );
 }

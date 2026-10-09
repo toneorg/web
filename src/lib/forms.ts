@@ -1,4 +1,4 @@
-// The contract between the two forms and their server actions: field names,
+// The contract between the forms and their server actions: field names,
 // allowed option values, validation and the saved record shape. Imported by
 // client components and by src/app/actions.ts, so it carries no directive.
 
@@ -18,32 +18,34 @@ export const ATTRIBUTION_KEYS = [
 /** Answer for "Não sei dizer" in the tone picker. */
 export const TONE_UNKNOWN = "nd";
 
+/** Which e-mail field on the page the signup came from. */
+export const PLACEMENTS = ["topo", "fim"] as const;
+
 export const WRONG_SHADE_VALUES = ["nunca", "1-2", "3+", "desisti"] as const;
 export const PLATFORMS = ["Shopify", "VTEX", "Nuvemshop", "Tray", "Outra", "Não sei"] as const;
-export const SHADE_COUNTS = ["Até 10", "11 a 25", "26 a 40", "Mais de 40", "Não vendemos base"] as const;
 export const PILOT_STEPS = ["conversa", "amostras", "piloto"] as const;
 
+export type Placement = (typeof PLACEMENTS)[number];
 export type WrongShade = (typeof WRONG_SHADE_VALUES)[number];
 export type PilotStep = (typeof PILOT_STEPS)[number];
 
-export type WaitlistField =
+export type WaitlistField = "email";
+
+export type ProfileField =
+  | "email"
   | "tone"
   | "foundation"
   | "wrong_shade"
-  | "email"
   | "test"
   | "whatsapp"
   | "consent";
 
 export type BrandField =
   | "name"
-  | "role"
   | "email"
   | "brand"
   | "site"
   | "platform"
-  | "shades"
-  | "last_complaint"
   | "steps"
   | "consent";
 
@@ -62,8 +64,19 @@ type Attribution = {
   referrer: string;
 };
 
+/** Step one: the e-mail alone puts someone on the list. */
 export type WaitlistRecord = {
   kind: "waitlist";
+  email: string;
+  placement: Placement | "";
+} & Attribution;
+
+/**
+ * Step two, optional: the answers that help assemble the beta group. Saved as
+ * its own row and matched to the waitlist row by e-mail.
+ */
+export type ProfileRecord = {
+  kind: "profile";
   email: string;
   tone: string;
   foundation: string;
@@ -77,16 +90,13 @@ export type BrandRecord = {
   name: string;
   email: string;
   brand: string;
-  role: string;
   site: string;
   platform: (typeof PLATFORMS)[number] | "";
-  shades: (typeof SHADE_COUNTS)[number] | "";
-  lastComplaint: string;
   steps: PilotStep[];
 } & Attribution;
 
 /** One row in the submissions sheet. */
-export type Submission = WaitlistRecord | BrandRecord;
+export type Submission = WaitlistRecord | ProfileRecord | BrandRecord;
 
 export type Parsed<F extends string, R> =
   | { ok: true; record: R }
@@ -99,10 +109,11 @@ export function toneNumber(answer: string): number | null {
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const EMAIL_ERROR = "Confira o e-mail: falta o @ ou o final, como .com.";
 
 /** Typed, trimmed and length-capped reads from a submitted form. */
 function reader<F extends string>(form: FormData) {
-  const field = (key: F | (typeof ATTRIBUTION_KEYS)[number], max = 200) =>
+  const field = (key: F | (typeof ATTRIBUTION_KEYS)[number] | "placement", max = 200) =>
     String(form.get(key) ?? "")
       .trim()
       .slice(0, max);
@@ -130,26 +141,46 @@ function attribution(form: FormData): Attribution {
 }
 
 export function parseWaitlist(form: FormData): Parsed<WaitlistField, WaitlistRecord> {
-  const { field, checked } = reader<WaitlistField>(form);
-  const tone = field("tone", 4);
+  const { field } = reader<WaitlistField>(form);
   const email = field("email", 160).toLowerCase();
-  const wantsToTest = checked("test");
-  const whatsapp = field("whatsapp", 30);
 
-  const errors: FieldErrors<WaitlistField> = {};
-  if (tone !== TONE_UNKNOWN && toneNumber(tone) === null)
-    errors.tone = "Escolha o tom mais parecido com o seu, ou “Não sei dizer”.";
-  if (!EMAIL.test(email)) errors.email = "Digite um e-mail válido.";
-  if (wantsToTest && whatsapp.replace(/\D/g, "").length < 10)
-    errors.whatsapp = "Digite seu WhatsApp com DDD para combinarmos o teste.";
-  if (!checked("consent"))
-    errors.consent = "Precisamos da sua autorização para guardar as respostas.";
-  if (Object.keys(errors).length) return { ok: false, errors };
+  if (!EMAIL.test(email)) return { ok: false, errors: { email: EMAIL_ERROR } };
 
   return {
     ok: true,
     record: {
       kind: "waitlist",
+      email,
+      placement: oneOf(field("placement", 10), PLACEMENTS),
+      ...attribution(form),
+    },
+  };
+}
+
+export function parseProfile(form: FormData): Parsed<ProfileField, ProfileRecord> {
+  const { field, checked } = reader<ProfileField>(form);
+  const email = field("email", 160).toLowerCase();
+  const tone = field("tone", 4);
+  const wantsToTest = checked("test");
+  const whatsapp = field("whatsapp", 30);
+
+  const errors: FieldErrors<ProfileField> = {};
+  // The e-mail is carried over from step one; without it the row could not
+  // be matched to anyone.
+  if (!EMAIL.test(email))
+    errors.email = "Perdemos o seu e-mail. Recarregue a página e entre na lista de novo.";
+  if (tone && tone !== TONE_UNKNOWN && toneNumber(tone) === null)
+    errors.tone = "Escolha uma das dez faixas, ou “Não sei dizer”.";
+  if (wantsToTest && whatsapp.replace(/\D/g, "").length < 10)
+    errors.whatsapp = "Digite o WhatsApp com DDD para combinarmos o teste.";
+  if (!checked("consent"))
+    errors.consent = "Sem a sua autorização não podemos guardar estas respostas.";
+  if (Object.keys(errors).length) return { ok: false, errors };
+
+  return {
+    ok: true,
+    record: {
+      kind: "profile",
       email,
       tone,
       foundation: field("foundation", 120),
@@ -173,12 +204,10 @@ export function parseBrand(form: FormData): Parsed<BrandField, BrandRecord> {
 
   const errors: FieldErrors<BrandField> = {};
   if (!name) errors.name = "Digite seu nome.";
-  if (!EMAIL.test(email)) errors.email = "Digite um e-mail válido.";
+  if (!EMAIL.test(email)) errors.email = EMAIL_ERROR;
   if (!brand) errors.brand = "Digite o nome da marca.";
-  if (!steps.length)
-    errors.steps = "Escolha pelo menos um passo, mesmo que seja só a conversa.";
-  if (!checked("consent"))
-    errors.consent = "Precisamos da sua autorização para entrar em contato.";
+  if (!steps.length) errors.steps = "Escolha pelo menos um passo, mesmo que seja só a conversa.";
+  if (!checked("consent")) errors.consent = "Sem a sua autorização não podemos entrar em contato.";
   if (Object.keys(errors).length) return { ok: false, errors };
 
   return {
@@ -188,11 +217,8 @@ export function parseBrand(form: FormData): Parsed<BrandField, BrandRecord> {
       name,
       email,
       brand,
-      role: field("role", 80),
       site: field("site", 200),
       platform: oneOf(field("platform", 40), PLATFORMS),
-      shades: oneOf(field("shades", 20), SHADE_COUNTS),
-      lastComplaint: field("last_complaint", 1000),
       steps: [...new Set(steps)],
       ...attribution(form),
     },

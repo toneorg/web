@@ -1,22 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo } from "next/font/google";
+import { Crimson_Pro, Host_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const archivo = Archivo({
-  variable: "--font-archivo",
+const crimsonPro = Crimson_Pro({
+  variable: "--font-crimson-pro",
   subsets: ["latin", "latin-ext"],
-  axes: ["wdth"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
+const hostGrotesk = Host_Grotesk({
+  variable: "--font-host-grotesk",
+  subsets: ["latin", "latin-ext"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: "tone: o tom certo de base, pela sua selfie",
+    default: "tone: antes de comprar, me manda o link",
     template: "%s | tone",
   },
   description:
-    "Chega de escolher base por uma bolinha de cor. A tone mostra qual tom de cada marca é o seu a partir de uma selfie, com cor calibrada para a pele brasileira.",
+    "A tone diz se a loja é confiável, quanto o produto custa em outras lojas e, se for base de maquiagem, se serve na sua pele. Ainda em construção: entre na lista de espera.",
   openGraph: {
     type: "website",
     locale: "pt_BR",
@@ -25,16 +31,16 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f3f3f2", // keep in sync with --color-paper in globals.css
+  themeColor: "#e26b5c", // keep in sync with --color-coral in globals.css
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={archivo.variable}>
+    <html lang="pt-BR" className={`${crimsonPro.variable} ${hostGrotesk.variable}`}>
       <body className="min-h-dvh">
         <a
           href="#conteudo"
-          className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-paper"
+          className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-wine focus:px-4 focus:py-2 focus:text-white"
         >
           Pular para o conteúdo
         </a>

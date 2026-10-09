@@ -1,13 +1,20 @@
 import { ImageResponse } from "next/og";
-import { MONK } from "@/lib/tones";
 
-export const alt =
-  "tone: sua pele não é uma bolinha de cor. Os dez tons da escala Monk em faixas.";
+export const alt = "tone: antes de comprar, me manda o link.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-async function loadArchivo(text: string) {
-  const url = `https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,800&text=${encodeURIComponent(text)}`;
+// Keep in sync with --color-coral and --color-wine in globals.css.
+const CORAL = "#e26b5c";
+const WINE = "#340b10";
+
+const WORDMARK = "tone";
+const HEADLINE_WEIGHT = 300;
+const WORDMARK_WEIGHT = 500;
+
+/** A static cut of the display face at one weight, subset to the glyphs it will set. */
+async function loadCrimsonPro(text: string, weight: number) {
+  const url = `https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@${weight}&text=${encodeURIComponent(text)}`;
   const css = await (await fetch(url)).text();
   const src = css.match(/src: url\((.+?)\) format\('(opentype|truetype)'\)/);
   if (!src) return null;
@@ -15,8 +22,13 @@ async function loadArchivo(text: string) {
 }
 
 export default async function Image() {
-  const headline = "Sua pele não é uma bolinha de cor.";
-  const font = await loadArchivo(`tone${headline}`).catch(() => null);
+  const lines = ["Antes de comprar,", "me manda o link."];
+  // Headline light, wordmark medium: the same two weights the page uses.
+  const [light, medium] = await Promise.all([
+    loadCrimsonPro(lines.join(""), HEADLINE_WEIGHT).catch(() => null),
+    loadCrimsonPro(WORDMARK, WORDMARK_WEIGHT).catch(() => null),
+  ]);
+  const loaded = light && medium;
 
   return new ImageResponse(
     (
@@ -26,42 +38,40 @@ export default async function Image() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: "#f3f3f2",
-          color: "#292420",
-          fontFamily: font ? "Archivo" : "sans-serif",
+          justifyContent: "space-between",
+          padding: "56px 72px 64px",
+          background: CORAL,
+          color: WINE,
+          fontFamily: loaded ? "Crimson Pro" : "serif",
+          fontWeight: HEADLINE_WEIGHT,
         }}
       >
+        <div style={{ fontSize: 52, fontWeight: WORDMARK_WEIGHT, letterSpacing: "-0.04em" }}>
+          {WORDMARK}
+        </div>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
-            padding: "56px 64px 40px",
-            flex: 1,
+            fontSize: 132,
+            lineHeight: 0.94,
+            letterSpacing: "-0.025em",
           }}
         >
-          <div style={{ fontSize: 44, letterSpacing: "-0.05em" }}>tone</div>
-          <div
-            style={{
-              fontSize: 84,
-              lineHeight: 0.98,
-              letterSpacing: "-0.035em",
-              maxWidth: 1000,
-            }}
-          >
-            {headline}
-          </div>
-        </div>
-        <div style={{ display: "flex", height: 170 }}>
-          {MONK.map((hex) => (
-            <div key={hex} style={{ flex: 1, background: hex }} />
+          {lines.map((line) => (
+            <div key={line}>{line}</div>
           ))}
         </div>
       </div>
     ),
     {
       ...size,
-      fonts: font ? [{ name: "Archivo", data: font, weight: 800, style: "normal" }] : [],
+      fonts: loaded
+        ? [
+            { name: "Crimson Pro", data: light, weight: HEADLINE_WEIGHT, style: "normal" },
+            { name: "Crimson Pro", data: medium, weight: WORDMARK_WEIGHT, style: "normal" },
+          ]
+        : [],
     },
   );
 }

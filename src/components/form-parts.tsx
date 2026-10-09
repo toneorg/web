@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import {
   ATTRIBUTION_KEYS,
@@ -9,8 +10,9 @@ import {
 } from "@/lib/forms";
 import { buttonClass } from "./button";
 
+/** Fields that sit on a white panel. 16px text keeps iOS from zooming on focus. */
 export const inputClass =
-  "block w-full min-h-13 rounded-[14px] bg-white px-4 text-[1rem] text-ink shadow-[inset_0_0_0_1px_var(--color-rule)] transition-shadow duration-150 placeholder:text-graphite/70 hover:shadow-[inset_0_0_0_1px_var(--color-edge-hover)] focus:shadow-[inset_0_0_0_2px_var(--color-ink)] focus:outline-none aria-[invalid=true]:shadow-[inset_0_0_0_2px_var(--color-alert)]";
+  "block w-full min-h-13 rounded-2xl bg-coral-50 px-4 text-[1rem] text-wine shadow-[inset_0_0_0_1px_var(--color-coral-200)] transition-shadow duration-150 placeholder:text-muted hover:shadow-[inset_0_0_0_1px_var(--color-coral-300)] focus:shadow-[inset_0_0_0_2px_var(--color-wine)] focus:outline-none aria-[invalid=true]:shadow-[inset_0_0_0_2px_var(--color-coral-700)]";
 
 const IDLE = { status: "idle" } as const;
 
@@ -72,11 +74,11 @@ export function Label({
 }) {
   return (
     <label htmlFor={htmlFor} className="flex flex-col gap-1">
-      <span className="font-semibold">
+      <span className="font-medium">
         {children}
-        {optional ? <span className="font-normal text-graphite"> (opcional)</span> : null}
+        {optional ? <span className="font-normal text-muted"> (opcional)</span> : null}
       </span>
-      {hint ? <span className="text-[0.95rem] text-graphite">{hint}</span> : null}
+      {hint ? <span className="text-[0.9375rem] text-muted">{hint}</span> : null}
     </label>
   );
 }
@@ -84,7 +86,7 @@ export function Label({
 export function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className="text-[0.95rem] font-medium text-alert">
+    <p id={id} className="text-[0.9375rem] font-medium text-coral-700">
       {message}
     </p>
   );
@@ -108,7 +110,7 @@ export function Checkbox({
   value?: string;
 }) {
   return (
-    <label className="group flex cursor-pointer items-start gap-3 py-1">
+    <label className="flex cursor-pointer items-start gap-3 py-1.5">
       <input
         type="checkbox"
         name={name}
@@ -121,11 +123,11 @@ export function Checkbox({
       />
       <span
         aria-hidden
-        className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-[7px] bg-white shadow-[inset_0_0_0_1.5px_var(--color-control)] transition-colors duration-150 peer-checked:bg-ink peer-checked:shadow-none peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink peer-aria-[invalid=true]:shadow-[inset_0_0_0_2px_var(--color-alert)]"
+        className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-[7px] bg-white text-white shadow-[inset_0_0_0_1.5px_var(--color-muted)] transition-[background-color,box-shadow] duration-150 peer-checked:bg-wine peer-checked:shadow-none peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-wine peer-aria-[invalid=true]:shadow-[inset_0_0_0_2px_var(--color-coral-700)]"
       >
         <svg
           viewBox="0 0 16 16"
-          className={`size-4 text-paper transition-[opacity,scale] duration-150 ${
+          className={`size-4 transition-[opacity,scale] duration-150 ${
             checked ? "scale-100 opacity-100" : "scale-50 opacity-0"
           }`}
           fill="none"
@@ -139,6 +141,44 @@ export function Checkbox({
       </span>
       <span className="leading-snug">{children}</span>
     </label>
+  );
+}
+
+/** One-of-many answer as a row of pills. Native radios keep arrow-key movement. */
+export function Choice<V extends string>({
+  name,
+  legend,
+  options,
+  value,
+  onChange,
+}: {
+  name: string;
+  legend: string;
+  options: readonly { value: V; label: string }[];
+  value: string;
+  onChange: (value: V) => void;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-3">
+      <legend className="font-medium">{legend}</legend>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.map((o) => (
+          <label key={o.value} className="cursor-pointer">
+            <input
+              type="radio"
+              name={name}
+              value={o.value}
+              checked={value === o.value}
+              onChange={() => onChange(o.value)}
+              className="peer sr-only"
+            />
+            <span className="press flex min-h-11 items-center rounded-full bg-coral-50 px-4 shadow-[inset_0_0_0_1px_var(--color-coral-200)] hover:shadow-[inset_0_0_0_1px_var(--color-coral-300)] peer-checked:bg-wine peer-checked:text-white peer-checked:shadow-none peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-wine">
+              {o.label}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -159,7 +199,7 @@ export function Select({
       <svg
         aria-hidden
         viewBox="0 0 16 16"
-        className="pointer-events-none absolute end-4 top-1/2 size-4 -translate-y-1/2 text-graphite"
+        className="pointer-events-none absolute end-4 top-1/2 size-4 -translate-y-1/2 text-muted"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
@@ -193,11 +233,11 @@ export function ConsentField({
         invalid={!!error}
         describedBy={error ? "consent-error" : undefined}
       >
-        <span className="text-graphite">
+        <span className="text-muted">
           {children}{" "}
-          <a href="/privacidade" className="font-medium text-ink underline underline-offset-4">
+          <Link href="/privacidade" className="font-medium text-wine underline underline-offset-4">
             Como tratamos seus dados
-          </a>
+          </Link>
         </span>
       </Checkbox>
       <FieldError id="consent-error" message={error} />
@@ -226,7 +266,7 @@ export function SubmitRow<F extends string>({
           ref={alertRef}
           tabIndex={-1}
           role="alert"
-          className="font-semibold text-alert focus:outline-none"
+          className="font-medium text-coral-700 focus:outline-none"
         >
           {state.message}
         </p>
@@ -246,7 +286,7 @@ export function SubmitRow<F extends string>({
 const URL_KEYS = ATTRIBUTION_KEYS.filter((k) => k !== "referrer");
 
 /**
- * Hidden fields with where the visit came from, so the event QR code
+ * Hidden fields with where the visit came from, so a tagged link
  * (e.g. /?utm_source=evento&utm_medium=qr) can be told apart from shares.
  */
 export function AttributionFields() {

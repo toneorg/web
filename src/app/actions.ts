@@ -4,16 +4,18 @@ import {
   type BrandField,
   type FormState,
   type Parsed,
+  type ProfileField,
   type Submission,
   type WaitlistField,
   isBot,
   parseBrand,
+  parseProfile,
   parseWaitlist,
 } from "@/lib/forms";
 import { saveSubmission } from "@/lib/storage";
 
 const INVALID = "Falta pouco. Confira os campos marcados.";
-const UNAVAILABLE = "Não conseguimos salvar agora. Tente de novo em alguns segundos.";
+const UNAVAILABLE = "Não deu para salvar agora. Tente de novo em alguns segundos.";
 
 /** Honeypot → validate → save, the same for every form. */
 async function submit<F extends string>(
@@ -40,6 +42,13 @@ export async function joinWaitlist(
   form: FormData,
 ): Promise<FormState<WaitlistField>> {
   return submit(form, parseWaitlist);
+}
+
+export async function saveProfile(
+  _prev: FormState<ProfileField>,
+  form: FormData,
+): Promise<FormState<ProfileField>> {
+  return submit(form, parseProfile);
 }
 
 export async function requestPilot(
