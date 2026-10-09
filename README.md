@@ -24,7 +24,7 @@ Without `SUBMISSIONS_WEBHOOK_URL`, submissions go to `data/submissions.jsonl` (g
 
 Vercel works out of the box. Set these environment variables first:
 
-- `SUBMISSIONS_WEBHOOK_URL`: required in production. See `docs/google-sheets-webhook.md` for a 5-minute Google Sheet setup. The request times out after 10 s, and an HTML reply (what Apps Script sends when the script crashes) counts as a failure.
+- `SUBMISSIONS_WEBHOOK_URL`: required in production. See `docs/google-sheets-webhook.md` for a 5-minute Google Sheet setup. The request times out after 15 s (longer than the 10 s the script may wait for its lock), and an HTML reply (what Apps Script sends when the script crashes) counts as a failure.
 - `NEXT_PUBLIC_SITE_URL`: the public URL, so link previews in WhatsApp and Instagram show the image, and the share link on the success screen points home.
 - `NEXT_PUBLIC_CONTACT_EMAIL`: the address for deletion requests on `/privacidade` and in the footer.
 
@@ -40,6 +40,10 @@ Each one is a server action in `src/app/actions.ts` and saves one record, told a
 
 The tone band is sensitive data under the LGPD, so it is only collected in the second step, behind its own consent box, and stored as a number.
 
+Each form has a hidden trap field that only bots fill. A row that arrives with it filled is still saved, with `suspect: true`, so a person whose browser autofilled it is not lost; filter that column out when reading the sheet.
+
+Once she joins, the page remembers it in `sessionStorage` for the life of the tab (`src/lib/signup-store.ts`), so a reload or a visit to the privacy note does not ask for the e-mail again.
+
 Every record also carries `utm_source`, `utm_medium`, `utm_campaign`, `ref` and the referrer. Tagged links:
 
 - People: `https://<domain>/?utm_source=evento&utm_medium=qr&utm_campaign=<nome-do-evento>`
@@ -50,7 +54,8 @@ Shares from the success screen arrive with `?ref=convite`.
 ## Where to edit
 
 - Copy and layout of each section: `src/sections/` (one file per section, in page order in `src/app/page.tsx`); the privacy note is `src/app/privacidade/page.tsx`
-- Form fields, option values, validation messages and the saved record shape: `src/lib/forms.ts` (shared by the forms and the server actions)
+- Field names, option values and the saved record shape: `src/lib/forms.ts` (shared by the forms and the server actions). Validation and its messages: `src/lib/forms.server.ts`
+- Site-wide constants (public URL, contact address, section anchors): `src/lib/site.ts`
 - Form layout: `src/components/email-capture.tsx`, `profile-form.tsx`, `brand-form.tsx`; shared pieces in `form-parts.tsx`; the state the two e-mail fields share in `signup-context.tsx`
 - Colors, type and motion: `src/app/globals.css`; the skin-tone scale in `src/lib/tones.ts`
 
@@ -70,4 +75,4 @@ Shares from the success screen arrive with `?ref=convite`.
 - The footer says "Feita em São Paulo, 2026."
 - If the Google Sheet webhook is already deployed, add the `profile` tab to its script (`docs/google-sheets-webhook.md`); until then those rows land in `Outros`.
 - The privacy note has not been reviewed by a lawyer.
-- Visits are not tracked yet, only submissions. For visit → signup rate, add Vercel Analytics or PostHog.
+- Visits are counted with Vercel Web Analytics (`<Analytics />` in `src/app/layout.tsx`), without cookies. It collects nothing until Analytics is enabled for the project in the Vercel dashboard, and nothing in local dev. `/privacidade` says so.
