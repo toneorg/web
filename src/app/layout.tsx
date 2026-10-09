@@ -1,3 +1,4 @@
+import { color } from "@toneorg/design";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Crimson_Pro, Host_Grotesk } from "next/font/google";
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#e26b5c", // keep in sync with --color-coral in globals.css
+  themeColor: color.coral[500],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

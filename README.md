@@ -57,9 +57,11 @@ Shares from the success screen arrive with `?ref=convite`.
 - Field names, option values and the saved record shape: `src/lib/forms.ts` (shared by the forms and the server actions). Validation and its messages: `src/lib/forms.server.ts`
 - Site-wide constants (public URL, contact address, section anchors): `src/lib/site.ts`
 - Form layout: `src/components/email-capture.tsx`, `profile-form.tsx`, `brand-form.tsx`; shared pieces in `form-parts.tsx`; the state the two e-mail fields share in `signup-context.tsx`
-- Colors, type and motion: `src/app/globals.css`; the skin-tone scale in `src/lib/tones.ts`
+- Colors and type: the design system, `@toneorg/design` (see Design below). This page's motion: `src/app/globals.css`. The skin-tone scale: `src/lib/tones.ts`
 
 ## Design
+
+The palette, the fonts, the text styles and the rules for using them live in the tone design system, [`toneorg/design`](https://github.com/toneorg/design), installed here as `@toneorg/design` at a fixed tag. `src/app/globals.css` imports its Tailwind theme, and `npm run check:design` (also in CI) fails when a color is written by hand outside `src/lib/tones.ts`. To change a color or a font, change it there, release a version and run `npm install github:toneorg/design#vX.Y.Z` here. What follows is how this page applies those rules.
 
 - **Color.** One hue. Every color is the brand coral `#e26b5c` moved up or down in lightness, down to a wine `#340b10` that serves as ink. Coral grounds are where tone speaks in the first person: the hero, the neutrality promise and the list. Skin tones appear only where they are data: the product-page dots, the scale and the tone picker.
 - **Contrast.** Wine on coral is 5.4:1, so wine is the only text color on coral. White on coral and coral on white are both 3.2:1, which only passes at display sizes; small coral text on white uses `coral-600`.

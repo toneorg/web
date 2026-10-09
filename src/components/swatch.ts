@@ -5,7 +5,7 @@
 export const SWATCH = "rounded-full outline-1 -outline-offset-1 outline-black/10";
 
 /** The ring around the chosen tone. */
-export const SWATCH_PICKED = "shadow-[0_0_0_3px_#fff,0_0_0_5px_var(--color-wine)]";
+export const SWATCH_PICKED = "shadow-[0_0_0_3px_var(--color-white),0_0_0_5px_var(--color-wine)]";
 
 /** The same ring at the scale of a product page's tiny dots. */
-export const SWATCH_PICKED_SMALL = "shadow-[0_0_0_2px_#fff,0_0_0_3.5px_var(--color-wine)]";
+export const SWATCH_PICKED_SMALL = "shadow-[0_0_0_2px_var(--color-white),0_0_0_3.5px_var(--color-wine)]";
