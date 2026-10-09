@@ -1,12 +1,12 @@
+import { color } from "@toneorg/design";
 import { ImageResponse } from "next/og";
 
 export const alt = "tone: antes de comprar, me manda o link.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Keep in sync with --color-coral and --color-wine in globals.css.
-const CORAL = "#e26b5c";
-const WINE = "#340b10";
+const CORAL = color.coral[500];
+const WINE = color.wine[900];
 
 const WORDMARK = "tone";
 const HEADLINE_WEIGHT = 300;
