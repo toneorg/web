@@ -2,21 +2,28 @@
 
 import { useState } from "react";
 import { saveProfile } from "@/app/actions";
-import { WRONG_SHADE_VALUES, type WrongShade } from "@/lib/forms";
+import {
+  type FormState,
+  type ProfileField,
+  type WrongShade,
+  WRONG_SHADE_VALUES,
+} from "@/lib/forms";
+import { SITE_URL } from "@/lib/site";
 import { buttonClass } from "./button";
 import {
   AttributionFields,
   Checkbox,
   Choice,
   ConsentField,
+  Field,
   FieldError,
   Honeypot,
-  Label,
   SubmitRow,
   inputClass,
   useFields,
   useFormAction,
 } from "./form-parts";
+import { useSignup } from "./signup-context";
 import { TonePicker } from "./tone-picker";
 
 const WRONG_SHADE_LABELS: Record<WrongShade, string> = {
@@ -31,25 +38,39 @@ const WRONG_SHADE_OPTIONS = WRONG_SHADE_VALUES.map((value) => ({
   label: WRONG_SHADE_LABELS[value],
 }));
 
+const TEXT_FIELDS = { foundation: "", whatsapp: "" } satisfies Partial<Record<ProfileField, string>>;
+
+/** The e-mail from step one, carried along so the two rows can be matched. */
+const EMAIL = "email" satisfies ProfileField;
+
 const SHARE_TEXT =
   "Antes de comprar base online, manda o link para a tone. Ela diz se a loja é confiável e se o tom serve em você. A lista de espera está aberta:";
 
+/** WhatsApp share link. Only called in the browser, after the answers are saved. */
 function shareUrl() {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-  const invite = `${origin.replace(/\/$/, "")}/?ref=convite`;
+  const invite = `${SITE_URL ?? window.location.origin}/?ref=convite`;
   return `https://wa.me/?text=${encodeURIComponent(`${SHARE_TEXT} ${invite}`)}`;
 }
 
 /** Step two of the list: optional answers that help assemble the beta group. */
 export function ProfileForm({ email }: { email: string }) {
-  const { state, formAction, pending, errors, alertRef, doneRef } = useFormAction(saveProfile);
-  const { bind } = useFields({ foundation: "", whatsapp: "" });
+  const { profileSaved, markProfileSaved } = useSignup();
+
+  async function saveAndRemember(prev: FormState<ProfileField>, data: FormData) {
+    const result = await saveProfile(prev, data);
+    if (result.status === "ok") markProfileSaved();
+    return result;
+  }
+
+  const { state, formAction, pending, errors, formRef, alertRef, doneRef } =
+    useFormAction(saveAndRemember);
+  const fields = useFields(TEXT_FIELDS);
   const [tone, setTone] = useState("");
   const [wrongShade, setWrongShade] = useState("");
   const [test, setTest] = useState(false);
   const [consent, setConsent] = useState(false);
 
-  if (state.status === "ok") {
+  if (profileSaved) {
     return (
       <div className="flex flex-col gap-4">
         <h3 ref={doneRef} tabIndex={-1} className="display-md focus:outline-none">
@@ -74,10 +95,10 @@ export function ProfileForm({ email }: { email: string }) {
   }
 
   return (
-    <form action={formAction} noValidate className="relative flex flex-col gap-10">
+    <form ref={formRef} action={formAction} noValidate className="flex flex-col gap-10">
       <Honeypot />
       <AttributionFields />
-      <input type="hidden" name="email" value={email} />
+      <input type="hidden" name={EMAIL} value={email} />
 
       <div className="flex flex-col gap-2">
         <TonePicker
@@ -97,17 +118,22 @@ export function ProfileForm({ email }: { email: string }) {
         onChange={setWrongShade}
       />
 
-      <div className="flex flex-col gap-3">
-        <Label htmlFor="foundation" optional hint="Marca e nome ou número do tom, se lembrar.">
-          Qual base você usa hoje?
-        </Label>
-        <input
-          autoComplete="off"
-          placeholder="Ex.: marca, tom 30"
-          className={inputClass}
-          {...bind("foundation", errors)}
-        />
-      </div>
+      <Field
+        fields={fields}
+        name="foundation"
+        label="Qual base você usa hoje?"
+        hint="Marca e nome ou número do tom, se lembrar."
+        optional
+      >
+        {(control) => (
+          <input
+            autoComplete="off"
+            placeholder="Ex.: marca, tom 30"
+            className={inputClass}
+            {...control}
+          />
+        )}
+      </Field>
 
       <div className="flex flex-col gap-3">
         <Checkbox name="test" checked={test} onChange={setTest}>
@@ -117,25 +143,31 @@ export function ProfileForm({ email }: { email: string }) {
           </span>
         </Checkbox>
         {test ? (
-          <div className="flex flex-col gap-3 ps-9">
-            <Label htmlFor="whatsapp" hint="Só para combinar o teste.">
-              Seu WhatsApp
-            </Label>
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="(11) 90000-0000"
-              className={inputClass}
-              {...bind("whatsapp", errors)}
-            />
-            <FieldError id="whatsapp-error" message={errors.whatsapp} />
-          </div>
+          <Field
+            fields={fields}
+            name="whatsapp"
+            label="Seu WhatsApp"
+            hint="Só para combinar o teste."
+            required
+            error={errors.whatsapp}
+            className="ps-9"
+          >
+            {(control) => (
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="(11) 90000-0000"
+                className={inputClass}
+                {...control}
+              />
+            )}
+          </Field>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-6">
-        <FieldError id="email-error" message={errors.email} />
+        <FieldError id="profile-email-error" message={errors.email} />
         <ConsentField checked={consent} onChange={setConsent} error={errors.consent}>
           Tenho 18 anos ou mais e autorizo a tone a guardar minha faixa de tom e estas respostas
           para montar o grupo do beta. Posso pedir para apagar quando quiser.

@@ -1,6 +1,6 @@
 import { buttonClass } from "@/components/button";
 import { SignupLink } from "@/components/signup-context";
-import { Container, SECTION } from "@/components/site-chrome";
+import { Container, GRID, SECTION } from "@/components/site-chrome";
 
 const PROMISES = [
   {
@@ -22,7 +22,7 @@ export function Brands() {
   return (
     <section className={`bg-wine-950 text-coral-50 ${SECTION}`}>
       <Container>
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-x-8">
+        <div className={`${GRID} gap-8`}>
           <h2 className="display-lg lg:col-span-7">Tem uma marca de maquiagem?</h2>
           <div className="lg:col-span-4 lg:col-start-9 lg:pt-3">
             <p className="lead max-w-[30rem] text-coral-200">

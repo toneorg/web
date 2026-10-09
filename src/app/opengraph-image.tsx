@@ -15,18 +15,27 @@ const WORDMARK_WEIGHT = 500;
 /** A static cut of the display face at one weight, subset to the glyphs it will set. */
 async function loadCrimsonPro(text: string, weight: number) {
   const url = `https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@${weight}&text=${encodeURIComponent(text)}`;
-  const css = await (await fetch(url)).text();
-  const src = css.match(/src: url\((.+?)\) format\('(opentype|truetype)'\)/);
-  if (!src) return null;
-  return (await fetch(src[1])).arrayBuffer();
+  const css = await fetch(url);
+  if (!css.ok) throw new Error(`Google Fonts answered ${css.status} for the stylesheet`);
+  const src = (await css.text()).match(/src: url\((.+?)\) format\('(opentype|truetype)'\)/);
+  if (!src) throw new Error("no TTF source in the Google Fonts stylesheet");
+  const file = await fetch(src[1]);
+  if (!file.ok) throw new Error(`Google Fonts answered ${file.status} for the font file`);
+  return file.arrayBuffer();
+}
+
+/** Without the font the card still renders, in a fallback serif; say so in the build log. */
+function fallback(error: unknown) {
+  console.warn("opengraph-image: Crimson Pro not loaded, using the fallback serif.", error);
+  return null;
 }
 
 export default async function Image() {
   const lines = ["Antes de comprar,", "me manda o link."];
   // Headline light, wordmark medium: the same two weights the page uses.
   const [light, medium] = await Promise.all([
-    loadCrimsonPro(lines.join(""), HEADLINE_WEIGHT).catch(() => null),
-    loadCrimsonPro(WORDMARK, WORDMARK_WEIGHT).catch(() => null),
+    loadCrimsonPro(lines.join(""), HEADLINE_WEIGHT).catch(fallback),
+    loadCrimsonPro(WORDMARK, WORDMARK_WEIGHT).catch(fallback),
   ]);
   const loaded = light && medium;
 

@@ -2,7 +2,9 @@ import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import type { Submission } from "./forms";
 
-const WEBHOOK_TIMEOUT_MS = 10_000;
+// Longer than the 10 s the documented Apps Script may wait for its lock, so a
+// slow write is not reported as a failure and then retried into a duplicate.
+const WEBHOOK_TIMEOUT_MS = 15_000;
 
 /**
  * Persists a form submission.
@@ -40,6 +42,8 @@ async function postToWebhook(url: string, entry: object) {
   if (res.headers.get("content-type")?.includes("text/html")) {
     throw new Error("Webhook answered with an HTML page instead of a confirmation");
   }
+  // Read the reply to the end so the connection can be reused.
+  await res.text();
 }
 
 async function appendToFile(entry: object) {

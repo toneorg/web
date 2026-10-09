@@ -37,6 +37,8 @@
 
   html {
     scroll-behavior: smooth;
+    /* Room for the floating nav, so a control focused by keyboard is never under it. */
+    scroll-padding-bottom: 6rem;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -154,8 +156,22 @@
 }
 
 /*
+  An element's place in a staged entrance (set with `order()` in
+  lib/stagger.ts). Registered so it does not inherit: a staggered element
+  inside another staggered element starts from zero instead of picking up its
+  ancestor's delay. A card that wants its marks to follow it passes its place
+  down as `--card`.
+*/
+@property --i {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+/*
   Staged entrance: opacity, a short rise and a little blur, 100ms apart.
-  Runs on load in the hero and once on scroll in the demo (see Reveal).
+  Runs on load in the hero and once on scroll elsewhere (see Reveal). It ends
+  on `none`, so nothing is left holding a stacking context after it plays.
 */
 @keyframes rise {
   from {
@@ -165,8 +181,8 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
+    transform: none;
+    filter: none;
   }
 }
 
@@ -200,15 +216,15 @@
   animation: marquee 60s linear infinite;
 }
 
-/* The text cursor in the hero's link field. */
-@keyframes caret {
+/* The text cursor in the hero's link field, when it is not typing. */
+@keyframes blink {
   50% {
     opacity: 0;
   }
 }
 
-@utility caret {
-  animation: caret 1s steps(1) infinite;
+@utility blink {
+  animation: blink 1s steps(1) infinite;
 }
 
 /* Three dots while tone reads the link. */
@@ -268,8 +284,9 @@
   animation-delay: calc(var(--i, 0) * 160ms + 150ms);
 }
 
-/* Lines that draw themselves: the timeline rule and the check marks. `--j`
-   orders marks inside a card that already has its own place in `--i`. */
+/* Lines that draw themselves: the timeline rule and the check marks. A mark
+   inside a card waits for the card (`--card`) and then for its own turn
+   among the card's marks (`--j`). */
 @keyframes uncover {
   from {
     clip-path: inset(0 100% 100% 0);
@@ -285,7 +302,7 @@
 
 [data-reveal="in"] .uncover {
   animation: uncover 500ms var(--ease-soft) both;
-  animation-delay: calc(var(--i, 0) * 100ms + var(--j, 0) * 140ms + 350ms);
+  animation-delay: calc((var(--i, 0) + var(--card, 0)) * 100ms + var(--j, 0) * 140ms + 350ms);
 }
 
 @keyframes pop {
@@ -301,7 +318,7 @@
 
 [data-reveal="in"] .pop {
   animation: pop 300ms var(--ease-soft) both;
-  animation-delay: calc(var(--i, 0) * 100ms + var(--j, 0) * 140ms + 350ms);
+  animation-delay: calc((var(--i, 0) + var(--card, 0)) * 100ms + var(--j, 0) * 140ms + 350ms);
 }
 
 /* Her three questions gain their color as they cross the screen. Browsers
@@ -322,19 +339,33 @@
   }
 }
 
+/*
+  With reduced motion, and on paper, every staged element shows its final
+  state at once. One rule per class, each undoing only what that class set.
+*/
+@media (prefers-reduced-motion: reduce), print {
+  [data-reveal] :is(.reveal-item, .pop) {
+    opacity: 1;
+    animation: none;
+  }
+
+  [data-reveal] .uncover {
+    clip-path: none;
+    animation: none;
+  }
+
+  [data-reveal] .strike {
+    background-size: 100% 1.5px;
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
 
-  [data-reveal] :is(.reveal-item, .strike, .uncover, .pop) {
-    opacity: 1;
-    clip-path: none;
-    background-size: 100% 1.5px;
-    animation: none;
-  }
-
-  :is(.marquee, .caret, .halo, .thinking) {
+  :is(.marquee, .blink, .halo, .thinking) {
     animation: none;
   }
 }

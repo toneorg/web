@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Crimson_Pro, Host_Grotesk } from "next/font/google";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const crimsonPro = Crimson_Pro({
@@ -16,7 +17,7 @@ const hostGrotesk = Host_Grotesk({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(SITE_URL ?? "http://localhost:3000"),
   title: {
     default: "tone: antes de comprar, me manda o link",
     template: "%s | tone",
@@ -36,7 +37,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${crimsonPro.variable} ${hostGrotesk.variable}`}>
+    <html lang="pt-BR" data-scroll-behavior="smooth" className={`${crimsonPro.variable} ${hostGrotesk.variable}`}>
       <body className="min-h-dvh">
         <a
           href="#conteudo"

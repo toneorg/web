@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { requestPilot } from "@/app/actions";
-import { PILOT_STEPS, PLATFORMS, type PilotStep } from "@/lib/forms";
+import { type BrandField, type PilotStep, PILOT_STEPS, PLATFORMS } from "@/lib/forms";
 import {
   AttributionFields,
   Checkbox,
   ConsentField,
+  Field,
   FieldError,
   Honeypot,
-  Label,
   Select,
   SubmitRow,
   inputClass,
@@ -24,9 +24,20 @@ const PILOT_STEP_LABELS: Record<PilotStep, string> = {
   piloto: "Um piloto de 60 dias com grupo de controle",
 };
 
+const TEXT_FIELDS = {
+  name: "",
+  email: "",
+  brand: "",
+  site: "",
+  platform: "",
+} satisfies Partial<Record<BrandField, string>>;
+
+const PAIR = "grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6";
+
 export function BrandForm() {
-  const { state, formAction, pending, errors, alertRef, doneRef } = useFormAction(requestPilot);
-  const { bind } = useFields({ name: "", email: "", brand: "", site: "", platform: "" });
+  const { state, formAction, pending, errors, formRef, alertRef, doneRef } =
+    useFormAction(requestPilot);
+  const fields = useFields(TEXT_FIELDS);
   const [steps, setSteps] = useState<PilotStep[]>(["conversa"]);
   const [consent, setConsent] = useState(false);
 
@@ -45,60 +56,51 @@ export function BrandForm() {
   }
 
   return (
-    <form action={formAction} noValidate className="relative flex flex-col gap-8">
+    <form ref={formRef} action={formAction} noValidate className="flex flex-col gap-8">
       <Honeypot />
       <AttributionFields />
 
-      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6">
-        <div className="flex flex-col gap-3">
-          <Label htmlFor="name">Seu nome</Label>
-          <input autoComplete="name" className={inputClass} {...bind("name", errors)} />
-          <FieldError id="name-error" message={errors.name} />
-        </div>
-        <div className="flex flex-col gap-3">
-          <Label htmlFor="email">E-mail de trabalho</Label>
-          <input
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            className={inputClass}
-            {...bind("email", errors)}
-          />
-          <FieldError id="email-error" message={errors.email} />
-        </div>
+      <div className={PAIR}>
+        <Field fields={fields} name="name" label="Seu nome" required error={errors.name}>
+          {(control) => <input autoComplete="name" className={inputClass} {...control} />}
+        </Field>
+        <Field fields={fields} name="email" label="E-mail de trabalho" required error={errors.email}>
+          {(control) => (
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              className={inputClass}
+              {...control}
+            />
+          )}
+        </Field>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6">
-        <div className="flex flex-col gap-3">
-          <Label htmlFor="brand">Marca</Label>
-          <input autoComplete="organization" className={inputClass} {...bind("brand", errors)} />
-          <FieldError id="brand-error" message={errors.brand} />
-        </div>
-        <div className="flex flex-col gap-3">
-          <Label htmlFor="site" optional>
-            Site da loja
-          </Label>
-          <input
-            type="url"
-            inputMode="url"
-            placeholder="suamarca.com.br"
-            className={inputClass}
-            {...bind("site", errors)}
-          />
-        </div>
+      <div className={PAIR}>
+        <Field fields={fields} name="brand" label="Marca" required error={errors.brand}>
+          {(control) => <input autoComplete="organization" className={inputClass} {...control} />}
+        </Field>
+        <Field fields={fields} name="site" label="Site da loja" optional>
+          {(control) => (
+            <input
+              type="url"
+              inputMode="url"
+              placeholder="suamarca.com.br"
+              className={inputClass}
+              {...control}
+            />
+          )}
+        </Field>
       </div>
 
-      <div className="flex flex-col gap-3 sm:max-w-[calc(50%-0.75rem)]">
-        <Label htmlFor="platform" optional>
-          Plataforma da loja
-        </Label>
-        <Select options={PLATFORMS} {...bind("platform", errors)} />
+      <div className={PAIR}>
+        <Field fields={fields} name="platform" label="Plataforma da loja" optional>
+          {(control) => <Select options={PLATFORMS} {...control} />}
+        </Field>
       </div>
 
-      <fieldset
-        className="flex flex-col gap-2"
-        aria-describedby={errors.steps ? "steps-error" : undefined}
-      >
+      <fieldset aria-describedby={errors.steps ? "steps-error" : undefined}>
         <legend className="flex flex-col gap-1">
           <span className="font-medium">Até onde vocês topariam ir agora?</span>
           <span className="text-[0.9375rem] text-muted">Marque tudo que fizer sentido.</span>
@@ -112,7 +114,7 @@ export function BrandForm() {
               checked={steps.includes(step)}
               invalid={!!errors.steps}
               onChange={(on) =>
-                setSteps((s) => (on ? [...s, step] : s.filter((x) => x !== step)))
+                setSteps((chosen) => (on ? [...chosen, step] : chosen.filter((s) => s !== step)))
               }
             >
               {PILOT_STEP_LABELS[step]}

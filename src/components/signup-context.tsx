@@ -1,6 +1,16 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import type { Placement } from "@/lib/forms";
+import { type JoinedAt, parseSaved, signupStore } from "@/lib/signup-store";
+import { ANCHOR, BRAND_PARAM } from "@/lib/site";
 
 /** Who the signup section is talking to: someone who shops, or a brand. */
 export type Audience = "pessoa" | "marca";
@@ -8,8 +18,13 @@ export type Audience = "pessoa" | "marca";
 type Signup = {
   /** Empty until an e-mail joins the list from either field on the page. */
   email: string;
+  /** Whether she already sent the optional answers of step two. */
+  profileSaved: boolean;
+  /** The field she joined from in this visit, so that spot can take focus; null after a reload. */
+  joinedAt: JoinedAt;
   audience: Audience;
-  join: (email: string) => void;
+  join: (email: string, placement: Placement) => void;
+  markProfileSaved: () => void;
   setAudience: (audience: Audience) => void;
 };
 
@@ -19,25 +34,46 @@ const noSubscription = () => () => {};
 
 /** /marcas redirects to /?para=marca, so brand links open on the brand form. */
 function audienceFromUrl(): Audience {
-  return new URLSearchParams(window.location.search).get("para") === "marca" ? "marca" : "pessoa";
+  const param = new URLSearchParams(window.location.search).get(BRAND_PARAM.key);
+  return param === BRAND_PARAM.value ? "marca" : "pessoa";
 }
 
 /**
  * Shared by the two e-mail fields and the signup section, so joining in the
- * hero is already known when the person reaches the end of the page.
+ * hero is already known when the person reaches the end of the page. What she
+ * did is kept for the tab's lifetime, so a reload does not ask again.
  */
 export function SignupProvider({ children }: { children: React.ReactNode }) {
-  const [email, setEmail] = useState("");
-  const [chosen, setChosen] = useState<Audience | null>(null);
-  const fromUrl = useSyncExternalStore<Audience>(
-    noSubscription,
-    audienceFromUrl,
-    () => "pessoa",
+  const raw = useSyncExternalStore(
+    signupStore.subscribe,
+    signupStore.snapshot,
+    signupStore.serverSnapshot,
   );
+  const saved = useMemo(() => parseSaved(raw), [raw]);
+
+  const [joinedAt, setJoinedAt] = useState<JoinedAt>(null);
+  const [chosen, setChosen] = useState<Audience | null>(null);
+  const fromUrl = useSyncExternalStore<Audience>(noSubscription, audienceFromUrl, () => "pessoa");
+
+  const join = useCallback((email: string, placement: Placement) => {
+    setJoinedAt(placement);
+    signupStore.save({ email, profileSaved: false });
+  }, []);
+
+  const markProfileSaved = useCallback(() => {
+    signupStore.save({ ...parseSaved(signupStore.snapshot()), profileSaved: true });
+  }, []);
 
   const value = useMemo(
-    () => ({ email, audience: chosen ?? fromUrl, join: setEmail, setAudience: setChosen }),
-    [email, chosen, fromUrl],
+    () => ({
+      ...saved,
+      joinedAt,
+      audience: chosen ?? fromUrl,
+      join,
+      markProfileSaved,
+      setAudience: setChosen,
+    }),
+    [saved, joinedAt, chosen, fromUrl, join, markProfileSaved],
   );
 
   return <SignupContext value={value}>{children}</SignupContext>;
@@ -61,7 +97,7 @@ export function SignupLink({
 }) {
   const { setAudience } = useSignup();
   return (
-    <a href="#lista" onClick={() => setAudience(audience)} className={className}>
+    <a href={`#${ANCHOR.list}`} onClick={() => setAudience(audience)} className={className}>
       {children}
     </a>
   );

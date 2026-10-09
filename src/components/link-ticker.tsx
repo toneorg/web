@@ -2,8 +2,8 @@
 
 import { useEffect, useReducer, useRef } from "react";
 import { useLoopAllowed } from "@/lib/motion";
-import { LinkIcon } from "./icons";
-import { order } from "./site-chrome";
+import { order } from "@/lib/stagger";
+import { LinkPill } from "./link-pill";
 
 // Invented links and tone's reply to each. Together they cover every kind of
 // answer: yes, no, a store it does not trust, something it has not learned
@@ -31,13 +31,11 @@ const EXCHANGES = [
   },
 ];
 
-/** How long each phase lasts before the next tick. */
-const TYPE_MS = 38;
-const READ_MS = 1100;
-const HOLD_MS = 3800;
-
 type Ticker = { turn: number; typed: number; replied: boolean };
 type Phase = "typing" | "reading" | "replied";
+
+/** How long each phase lasts before the next tick. */
+const DELAY: Record<Phase, number> = { typing: 38, reading: 1100, replied: 3800 };
 
 /** Starts on a finished exchange, so the first paint already shows the whole idea. */
 const START: Ticker = { turn: 0, typed: EXCHANGES[0].link.length, replied: true };
@@ -47,11 +45,6 @@ function phaseOf({ turn, typed, replied }: Ticker): Phase {
   return replied ? "replied" : "reading";
 }
 
-const DELAY: Record<Phase, number> = { typing: TYPE_MS, reading: READ_MS, replied: HOLD_MS };
-
-/** Bubbles enter at once. Without this they would inherit the hero's entrance delay. */
-const NOW = order(0);
-
 /** One step of the loop: type a character, then answer, then move to the next link. */
 function tick(state: Ticker): Ticker {
   const phase = phaseOf(state);
@@ -59,6 +52,9 @@ function tick(state: Ticker): Ticker {
   if (phase === "reading") return { ...state, replied: true };
   return { turn: (state.turn + 1) % EXCHANGES.length, typed: 0, replied: false };
 }
+
+/** tone's side of the exchange. Every bubble shares one grid cell (see below). */
+const BUBBLE = "col-start-1 row-start-1 w-fit self-start rounded-3xl rounded-ss-lg bg-white";
 
 /**
  * The product in miniature: a link gets pasted, tone reads it, tone answers.
@@ -70,7 +66,6 @@ export function LinkTicker() {
   const running = useLoopAllowed(ref);
   const [state, advance] = useReducer(tick, START);
   const phase = phaseOf(state);
-  const { link, reply } = EXCHANGES[state.turn];
 
   // `state` is a new object after every tick, so each tick schedules the next.
   useEffect(() => {
@@ -88,21 +83,31 @@ export function LinkTicker() {
 
       <div aria-hidden className="flex flex-col gap-2.5">
         {/* Fixed width, like a field: only the text inside it changes. */}
-        <p className="flex min-h-12 items-center gap-2.5 rounded-full bg-wine px-5 text-[0.9375rem] text-coral-50">
-          <LinkIcon className="size-4 shrink-0" />
-          <span className="truncate">{link.slice(0, state.typed)}</span>
+        <LinkPill className="bg-wine text-coral-50">
+          <span className="truncate">{EXCHANGES[state.turn].link.slice(0, state.typed)}</span>
           <span
-            className={`-ms-2 h-4 w-px shrink-0 bg-coral-50 ${phase === "typing" ? "" : "caret"}`}
+            className={`-ms-2 h-4 w-px shrink-0 bg-coral-50 ${phase === "typing" ? "" : "blink"}`}
           />
-        </p>
+        </LinkPill>
 
-        {/* Room for the longest reply, so the headline below never moves. */}
-        <div className="min-h-[5.5rem]">
-          {phase === "reading" ? (
+        {/*
+          Every reply is laid out in the same cell and only the current one is
+          shown, so the cell is always as tall as the longest reply and the
+          headline below never moves, at any screen width.
+        */}
+        <div className="grid">
+          {EXCHANGES.map(({ reply }, turn) => (
             <p
-              className="rise flex w-fit items-center gap-1.5 rounded-3xl rounded-ss-lg bg-white px-5 py-5"
-              style={NOW}
+              key={reply}
+              className={`${BUBBLE} display-sm max-w-[22rem] px-5 py-3.5 ${
+                phase === "replied" && turn === state.turn ? "rise" : "invisible"
+              }`}
             >
+              {reply}
+            </p>
+          ))}
+          {phase === "reading" ? (
+            <p className={`${BUBBLE} rise flex items-center gap-1.5 px-5 py-5`}>
               {[0, 1, 2].map((dot) => (
                 <span
                   key={dot}
@@ -110,15 +115,6 @@ export function LinkTicker() {
                   style={order(dot)}
                 />
               ))}
-            </p>
-          ) : null}
-          {phase === "replied" ? (
-            <p
-              key={state.turn}
-              className="rise display-sm w-fit max-w-[22rem] rounded-3xl rounded-ss-lg bg-white px-5 py-3.5"
-              style={NOW}
-            >
-              {reply}
             </p>
           ) : null}
         </div>

@@ -62,6 +62,7 @@ function oklabToRgb([L, a, b]: Lab): Rgb {
 
 /** Evenly spaced shades across the Monk scale, interpolated in OKLab. */
 export function shadeRange(count: number): string[] {
+  if (count < 2) throw new RangeError("shadeRange needs at least two shades");
   const labs = MONK.map((hex) => rgbToOklab(hexToRgb(hex)));
   return Array.from({ length: count }, (_, i) => {
     const t = (i / (count - 1)) * (labs.length - 1);
@@ -71,9 +72,4 @@ export function shadeRange(count: number): string[] {
     const mix = labs[lo].map((v, k) => v + (labs[hi][k] - v) * f) as Lab;
     return rgbToHex(oklabToRgb(mix));
   });
-}
-
-/** Whether text on this background should be light. */
-export function isDeep(hex: string): boolean {
-  return rgbToOklab(hexToRgb(hex))[0] < 0.62;
 }

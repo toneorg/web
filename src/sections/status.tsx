@@ -1,5 +1,6 @@
 import { Reveal } from "@/components/reveal";
-import { Container, SECTION, order } from "@/components/site-chrome";
+import { Container, GRID, SECTION } from "@/components/site-chrome";
+import { order } from "@/lib/stagger";
 
 // Beta size, the 7-to-10 share, the 20-confirmation floor and the batches of
 // 100 come from ../docs/mobile/01, 06 and 07 (the planning folder).
@@ -24,7 +25,7 @@ export function Status() {
   return (
     <section className={SECTION}>
       <Container>
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-end lg:gap-x-8">
+        <div className={`${GRID} gap-8 lg:items-end`}>
           <h2 className="display-lg lg:col-span-7">Ainda não estou no ar.</h2>
           <p className="lead max-w-[30rem] lg:col-span-4 lg:col-start-9 lg:pb-3">
             Por isso esta página termina numa lista de espera, e não num botão de baixar.

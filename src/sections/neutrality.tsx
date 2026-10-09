@@ -1,5 +1,6 @@
 import { Reveal } from "@/components/reveal";
-import { Container, SECTION, order } from "@/components/site-chrome";
+import { Container, GRID, SECTION } from "@/components/site-chrome";
+import { order } from "@/lib/stagger";
 
 const NOT = [
   { what: "Provador virtual.", why: "Não gero imagem do seu rosto com a base." },
@@ -18,7 +19,7 @@ export function Neutrality() {
           <span className="block">Nunca vendo seu dado.</span>
         </h2>
 
-        <div className="mt-14 grid grid-cols-1 gap-14 lg:mt-20 lg:grid-cols-12 lg:gap-x-8">
+        <div className={`${GRID} mt-14 gap-14 lg:mt-20`}>
           <p className="lead max-w-[33rem] lg:col-span-6">
             A tone é gratuita para quem compra. Quem paga é a marca, para ter a mesma especialista
             dentro da loja dela. Nenhuma marca paga para aparecer na frente, e o que elas recebem

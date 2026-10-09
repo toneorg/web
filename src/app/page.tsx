@@ -1,10 +1,10 @@
-import { FloatingNav } from "@/components/floating-nav";
+import { FloatingNav, NAV_CLEARANCE } from "@/components/floating-nav";
 import { SignupProvider } from "@/components/signup-context";
-import { SignupSection } from "@/components/signup-section";
-import { Container, SECTION, SiteFooter } from "@/components/site-chrome";
+import { SiteFooter } from "@/components/site-chrome";
 import { Brands } from "@/sections/brands";
 import { Hero } from "@/sections/hero";
 import { How } from "@/sections/how";
+import { List } from "@/sections/list";
 import { Neutrality } from "@/sections/neutrality";
 import { Status } from "@/sections/status";
 import { Verdict } from "@/sections/verdict";
@@ -29,13 +29,9 @@ export default function Home() {
         <Neutrality />
         <Status />
         <Brands />
-        <section id="lista" className={`bg-coral ${SECTION}`}>
-          <Container>
-            <SignupSection />
-          </Container>
-        </section>
+        <List />
       </main>
-      <SiteFooter />
+      <SiteFooter className={NAV_CLEARANCE} />
       <FloatingNav />
     </SignupProvider>
   );

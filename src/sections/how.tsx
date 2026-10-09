@@ -1,4 +1,5 @@
 import { Container, SECTION } from "@/components/site-chrome";
+import { ANCHOR } from "@/lib/site";
 
 const STAGES = [
   {
@@ -33,7 +34,7 @@ const MEMORY = [
 /** How a verdict is made, and what it is made from. */
 export function How() {
   return (
-    <section id="como" className={`bg-coral-50 ${SECTION}`}>
+    <section id={ANCHOR.how} className={`bg-coral-50 ${SECTION}`}>
       <Container>
         <h2 className="display-lg max-w-[18ch]">
           O código pontua, o modelo escreve, um humano revisa.

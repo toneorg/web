@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { BrandForm } from "./brand-form";
 import { EmailCapture } from "./email-capture";
+import { PEER_FOCUS } from "./form-parts";
 import { ProfileForm } from "./profile-form";
 import { type Audience, useSignup } from "./signup-context";
+import { GRID } from "./site-chrome";
 
 const AUDIENCES: { value: Audience; label: string }[] = [
   { value: "pessoa", label: "Para mim" },
@@ -27,7 +29,9 @@ function AudienceSwitch() {
               onChange={() => setAudience(option.value)}
               className="peer sr-only"
             />
-            <span className="press flex min-h-11 items-center rounded-full px-5 text-[0.9375rem] font-medium peer-checked:bg-wine peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-wine">
+            <span
+              className={`press flex min-h-11 items-center rounded-full px-5 text-[0.9375rem] font-medium peer-checked:bg-wine peer-checked:text-white ${PEER_FOCUS}`}
+            >
               {option.label}
             </span>
           </label>
@@ -45,17 +49,28 @@ function Panel({ children }: { children: React.ReactNode }) {
 function Frame({
   title,
   intro,
+  takeFocus,
   children,
 }: {
   title: string;
-  intro?: React.ReactNode;
+  intro: string | React.ReactNode;
+  /** Moves keyboard focus to the title when this state replaces the field she just used. */
+  takeFocus?: boolean;
   children: React.ReactNode;
 }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (takeFocus) titleRef.current?.focus();
+  }, [takeFocus]);
+
   return (
-    <div className="mt-10 grid grid-cols-1 gap-10 lg:mt-14 lg:grid-cols-12 lg:gap-x-8">
+    <div className={`${GRID} mt-10 gap-10 lg:mt-14`}>
       <div className="lg:col-span-6">
-        <h2 className="display-lg">{title}</h2>
-        {intro ? <div className="lead mt-6 max-w-[30rem]">{intro}</div> : null}
+        <h2 ref={titleRef} tabIndex={-1} className="display-lg focus:outline-none">
+          {title}
+        </h2>
+        <p className="lead mt-6 max-w-[30rem]">{intro}</p>
       </div>
       <div className="lg:col-span-6">{children}</div>
     </div>
@@ -66,30 +81,25 @@ function Join() {
   return (
     <Frame
       title="Me deixa seu e-mail. Eu aviso quando abrir."
-      intro={<p>Eu escrevo quando o beta abrir e de novo no lançamento.</p>}
+      intro="Eu escrevo quando o beta abrir e de novo no lançamento."
     >
       <div className="lg:pt-4">
         <EmailCapture placement="fim" />
-        <p className="mt-3 ps-5 text-[0.875rem] leading-snug">
-          Entrando na lista, você autoriza a tone a te escrever sobre o beta e o lançamento.{" "}
-          <Link href="/privacidade" className="underline underline-offset-4">
-            Privacidade
-          </Link>
-        </p>
       </div>
     </Frame>
   );
 }
 
-function Joined({ email }: { email: string }) {
+function Joined({ email, takeFocus }: { email: string; takeFocus: boolean }) {
   return (
     <Frame
       title="Você está na lista."
+      takeFocus={takeFocus}
       intro={
-        <p role="status">
-          Eu escrevo para <span className="font-medium break-all">{email}</span> quando o beta
+        <>
+          Eu escrevo para <span className="break-all font-medium">{email}</span> quando o beta
           abrir.
-        </p>
+        </>
       }
     >
       <Panel>
@@ -110,12 +120,7 @@ function Brand() {
   return (
     <Frame
       title="Vamos conversar sobre a sua marca."
-      intro={
-        <p>
-          A primeira conversa leva 30 minutos e já vem com uma demonstração montada sobre o seu
-          catálogo público.
-        </p>
-      }
+      intro="A primeira conversa leva 30 minutos e já vem com uma demonstração montada sobre o seu catálogo público."
     >
       <Panel>
         <BrandForm />
@@ -124,12 +129,22 @@ function Brand() {
   );
 }
 
+/**
+ * Both sides stay mounted and the one not chosen is hidden, so switching
+ * between them (or tapping the nav's button mid-form) never erases what was
+ * typed.
+ */
 export function SignupSection() {
-  const { email, audience } = useSignup();
+  const { email, audience, joinedAt } = useSignup();
   return (
     <>
       <AudienceSwitch />
-      {audience === "marca" ? <Brand /> : email ? <Joined email={email} /> : <Join />}
+      <div hidden={audience !== "pessoa"}>
+        {email ? <Joined email={email} takeFocus={joinedAt === "fim"} /> : <Join />}
+      </div>
+      <div hidden={audience !== "marca"}>
+        <Brand />
+      </div>
     </>
   );
 }

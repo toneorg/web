@@ -1,35 +1,33 @@
 "use server";
 
+import type { BrandField, FormState, ProfileField, Submission, WaitlistField } from "@/lib/forms";
 import {
-  type BrandField,
-  type FormState,
   type Parsed,
-  type ProfileField,
-  type Submission,
-  type WaitlistField,
-  isBot,
+  isSuspect,
   parseBrand,
   parseProfile,
   parseWaitlist,
-} from "@/lib/forms";
+} from "@/lib/forms.server";
 import { saveSubmission } from "@/lib/storage";
 
 const INVALID = "Falta pouco. Confira os campos marcados.";
 const UNAVAILABLE = "Não deu para salvar agora. Tente de novo em alguns segundos.";
 
-/** Honeypot → validate → save, the same for every form. */
+/** Validate → save, the same for every form. */
 async function submit<F extends string>(
   form: FormData,
   parse: (form: FormData) => Parsed<F, Submission>,
 ): Promise<FormState<F>> {
-  // Bots that fill the hidden field get a silent success.
-  if (isBot(form)) return { status: "ok" };
-
   const parsed = parse(form);
   if (!parsed.ok) return { status: "error", message: INVALID, fieldErrors: parsed.errors };
 
+  // A filled trap field is flagged, not thrown away: if a browser's autofill
+  // tripped it, the row is still there to be found.
+  const suspect = isSuspect(form);
+  if (suspect) console.warn(`submit(${parsed.record.kind}): trap field filled, row flagged`);
+
   try {
-    await saveSubmission(parsed.record);
+    await saveSubmission(suspect ? { ...parsed.record, suspect: true } : parsed.record);
   } catch (error) {
     console.error(`submit(${parsed.record.kind})`, error);
     return { status: "error", message: UNAVAILABLE, fieldErrors: {} };

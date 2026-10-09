@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Container, SiteFooter, Wordmark } from "@/components/site-chrome";
+import { Container, HEADER_LINK, SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { CONTACT_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Privacidade",
   description: "Quais dados a lista de espera da tone guarda, para quê e como apagar.",
 };
-
-const contact = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 
 const sections: { title: string; body: React.ReactNode }[] = [
   {
@@ -53,11 +52,14 @@ const sections: { title: string; body: React.ReactNode }[] = [
   },
   {
     title: "Como apagar",
-    body: contact ? (
+    body: CONTACT_EMAIL ? (
       <>
         Escreva para{" "}
-        <a href={`mailto:${contact}`} className="font-medium text-wine underline underline-offset-4">
-          {contact}
+        <a
+          href={`mailto:${CONTACT_EMAIL}`}
+          className="font-medium text-wine underline underline-offset-4"
+        >
+          {CONTACT_EMAIL}
         </a>{" "}
         pedindo a exclusão. Apagamos tudo em até 15 dias.
       </>
@@ -79,34 +81,36 @@ const sections: { title: string; body: React.ReactNode }[] = [
 export default function Privacy() {
   return (
     <>
-      <header className="bg-coral">
-        <Container className="flex items-center justify-between pb-16 pt-6 sm:pb-24 sm:pt-8">
-          <Wordmark />
-          <Link
-            href="/"
-            className="-me-3 flex min-h-11 items-center rounded-full px-3 text-[0.9375rem] font-medium underline decoration-wine/40 underline-offset-[6px] transition-colors duration-150 hover:decoration-wine"
-          >
-            Voltar para a tone
-          </Link>
+      <div className="bg-coral">
+        <Container className="pt-6 sm:pt-8">
+          <SiteHeader>
+            <Link href="/" className={HEADER_LINK}>
+              Voltar para a tone
+            </Link>
+          </SiteHeader>
         </Container>
-        <Container className="pb-12 sm:pb-16">
-          <h1 className="display-lg">Privacidade</h1>
-          <p className="lead mt-5 max-w-[33rem]">
-            O que acontece com os dados da lista de espera, em linguagem direta.
-          </p>
-        </Container>
-      </header>
+      </div>
 
+      {/* The title is inside main, so the skip link lands on it. */}
       <main id="conteudo">
+        <div className="bg-coral">
+          <Container className="pb-12 pt-16 sm:pb-16 sm:pt-24">
+            <h1 className="display-lg">Privacidade</h1>
+            <p className="lead mt-5 max-w-[33rem]">
+              O que acontece com os dados da lista de espera, em linguagem direta.
+            </p>
+          </Container>
+        </div>
+
         <Container className="py-16 sm:py-24">
-          <dl className="flex max-w-[40rem] flex-col gap-12">
+          <div className="flex max-w-[40rem] flex-col gap-12">
             {sections.map(({ title, body }) => (
-              <div key={title}>
-                <dt className="display-sm">{title}</dt>
-                <dd className="mt-3 leading-relaxed text-muted">{body}</dd>
-              </div>
+              <section key={title}>
+                <h2 className="display-sm">{title}</h2>
+                <p className="mt-3 leading-relaxed text-muted">{body}</p>
+              </section>
             ))}
-          </dl>
+          </div>
         </Container>
       </main>
       <SiteFooter />

@@ -1,7 +1,9 @@
 import { HesitatingDots } from "@/components/hesitating-dots";
 import { QuestionsMarquee } from "@/components/questions-marquee";
-import { Container, SECTION, Source } from "@/components/site-chrome";
+import { Container, GRID, SECTION, Source } from "@/components/site-chrome";
 import { ToneScale } from "@/components/tones";
+import { ANCHOR } from "@/lib/site";
+import { shadeRange } from "@/lib/tones";
 
 // Numbers and sources as cited in ../docs/comum/01-tese-e-posicionamento.md.
 const QUESTIONS = [
@@ -22,26 +24,29 @@ const QUESTIONS = [
   },
 ];
 
+// The twenty dots of an invented product page, light to deep.
+const PAGE_SHADES = shadeRange(20);
+
 /**
  * Why tone exists: the pain is insecurity, and the product page does not
  * answer it. The many small doubts drift past, then settle into three.
  */
 export function Why() {
   return (
-    <section id="porque" className={SECTION}>
+    <section id={ANCHOR.why} className={SECTION}>
       <Container>
         <h2 className="display-lg">
           <span className="block">Você não está indecisa.</span>
           <span className="block">Está insegura.</span>
         </h2>
 
-        <div className="mt-12 grid grid-cols-1 gap-10 lg:mt-16 lg:grid-cols-12 lg:items-start lg:gap-x-8">
+        <div className={`${GRID} mt-12 gap-10 lg:mt-16 lg:items-start`}>
           <p className="lead max-w-[33rem] lg:col-span-6">
             Você viu a base num vídeo, abriu a página e travou. Não sabe se ela funciona na sua
             pele, qual dos vinte tons é o seu, nem se aquela loja entrega.
           </p>
           <div className="lg:col-span-5 lg:col-start-8">
-            <HesitatingDots />
+            <HesitatingDots shades={PAGE_SHADES} />
           </div>
         </div>
       </Container>
@@ -59,7 +64,7 @@ export function Why() {
           {QUESTIONS.map(({ question, fact, source }) => (
             <li
               key={question}
-              className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end lg:gap-x-8"
+              className={`${GRID} gap-4 lg:items-end`}
             >
               <p className="ink-in display-lg text-coral italic lg:col-span-8">{question}</p>
               <div className="max-w-[26rem] lg:col-span-4 lg:pb-2">
@@ -70,7 +75,7 @@ export function Why() {
           ))}
         </ul>
 
-        <div className="mt-24 grid grid-cols-1 gap-10 rounded-4xl bg-coral-100 p-6 sm:p-10 lg:mt-32 lg:grid-cols-12 lg:items-center lg:gap-x-8 lg:p-14">
+        <div className={`${GRID} mt-24 gap-10 rounded-4xl bg-coral-100 p-6 sm:p-10 lg:mt-32 lg:items-center lg:p-14`}>
           <div className="lg:col-span-6">
             <h3 className="display-md">A pele brasileira ainda não tem especialista.</h3>
             <p className="mt-5 max-w-[32rem] leading-relaxed">

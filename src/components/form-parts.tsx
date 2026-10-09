@@ -1,85 +1,159 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useAttribution } from "@/lib/attribution";
 import {
   ATTRIBUTION_KEYS,
   HONEYPOT_FIELD,
+  type BrandField,
   type FieldErrors,
   type FormState,
+  type ProfileField,
 } from "@/lib/forms";
 import { buttonClass } from "./button";
+import { CheckIcon, ChevronIcon } from "./icons";
 
-/** Fields that sit on a white panel. 16px text keeps iOS from zooming on focus. */
+/**
+ * Fields that sit on a white panel. 16px text keeps iOS from zooming on
+ * focus. The inset ring carries the border and the invalid state; focus is an
+ * outline, so the two never fight over one property.
+ */
 export const inputClass =
-  "block w-full min-h-13 rounded-2xl bg-coral-50 px-4 text-[1rem] text-wine shadow-[inset_0_0_0_1px_var(--color-coral-200)] transition-shadow duration-150 placeholder:text-muted hover:shadow-[inset_0_0_0_1px_var(--color-coral-300)] focus:shadow-[inset_0_0_0_2px_var(--color-wine)] focus:outline-none aria-[invalid=true]:shadow-[inset_0_0_0_2px_var(--color-coral-700)]";
+  "block w-full min-h-13 rounded-2xl bg-coral-50 px-4 text-[1rem] text-wine inset-ring inset-ring-coral-200 transition-shadow duration-150 placeholder:text-muted hover:inset-ring-coral-300 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-wine aria-[invalid=true]:inset-ring-2 aria-[invalid=true]:inset-ring-coral-700";
+
+/** Focus ring for a visible stand-in whose real input is hidden just before it. */
+export const PEER_FOCUS =
+  "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-wine";
+
+/** Opens the privacy note in a new tab, so a half-filled form is still there on return. */
+export function PrivacyLink({ className, children }: { className?: string; children: string }) {
+  return (
+    <Link href="/privacidade" target="_blank" className={className}>
+      {children}
+    </Link>
+  );
+}
 
 const IDLE = { status: "idle" } as const;
 
 /**
- * Server action state for a form, plus focus management: the error summary
- * takes focus after a failed submit, the success heading after a good one.
+ * Server action state for a form, plus focus management. After a failed
+ * submit, focus goes to the first field that needs fixing, or to the error
+ * summary when no field is to blame. After a good one, to the success heading.
  */
 export function useFormAction<F extends string>(
   action: (prev: FormState<F>, form: FormData) => Promise<FormState<F>>,
 ) {
   const [state, formAction, pending] = useActionState(action, IDLE as FormState<F>);
+  const formRef = useRef<HTMLFormElement>(null);
   const alertRef = useRef<HTMLParagraphElement>(null);
   const doneRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (state.status === "error") alertRef.current?.focus();
     if (state.status === "ok") doneRef.current?.focus();
+    if (state.status === "error") {
+      const invalid = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+      (invalid ?? alertRef.current)?.focus();
+    }
   }, [state]);
 
   const errors: FieldErrors<F> = state.status === "error" ? state.fieldErrors : {};
-  return { state, formAction, pending, errors, alertRef, doneRef };
+  return { state, formAction, pending, errors, formRef, alertRef, doneRef };
 }
 
-type FieldElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+type FieldElement = HTMLInputElement | HTMLSelectElement;
+
+/** What a text control needs from its field: identity, value and its links to hint and error. */
+type Control = {
+  id: string;
+  name: string;
+  value: string;
+  onChange: (event: React.ChangeEvent<FieldElement>) => void;
+  required?: boolean;
+  "aria-invalid"?: true;
+  "aria-describedby"?: string;
+};
+
+type Fields<K extends string> = {
+  control: (key: K, options: { error?: string; hinted?: boolean; required?: boolean }) => Control;
+};
 
 /**
  * Text fields as controlled state. This is load-bearing: React 19 resets
  * uncontrolled fields after every form action, including one that comes back
  * with validation errors, which would wipe what the person typed.
+ *
+ * Ids get a per-form prefix, so two forms on one page can both have an
+ * "email" field.
  */
-export function useFields<K extends string>(initial: Record<K, string>) {
+export function useFields<K extends string>(initial: Record<K, string>): Fields<K> {
   const [values, setValues] = useState(initial);
+  const prefix = useId();
 
-  function bind(key: K, errors: Partial<Record<K, string>>) {
-    return {
-      id: key,
-      name: key,
-      value: values[key],
-      onChange: (e: React.ChangeEvent<FieldElement>) =>
-        setValues((v) => ({ ...v, [key]: e.target.value })),
-      "aria-invalid": errors[key] ? true : undefined,
-      "aria-describedby": errors[key] ? `${key}-error` : undefined,
-    };
-  }
-
-  return { values, bind };
+  return {
+    control(key, { error, hinted, required }) {
+      const id = `${prefix}-${key}`;
+      const describedBy = [hinted && `${id}-hint`, error && `${id}-error`].filter(Boolean);
+      return {
+        id,
+        name: key,
+        value: values[key],
+        onChange: (event) => setValues((v) => ({ ...v, [key]: event.target.value })),
+        required: required || undefined,
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": describedBy.length ? describedBy.join(" ") : undefined,
+      };
+    },
+  };
 }
 
-export function Label({
-  htmlFor,
-  children,
+function Optional() {
+  return <span className="font-normal text-muted"> (opcional)</span>;
+}
+
+/**
+ * One labelled text control: label, optional hint, the control itself and its
+ * error, wired together by id. The child receives the props to spread.
+ */
+export function Field<K extends string>({
+  fields,
+  name,
+  label,
   hint,
   optional,
+  required,
+  error,
+  className = "",
+  children,
 }: {
-  htmlFor?: string;
-  children: React.ReactNode;
+  fields: Fields<K>;
+  name: K;
+  label: string;
   hint?: string;
   optional?: boolean;
+  required?: boolean;
+  error?: string;
+  className?: string;
+  children: (control: Control) => React.ReactNode;
 }) {
+  const control = fields.control(name, { error, hinted: !!hint, required });
   return (
-    <label htmlFor={htmlFor} className="flex flex-col gap-1">
-      <span className="font-medium">
-        {children}
-        {optional ? <span className="font-normal text-muted"> (opcional)</span> : null}
-      </span>
-      {hint ? <span className="text-[0.9375rem] text-muted">{hint}</span> : null}
-    </label>
+    <div className={`flex flex-col gap-3 ${className}`}>
+      <div className="flex flex-col gap-1">
+        <label htmlFor={control.id} className="font-medium">
+          {label}
+          {optional ? <Optional /> : null}
+        </label>
+        {hint ? (
+          <span id={`${control.id}-hint`} className="text-[0.9375rem] text-muted">
+            {hint}
+          </span>
+        ) : null}
+      </div>
+      {children(control)}
+      <FieldError id={`${control.id}-error`} message={error} />
+    </div>
   );
 }
 
@@ -97,14 +171,16 @@ export function Checkbox({
   checked,
   onChange,
   invalid,
+  required,
   describedBy,
   children,
   value,
 }: {
-  name: string;
+  name: ProfileField | BrandField;
   checked: boolean;
   onChange: (checked: boolean) => void;
   invalid?: boolean;
+  required?: boolean;
   describedBy?: string;
   children: React.ReactNode;
   value?: string;
@@ -116,35 +192,33 @@ export function Checkbox({
         name={name}
         value={value}
         checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
+        onChange={(event) => onChange(event.target.checked)}
+        required={required}
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
         className="peer sr-only"
       />
       <span
         aria-hidden
-        className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-[7px] bg-white text-white shadow-[inset_0_0_0_1.5px_var(--color-muted)] transition-[background-color,box-shadow] duration-150 peer-checked:bg-wine peer-checked:shadow-none peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-wine peer-aria-[invalid=true]:shadow-[inset_0_0_0_2px_var(--color-coral-700)]"
+        className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-[7px] bg-white text-white inset-ring-[1.5px] inset-ring-muted transition-[background-color,box-shadow] duration-150 peer-checked:bg-wine peer-checked:inset-ring-0 peer-aria-[invalid=true]:inset-ring-2 peer-aria-[invalid=true]:inset-ring-coral-700 ${PEER_FOCUS}`}
       >
-        <svg
-          viewBox="0 0 16 16"
+        <CheckIcon
+          bold
           className={`size-4 transition-[opacity,scale] duration-150 ${
             checked ? "scale-100 opacity-100" : "scale-50 opacity-0"
           }`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M3.5 8.5l3 3 6-7" />
-        </svg>
+        />
       </span>
       <span className="leading-snug">{children}</span>
     </label>
   );
 }
 
-/** One-of-many answer as a row of pills. Native radios keep arrow-key movement. */
+/**
+ * One-of-many answer as a row of pills. Native radios keep arrow-key
+ * movement. The question is optional, so choosing the selected pill again
+ * clears the answer.
+ */
 export function Choice<V extends string>({
   name,
   legend,
@@ -152,28 +226,34 @@ export function Choice<V extends string>({
   value,
   onChange,
 }: {
-  name: string;
+  name: ProfileField | BrandField;
   legend: string;
   options: readonly { value: V; label: string }[];
   value: string;
-  onChange: (value: V) => void;
+  onChange: (value: V | "") => void;
 }) {
   return (
-    <fieldset className="flex flex-col gap-3">
-      <legend className="font-medium">{legend}</legend>
+    <fieldset>
+      <legend className="font-medium">
+        {legend}
+        <Optional />
+      </legend>
       <div className="mt-3 flex flex-wrap gap-2">
-        {options.map((o) => (
-          <label key={o.value} className="cursor-pointer">
+        {options.map((option) => (
+          <label key={option.value} className="cursor-pointer">
             <input
               type="radio"
               name={name}
-              value={o.value}
-              checked={value === o.value}
-              onChange={() => onChange(o.value)}
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+              onClick={() => value === option.value && onChange("")}
               className="peer sr-only"
             />
-            <span className="press flex min-h-11 items-center rounded-full bg-coral-50 px-4 shadow-[inset_0_0_0_1px_var(--color-coral-200)] hover:shadow-[inset_0_0_0_1px_var(--color-coral-300)] peer-checked:bg-wine peer-checked:text-white peer-checked:shadow-none peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-wine">
-              {o.label}
+            <span
+              className={`press flex min-h-11 items-center rounded-full bg-coral-50 px-4 inset-ring inset-ring-coral-200 hover:inset-ring-coral-300 peer-checked:bg-wine peer-checked:text-white peer-checked:inset-ring-0 ${PEER_FOCUS}`}
+            >
+              {option.label}
             </span>
           </label>
         ))}
@@ -190,24 +270,13 @@ export function Select({
     <div className="relative">
       <select className={`${inputClass} appearance-none pe-11`} {...props}>
         <option value="">Escolha</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
           </option>
         ))}
       </select>
-      <svg
-        aria-hidden
-        viewBox="0 0 16 16"
-        className="pointer-events-none absolute end-4 top-1/2 size-4 -translate-y-1/2 text-muted"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 6l4 4 4-4" />
-      </svg>
+      <ChevronIcon className="pointer-events-none absolute end-4 top-1/2 size-4 -translate-y-1/2 text-muted" />
     </div>
   );
 }
@@ -224,28 +293,30 @@ export function ConsentField({
   error?: string;
   children: React.ReactNode;
 }) {
+  const errorId = `${useId()}-error`;
   return (
     <div className="flex flex-col gap-2">
       <Checkbox
         name="consent"
         checked={checked}
         onChange={onChange}
+        required
         invalid={!!error}
-        describedBy={error ? "consent-error" : undefined}
+        describedBy={error ? errorId : undefined}
       >
         <span className="text-muted">
           {children}{" "}
-          <Link href="/privacidade" className="font-medium text-wine underline underline-offset-4">
+          <PrivacyLink className="font-medium text-wine underline underline-offset-4">
             Como tratamos seus dados
-          </Link>
+          </PrivacyLink>
         </span>
       </Checkbox>
-      <FieldError id="consent-error" message={error} />
+      <FieldError id={errorId} message={error} />
     </div>
   );
 }
 
-/** Error summary (focused after a failed submit) and the submit button. */
+/** Error summary (focused when no single field is to blame) and the submit button. */
 export function SubmitRow<F extends string>({
   state,
   pending,
@@ -282,36 +353,9 @@ export function SubmitRow<F extends string>({
   );
 }
 
-// Visit origin read from the URL. "referrer" comes from document.referrer instead.
-const URL_KEYS = ATTRIBUTION_KEYS.filter((k) => k !== "referrer");
-
-/**
- * Hidden fields with where the visit came from, so a tagged link
- * (e.g. /?utm_source=evento&utm_medium=qr) can be told apart from shares.
- */
+/** Hidden fields with where the visit came from. Empty until hydration. */
 export function AttributionFields() {
-  const [values, setValues] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    let stored: Record<string, string> = {};
-    try {
-      stored = JSON.parse(sessionStorage.getItem("tone:utm") ?? "{}");
-    } catch {}
-    const next: Record<string, string> = { ...stored };
-    for (const key of URL_KEYS) {
-      const v = params.get(key);
-      if (v) next[key] = v;
-    }
-    if (!next.referrer && document.referrer) next.referrer = document.referrer;
-    try {
-      sessionStorage.setItem("tone:utm", JSON.stringify(next));
-    } catch {}
-    // Reading the URL is only possible after hydration.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setValues(next);
-  }, []);
-
+  const values = useAttribution();
   return (
     <>
       {ATTRIBUTION_KEYS.map((key) => (
@@ -321,12 +365,12 @@ export function AttributionFields() {
   );
 }
 
-/** Invisible to people; bots that fill every field get a silent success. */
+/** Invisible to people. A row that arrives with it filled is saved, but flagged. */
 export function Honeypot() {
   return (
-    <div aria-hidden className="absolute -start-[9999px] top-auto h-px w-px overflow-hidden">
+    <div aria-hidden className="sr-only">
       <label>
-        Empresa
+        Deixe este campo em branco
         <input type="text" name={HONEYPOT_FIELD} tabIndex={-1} autoComplete="off" />
       </label>
     </div>

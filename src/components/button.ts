@@ -6,12 +6,15 @@ type Variant = "wine" | "coral" | "quiet";
 type Size = "md" | "lg";
 
 const base =
-  "press inline-flex items-center justify-center whitespace-nowrap rounded-full font-medium disabled:cursor-progress";
+  "press inline-flex items-center justify-center whitespace-nowrap rounded-full font-medium focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-progress";
 
+// Each variant names its own focus ring. The page default (the text color)
+// would vanish here: a wine button's text is white, and it sits on white.
 const variants: Record<Variant, string> = {
-  wine: "bg-wine text-white hover:bg-wine-800 disabled:bg-wine-800",
-  coral: "bg-coral text-wine hover:bg-coral-300 disabled:bg-coral-300",
-  quiet: "bg-coral-100 text-wine hover:bg-coral-200",
+  wine: "bg-wine text-white hover:bg-wine-800 focus-visible:outline-wine disabled:bg-wine-800",
+  coral:
+    "bg-coral text-wine hover:bg-coral-300 focus-visible:outline-coral-200 disabled:bg-coral-300",
+  quiet: "bg-coral-100 text-wine hover:bg-coral-200 focus-visible:outline-wine",
 };
 
 const sizes: Record<Size, string> = {

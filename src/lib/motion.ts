@@ -2,7 +2,7 @@
 
 import { type RefObject, useEffect, useState, useSyncExternalStore } from "react";
 
-const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+export const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
 function subscribeToReducedMotion(onChange: () => void) {
   const query = window.matchMedia(REDUCED_MOTION);
@@ -11,7 +11,7 @@ function subscribeToReducedMotion(onChange: () => void) {
 }
 
 /** Whether the person asked the system for less motion. False while rendering on the server. */
-export function usePrefersReducedMotion() {
+function usePrefersReducedMotion() {
   return useSyncExternalStore(
     subscribeToReducedMotion,
     () => window.matchMedia(REDUCED_MOTION).matches,
@@ -20,13 +20,16 @@ export function usePrefersReducedMotion() {
 }
 
 /** Whether the element is on screen, so looping animations can rest when nobody is looking. */
-export function useOnScreen(ref: RefObject<Element | null>) {
+function useOnScreen(ref: RefObject<Element | null>) {
   const [onScreen, setOnScreen] = useState(false);
 
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    const observer = new IntersectionObserver(([entry]) => setOnScreen(entry.isIntersecting));
+    // Several records can arrive at once; the newest one is the current state.
+    const observer = new IntersectionObserver((entries) =>
+      setOnScreen(entries.at(-1)?.isIntersecting ?? false),
+    );
     observer.observe(element);
     return () => observer.disconnect();
   }, [ref]);

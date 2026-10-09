@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { REDUCED_MOTION } from "@/lib/motion";
 
 /**
  * Plays the staged entrance of its `.reveal-item` children once, when the
@@ -19,13 +20,13 @@ export function Reveal({
   useEffect(() => {
     const block = ref.current;
     if (!block) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia(REDUCED_MOTION).matches) return;
     if (block.getBoundingClientRect().top < window.innerHeight) return;
 
     block.dataset.reveal = "pending";
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return;
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
         block.dataset.reveal = "in";
         observer.disconnect();
       },

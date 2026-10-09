@@ -1,7 +1,11 @@
 "use client";
 
-import { TONE_UNKNOWN } from "@/lib/forms";
+import { type ProfileField, TONE_UNKNOWN } from "@/lib/forms";
 import { MONK } from "@/lib/tones";
+import { PEER_FOCUS } from "./form-parts";
+import { SWATCH, SWATCH_PICKED } from "./swatch";
+
+const NAME = "tone" satisfies ProfileField;
 
 /**
  * The product page's color dot, made large enough to be useful. A radio
@@ -38,21 +42,24 @@ export function TonePicker({
           const n = String(i + 1);
           const selected = value === n;
           return (
-            <label key={hex} className="flex cursor-pointer flex-col items-center gap-2">
+            // The focus ring goes around swatch and number, so it cannot be
+            // mistaken for the ring that marks the chosen tone.
+            <label
+              key={hex}
+              className="flex cursor-pointer flex-col items-center gap-2 rounded-xl py-1 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-wine"
+            >
               <input
                 type="radio"
-                name="tone"
+                name={NAME}
                 value={n}
                 checked={selected}
                 onChange={() => onChange(n)}
                 aria-label={`Faixa ${n} de 10`}
-                className="peer sr-only"
+                className="sr-only"
               />
               <span
                 aria-hidden
-                className={`press block size-11 rounded-full outline-1 -outline-offset-1 outline-black/10 peer-focus-visible:shadow-[0_0_0_3px_#fff,0_0_0_5px_var(--color-wine)] sm:size-12 ${
-                  selected ? "shadow-[0_0_0_3px_#fff,0_0_0_5px_var(--color-wine)]" : ""
-                }`}
+                className={`press block size-11 sm:size-12 ${SWATCH} ${selected ? SWATCH_PICKED : ""}`}
                 style={{ background: hex }}
               />
               <span
@@ -69,7 +76,7 @@ export function TonePicker({
       <label className="mt-1 flex w-fit cursor-pointer items-center gap-3 py-1.5">
         <input
           type="radio"
-          name="tone"
+          name={NAME}
           value={TONE_UNKNOWN}
           checked={value === TONE_UNKNOWN}
           onChange={() => onChange(TONE_UNKNOWN)}
@@ -77,7 +84,7 @@ export function TonePicker({
         />
         <span
           aria-hidden
-          className="grid size-6 place-items-center rounded-full bg-white shadow-[inset_0_0_0_1.5px_var(--color-muted)] transition-shadow duration-150 peer-checked:shadow-[inset_0_0_0_7px_var(--color-wine)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-wine"
+          className={`size-6 rounded-full bg-white inset-ring-[1.5px] inset-ring-muted transition-shadow duration-150 peer-checked:inset-ring-[7px] peer-checked:inset-ring-wine ${PEER_FOCUS}`}
         />
         <span>Não sei dizer</span>
       </label>
