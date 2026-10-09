@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Crimson_Pro, Host_Grotesk } from "next/font/google";
 import { SITE_URL } from "@/lib/site";
@@ -46,6 +47,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Pular para o conteúdo
         </a>
         {children}
+        {/* Page views only, without cookies. Collects nothing until enabled in the Vercel project. */}
+        <Analytics />
       </body>
     </html>
   );

@@ -51,6 +51,15 @@ const sections: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
+    title: "Visitas à página",
+    body: (
+      <>
+        Contamos as visitas com o Vercel Analytics, que não usa cookies e não identifica quem
+        visitou. Serve para saber quantas pessoas chegam e por qual caminho.
+      </>
+    ),
+  },
+  {
     title: "Como apagar",
     body: CONTACT_EMAIL ? (
       <>
