@@ -10,11 +10,12 @@ place to point it is a Google Sheet both founders can open.
 4. Set it as `SUBMISSIONS_WEBHOOK_URL` in `.env.local` (dev) and in the hosting
    provider's environment variables (production). Redeploy.
 
-Consumer signups land in the `Lista` tab, brand requests in `Marcas`. New fields add
-their own column automatically.
+Waitlist e-mails land in the `Lista` tab, the optional beta answers in `Perfis` (match
+them to `Lista` by e-mail) and brand requests in `Marcas`. New fields add their own
+column automatically.
 
 ```js
-const TABS = { waitlist: "Lista", brand: "Marcas" };
+const TABS = { waitlist: "Lista", profile: "Perfis", brand: "Marcas" };
 
 // Sheets runs cells that start with = + - @ as formulas; keep them as text.
 const safe = (v) =>
