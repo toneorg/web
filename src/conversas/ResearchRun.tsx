@@ -3,6 +3,16 @@
 import type { ResearchRunState } from "@/tone/shared";
 import { StoreLink } from "./Program";
 
+/** Where the prices came from: the index (T04) or the store page read by the extension (T14). */
+function provenanceNote(run: ResearchRunState): string {
+  const levels = new Set(run.result?.evidence.map((entry) => entry.level) ?? []);
+  if (levels.has("origin") && !levels.has("index"))
+    return "Preços lidos na página da loja pela extensão, no seu Chrome; frete e estoque podem mudar no carrinho.";
+  if (levels.has("origin"))
+    return "Parte dos preços foi lida na loja pela extensão e parte observada no índice do Google Shopping; a loja pode ter outro valor, frete ou estoque.";
+  return "Preços observados no índice do Google Shopping; a loja pode ter outro valor, frete ou estoque.";
+}
+
 export function ResearchRun(props: { run: ResearchRunState }) {
   const { run } = props;
   const offers = run.result?.offers ?? [];
@@ -31,11 +41,7 @@ export function ResearchRun(props: { run: ResearchRunState }) {
           ))}
         </ul>
       ) : null}
-      {offers.length ? (
-        <p className="text-caption text-graphite">
-          Preços observados no índice do Google Shopping; a loja pode ter outro valor, frete ou estoque.
-        </p>
-      ) : null}
+      {offers.length ? <p className="text-caption text-graphite">{provenanceNote(run)}</p> : null}
     </section>
   );
 }

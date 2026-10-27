@@ -23,6 +23,10 @@ const ALLOWED: RegExp[] = [
   /^watches$/,
   /^watches\/[^/]+(\/(confirm|pause|resume|check|mute|unmute|results))?$/,
   /^events$/,
+  // T14: the web asks for and follows local research; taking steps is the extension's (not listed).
+  /^local-runs$/,
+  /^local-runs\/[^/]+(\/stop)?$/,
+  /^local-bridge$/,
 ];
 
 export function upstreamPath(segments: string[]): string | null {

@@ -1,4 +1,4 @@
-toneorg/extension@5ceaf79e5ce0fe697ddc6f0a45827a999a1d4a8c
+toneorg/extension@e74f243ee87c00d67c0711e5f7a378c4d87747b5
 agent.ts
 api.ts
 budget.ts
@@ -6,6 +6,7 @@ context.ts
 decision.ts
 genui.ts
 index.ts
+local-run.ts
 media.ts
 page.ts
 photo.ts

@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@5ceaf79e5ce0 (packages/shared/src/page.ts). Não edite aqui.
+// Gerado de toneorg/extension@e74f243ee87c (packages/shared/src/page.ts). Não edite aqui.
 // What the extension reads from the store's page (RNF5: the DOM, not a
 // screenshot). Everything in a snapshot came from a third-party page, so the
 // server treats every string in it as data, never as an instruction (RNF10).

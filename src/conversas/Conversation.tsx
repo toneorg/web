@@ -7,6 +7,7 @@ import { type AgentEvent, type ResearchRunState, reduceResearchRuns, type TurnIn
 import { splitAnswer } from "@/tone/shared/genui";
 import { ApiError, api, streamTurn } from "./api";
 import { Program, type ProgramHost } from "./Program";
+import { LocalResearch } from "./LocalResearch";
 import { ResearchRun } from "./ResearchRun";
 import { SignIn } from "./SignIn";
 
@@ -157,6 +158,34 @@ export function Conversation(props: { sessionId: string }) {
     },
     [busy, runTurn, state],
   );
+  // T14: a local run is followed by reading its saved state until it ends (about every 2 s, at most 12 min).
+  const [following, setFollowing] = useState<string | null>(null);
+  useEffect(() => {
+    if (!following) return;
+    let live = true;
+    const started = Date.now();
+    const timer = setInterval(() => {
+      api
+        .researchRuns(sessionId)
+        .then((runs) => {
+          if (!live) return;
+          const run = runs.find((entry) => entry.runId === following);
+          if (!run) return;
+          setItems((list) => {
+            const index = list.findIndex((item) => item.kind === "research" && item.run.runId === run.runId);
+            const item = { id: `run-${run.runId}`, kind: "research" as const, run };
+            return index < 0 ? [...list, item] : list.map((entry, at) => (at === index ? item : entry));
+          });
+          if (run.terminal || Date.now() - started > 12 * 60_000) setFollowing(null);
+        })
+        .catch(() => undefined);
+    }, 2000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [following, sessionId]);
+
   const stop = () => {
     controller.current?.abort();
     setItems((list) => [...list, { id: uid(), kind: "notice", text: "Parei. O que já chegou continua aqui." }]);
@@ -241,6 +270,24 @@ export function Conversation(props: { sessionId: string }) {
         })}
         <div ref={bottom} />
       </div>
+      {state === "ready" && !busy ? (
+        <div className="flex flex-col gap-2 pb-3">
+          <LocalResearch
+            sessionId={sessionId}
+            suggestion={[...items].reverse().find((item) => item.kind === "user")?.text ?? ""}
+            onStarted={(runId) => setFollowing(runId)}
+          />
+          {following ? (
+            <button
+              type="button"
+              onClick={() => void api.stopLocalRun(following).finally(() => setFollowing(null))}
+              className="min-h-11 self-start rounded-full px-4 text-ui text-ink focus-visible:outline-2 focus-visible:outline-ink"
+            >
+              Parar a pesquisa no meu Chrome
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       <div className="sticky bottom-0 flex flex-col gap-2 bg-paper pb-5 pt-3 shadow-floating">
         {busy ? (
           <div className="flex items-center justify-between gap-3">

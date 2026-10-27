@@ -16,6 +16,12 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["..", "admin"])).toBeNull();
     expect(upstreamPath(["sessions", "a%2F..%2Fadmin"])).toBeNull();
     expect(upstreamPath(["admin"])).toBeNull();
+    // Local research: the web asks and follows; only the extension takes steps or beats.
+    expect(upstreamPath(["local-runs"])).toBe("/api/local-runs");
+    expect(upstreamPath(["local-runs", "abc", "stop"])).toBe("/api/local-runs/abc/stop");
+    expect(upstreamPath(["local-runs", "next"])).toBe("/api/local-runs/next");
+    expect(upstreamPath(["local-runs", "abc", "steps", "0"])).toBeNull();
+    expect(upstreamPath(["local-bridge", "heartbeat"])).toBeNull();
   });
 
   it("exige o cabeçalho da web e a mesma origem para mudar algo", () => {

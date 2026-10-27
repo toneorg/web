@@ -6,6 +6,8 @@ import {
   AgentEvent,
   DecisionState,
   LinkCodeCreated,
+  LocalRun,
+  type LocalStore,
   Me,
   Memory,
   ResearchRunState,
@@ -69,7 +71,28 @@ export const api = {
   saveWatch: async (id: string, version: number, draft: WatchRule) =>
     Watch.parse(await send(`watches/${id}`, "PATCH", { version, draft })),
   confirmWatch: async (id: string, version: number) => Watch.parse(await send(`watches/${id}/confirm`, "POST", { version })),
+  /** T14: whether the person's extension is on and recently seen. */
+  localBridge: async () => (await call("local-bridge")) as { available: boolean; lastSeenAt: string | null },
+  localRun: async (sessionId: string, query: string, stores: LocalStore[]) =>
+    LocalRun.parse(await send("local-runs", "POST", { sessionId, query, stores })),
+  stopLocalRun: (id: string) => send(`local-runs/${id}/stop`, "POST", {}),
 };
+
+/**
+ * T14: tells the extension a run is waiting. It carries only the run id; the extension fetches
+ * the steps from the server with its own token. Without the extension id, it waits for its next minute.
+ */
+export function nudgeExtension(runId: string) {
+  const id = process.env.NEXT_PUBLIC_TONE_EXTENSION_ID;
+  const runtime = (globalThis as { chrome?: { runtime?: { sendMessage?: (id: string, message: unknown, done?: () => void) => void } } })
+    .chrome?.runtime;
+  if (!id || !runtime?.sendMessage) return;
+  try {
+    runtime.sendMessage(id, { type: "tone.local_run", runId }, () => undefined);
+  } catch {
+    // The extension is not there or does not accept this page: the minute alarm still picks the run up.
+  }
+}
 
 /** Posts a turn and hands each server-sent event, validated, to `onEvent`. */
 export async function streamTurn(
