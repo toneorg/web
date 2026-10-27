@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* The design system: brand values (the same as below) and the neutral bench used by /conversas. */
+@import "@toneorg/design/theme.css";
 
 /*
   One hue, many tones. Every color on the page is the brand coral (#e26b5c,

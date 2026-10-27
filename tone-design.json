@@ -1,0 +1,5 @@
+{
+  "include": ["src/conversas", "src/app/conversas"],
+  "allow": [],
+  "legacy": {}
+}
