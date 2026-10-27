@@ -7,14 +7,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { LinkCodeCreated, Me, Memory, SessionSummary } from "@/tone/shared";
 import { ApiError, api } from "./api";
+import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
 
 const primary =
   "min-h-11 rounded-full bg-ink px-5 text-ui text-on-ink disabled:bg-rule disabled:text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 const quiet =
   "min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-const usd = (value: number) =>
-  `US$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}`;
 const when = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 export function Home() {
@@ -25,6 +24,7 @@ export function Home() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [code, setCode] = useState<LinkCodeCreated | null>(null);
   const [starting, setStarting] = useState(false);
+  const [ask, setAsk] = useState("");
   // Each change of `round` loads everything again (after signing in, deleting a memory, retrying).
   const [round, setRound] = useState(0);
   const load = () => setRound((value) => value + 1);
@@ -63,30 +63,63 @@ export function Home() {
         </button>
       </main>
     );
-  const start = async () => {
+  // T16: the first message goes along with the new conversation, which sends it once it opens.
+  const start = async (first = "") => {
     setStarting(true);
     try {
       const { sessionId } = await api.newSession();
-      router.push(`/conversas/${sessionId}`);
+      const text = first.trim();
+      router.push(`/conversas/${sessionId}${text ? `?primeira=${encodeURIComponent(text.slice(0, 4000))}` : ""}`);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) setState("expired");
       setStarting(false);
     }
   };
   return (
-    <main id="conteudo" className="mx-auto grid w-full max-w-5xl gap-8 px-5 py-10 md:grid-cols-[2fr_1fr]">
+    <Shell me={me} current="conversas">
+    <main id="conteudo" className="flex flex-col gap-8 py-4">
+      <form
+        className="flex flex-col gap-3 rounded-card bg-surface p-5 shadow-raised"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void start(ask);
+        }}
+      >
+        <label htmlFor="pedido" className="display-sm font-display text-ink">
+          O que você procura?
+        </label>
+        <textarea
+          id="pedido"
+          rows={2}
+          maxLength={4000}
+          value={ask}
+          onChange={(event) => setAsk(event.target.value)}
+          placeholder="Ex.: um perfume amadeirado até R$ 600, ou o menor preço do fone que eu vi"
+          className="min-h-13 resize-none rounded-input bg-paper px-4 py-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ink"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-caption text-graphite">
+            Eu pesquiso pelo servidor{me.remoteStores?.length ? " e navego nas lojas por um navegador remoto" : ""}, sem abrir
+            abas no seu computador.
+          </p>
+          <button type="submit" className={primary} disabled={starting || !ask.trim()}>
+            {starting ? "Abrindo…" : "Pesquisar"}
+          </button>
+        </div>
+      </form>
       <section className="flex flex-col gap-4" aria-labelledby="titulo-conversas">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 id="titulo-conversas" className="display-sm font-display text-ink">
+          <h1 id="titulo-conversas" className="text-subheading text-ink">
             Suas conversas
           </h1>
-          <button type="button" className={primary} disabled={starting} onClick={() => void start()}>
-            {starting ? "Abrindo…" : "Nova conversa"}
+          <button type="button" className={quiet} disabled={starting} onClick={() => void start()}>
+            Nova conversa
           </button>
         </div>
         {sessions.length === 0 ? (
           <p className="text-body text-graphite">
-            Nenhuma conversa ainda. Comece uma nova: eu pesquiso nas lojas pelo servidor, mesmo sem a extensão aberta.
+            Nenhuma conversa ainda. Comece uma nova: eu pesquiso nas lojas pelo servidor, sem abrir abas, mesmo com a
+            extensão fechada.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -107,7 +140,7 @@ export function Home() {
           </ul>
         )}
       </section>
-      <aside className="flex flex-col gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <section aria-labelledby="titulo-memoria" className="flex flex-col gap-2">
           <h2 id="titulo-memoria" className="text-subheading text-ink">
             O que eu sei sobre você
@@ -134,16 +167,6 @@ export function Home() {
             </ul>
           )}
         </section>
-        {me.budget ? (
-          <section aria-labelledby="titulo-saldo" className="flex flex-col gap-1">
-            <h2 id="titulo-saldo" className="text-subheading text-ink">
-              Saldo dos últimos sete dias
-            </h2>
-            <p className="text-small text-graphite">
-              Disponível: {usd(me.budget.availableUsd)} de {usd(me.budget.weeklyCapUsd)}. É o mesmo saldo da extensão.
-            </p>
-          </section>
-        ) : null}
         <section aria-labelledby="titulo-extensao" className="flex flex-col gap-2">
           <h2 id="titulo-extensao" className="text-subheading text-ink">
             Extensão no Chrome
@@ -164,12 +187,13 @@ export function Home() {
         </section>
         <button
           type="button"
-          className={`${quiet} self-start`}
+          className={`${quiet} justify-self-start`}
           onClick={() => void api.logout().finally(() => setState("signed_out"))}
         >
           Sair desta web
         </button>
-      </aside>
+      </div>
     </main>
+    </Shell>
   );
 }

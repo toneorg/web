@@ -1,4 +1,4 @@
-toneorg/extension@e74f243ee87c00d67c0711e5f7a378c4d87747b5
+toneorg/extension@2af3b9cf8379a3520a12d99912807729efbc0178
 agent.ts
 api.ts
 budget.ts
@@ -11,6 +11,7 @@ media.ts
 page.ts
 photo.ts
 progress.ts
+provenance.ts
 research-execution.ts
 research.ts
 safety.ts

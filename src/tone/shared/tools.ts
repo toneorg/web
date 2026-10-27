@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@e74f243ee87c (packages/shared/src/tools.ts). Não edite aqui.
+// Gerado de toneorg/extension@2af3b9cf8379 (packages/shared/src/tools.ts). Não edite aqui.
 // The tools the agent can call. Two kinds:
 //   browser  run in the extension, on the store's tab (RF2)
 //   server   run on the server (memory, RF3)

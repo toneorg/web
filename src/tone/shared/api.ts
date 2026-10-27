@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@e74f243ee87c (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/extension@2af3b9cf8379 (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";
@@ -57,6 +57,8 @@ export const Me = z.object({
   spentTodayUsd: z.number(),
   dailyCapUsd: z.number(),
   budget: BudgetStatement.optional(),
+  /** T16: the stores the server can search with a remote browser, for the web; empty when not configured. */
+  remoteStores: z.array(z.string()).optional(),
 });
 export type Me = z.infer<typeof Me>;
 

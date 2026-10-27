@@ -3,12 +3,13 @@
 // agent researches through the server; store-tab actions stay in the extension.
 import Link from "next/link";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
-import { type AgentEvent, type ResearchRunState, reduceResearchRuns, type TurnInput } from "@/tone/shared";
+import { type AgentEvent, type Me, type ResearchRunState, reduceResearchRuns, storeLabel, type TurnInput } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { ApiError, api, streamTurn } from "./api";
 import { Program, type ProgramHost } from "./Program";
 import { LocalResearch } from "./LocalResearch";
 import { ResearchRun } from "./ResearchRun";
+import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
 
 type Item =
@@ -25,6 +26,7 @@ export function Conversation(props: { sessionId: string }) {
   const [items, setItems] = useState<Item[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "expired" | "error">("loading");
   const [draft, setDraft] = useState("");
+  const [me, setMe] = useState<Me | null>(null);
   const [busy, setBusy] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -34,9 +36,10 @@ export function Conversation(props: { sessionId: string }) {
   const load = () => setRound((value) => value + 1);
   useEffect(() => {
     let live = true;
-    Promise.all([api.transcript(sessionId), api.researchRuns(sessionId), round])
-      .then(([transcript, runs]) => {
+    Promise.all([api.transcript(sessionId), api.researchRuns(sessionId), api.me(), round])
+      .then(([transcript, runs, person]) => {
         if (!live) return;
+        setMe(person);
         setItems([
         ...transcript.map((item): Item =>
           item.kind === "user"
@@ -186,6 +189,18 @@ export function Conversation(props: { sessionId: string }) {
     };
   }, [following, sessionId]);
 
+  // T16: a conversation started from the home page arrives with its first message; it is sent once.
+  const first = useRef<string | null>(
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("primeira"),
+  );
+  useEffect(() => {
+    const text = first.current;
+    if (!text || state !== "ready" || busy) return;
+    first.current = null;
+    window.history.replaceState(null, "", window.location.pathname);
+    void send(text);
+  }, [state, busy, send]);
+
   const stop = () => {
     controller.current?.abort();
     setItems((list) => [...list, { id: uid(), kind: "notice", text: "Parei. O que já chegou continua aqui." }]);
@@ -231,12 +246,13 @@ export function Conversation(props: { sessionId: string }) {
   });
 
   return (
-    <main id="conteudo" className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-5">
-      <header className="flex items-center justify-between gap-3 py-4">
+    <Shell me={me} current="conversas">
+    <main id="conteudo" className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
+      <header className="flex flex-wrap items-center justify-between gap-3 py-2">
         <Link href="/conversas" className="min-h-11 content-center text-ui text-ink underline-offset-4 hover:underline">
           ← Conversas
         </Link>
-        <p className="text-caption text-graphite">Pesquisa pelo servidor · ações na loja só pela extensão</p>
+        <p className="text-caption text-graphite">{researchNote(me)}</p>
       </header>
       <div role="log" aria-live="polite" aria-relevant="additions" className="flex flex-1 flex-col gap-4 pb-6">
         {state === "loading" ? <p className="text-small text-graphite">Carregando a conversa…</p> : null}
@@ -270,7 +286,7 @@ export function Conversation(props: { sessionId: string }) {
         })}
         <div ref={bottom} />
       </div>
-      {state === "ready" && !busy ? (
+      {state === "ready" && !busy && !me?.remoteStores?.length ? (
         <div className="flex flex-col gap-2 pb-3">
           <LocalResearch
             sessionId={sessionId}
@@ -288,7 +304,7 @@ export function Conversation(props: { sessionId: string }) {
           ) : null}
         </div>
       ) : null}
-      <div className="sticky bottom-0 flex flex-col gap-2 bg-paper pb-5 pt-3 shadow-floating">
+      <div className="sticky bottom-0 flex flex-col gap-2 bg-paper pb-5 pt-3">
         {busy ? (
           <div className="flex items-center justify-between gap-3">
             <span className="text-small text-graphite">Trabalhando…</span>
@@ -310,7 +326,7 @@ export function Conversation(props: { sessionId: string }) {
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
             disabled={state !== "ready"}
-            className="min-h-13 flex-1 resize-none rounded-input border border-rule bg-surface px-4 py-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ink"
+            className="min-h-13 flex-1 resize-none rounded-input bg-surface px-4 py-3 text-body text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-ink"
           />
           <button
             type="button"
@@ -323,5 +339,13 @@ export function Conversation(props: { sessionId: string }) {
         </div>
       </div>
     </main>
+    </Shell>
   );
+}
+
+/** T16: what the research of this page can do, said in the header. */
+export function researchNote(me: Me | null): string {
+  const remote = me?.remoteStores ?? [];
+  if (!remote.length) return "Pesquisa pelo servidor · ações na loja só pela extensão";
+  return `Pesquisa pelo servidor e em ${remote.map(storeLabel).join(", ")} por navegador remoto, sem abrir abas`;
 }

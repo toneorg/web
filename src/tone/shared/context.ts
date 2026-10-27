@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@e74f243ee87c (packages/shared/src/context.ts). Não edite aqui.
+// Gerado de toneorg/extension@2af3b9cf8379 (packages/shared/src/context.ts). Não edite aqui.
 // Kept apart from the schemas so the content script can use it without zod.
 import type { PageContext, PageSnapshot } from "./page";
 

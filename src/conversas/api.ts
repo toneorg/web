@@ -14,6 +14,7 @@ import {
   SessionSummary,
   TranscriptItem,
   Watch,
+  WatchResult,
   type DecisionOp,
   type TurnInput,
   type WatchRule,
@@ -70,6 +71,8 @@ export const api = {
   },
   saveWatch: async (id: string, version: number, draft: WatchRule) =>
     Watch.parse(await send(`watches/${id}`, "PATCH", { version, draft })),
+  /** T16: the readings of a watch, newest first, for the panels. */
+  watchResults: async (id: string) => WatchResult.array().parse(await call(`watches/${id}/results`)),
   confirmWatch: async (id: string, version: number) => Watch.parse(await send(`watches/${id}/confirm`, "POST", { version })),
   /** T14: whether the person's extension is on and recently seen. */
   localBridge: async () => (await call("local-bridge")) as { available: boolean; lastSeenAt: string | null },

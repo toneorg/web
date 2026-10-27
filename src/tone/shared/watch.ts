@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@e74f243ee87c (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/extension@2af3b9cf8379 (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -105,6 +105,30 @@ export const Watch = z.object({
   lastState: z.string().nullable().optional(),
 });
 export type Watch = z.infer<typeof Watch>;
+
+/** T10: one run of a watch as the person sees it: what was observed and whether the condition was met. */
+export const WatchResult = z.object({
+  id: z.string(),
+  version: z.number().int().positive(),
+  outcome: z.string(),
+  conditionMet: z.boolean(),
+  observedAt: z.string(),
+  summary: z.looseObject({
+    message: z.string(),
+    matches: z
+      .array(
+        z.looseObject({
+          title: z.string(),
+          store: z.string(),
+          url: z.string(),
+          priceText: z.string(),
+          amount: z.number().nullable(),
+        }),
+      )
+      .default([]),
+  }),
+});
+export type WatchResult = z.infer<typeof WatchResult>;
 
 export const WatchEdit = z.object({ version: z.number().int().positive(), draft: WatchRule });
 export const WatchConfirm = z.object({ version: z.number().int().positive() });

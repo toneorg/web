@@ -1,17 +1,8 @@
 "use client";
 // T13 on the web: one card per research run, updated in place from real steps.
-import type { ResearchRunState } from "@/tone/shared";
+// T16: the note under the offers says whether a remote browser read them (provenanceNote).
+import { provenanceNote, type ResearchRunState, storeLabel } from "@/tone/shared";
 import { StoreLink } from "./Program";
-
-/** Where the prices came from: the index (T04) or the store page read by the extension (T14). */
-function provenanceNote(run: ResearchRunState): string {
-  const levels = new Set(run.result?.evidence.map((entry) => entry.level) ?? []);
-  if (levels.has("origin") && !levels.has("index"))
-    return "Preços lidos na página da loja pela extensão, no seu Chrome; frete e estoque podem mudar no carrinho.";
-  if (levels.has("origin"))
-    return "Parte dos preços foi lida na loja pela extensão e parte observada no índice do Google Shopping; a loja pode ter outro valor, frete ou estoque.";
-  return "Preços observados no índice do Google Shopping; a loja pode ter outro valor, frete ou estoque.";
-}
 
 export function ResearchRun(props: { run: ResearchRunState }) {
   const { run } = props;
@@ -22,7 +13,12 @@ export function ResearchRun(props: { run: ResearchRunState }) {
   };
   return (
     <section className="flex flex-col gap-2 rounded-panel bg-surface p-4 shadow-raised" aria-label="Pesquisa de produtos">
-      <p className="text-small font-medium text-ink" aria-live="polite">
+      <p className="flex items-center gap-2 text-small font-medium text-ink" aria-live="polite">
+        {/* While the run works, a dot shows it is alive; it stops still for reduced motion and at the end. */}
+        <span
+          aria-hidden="true"
+          className={`size-2 shrink-0 rounded-full ${run.terminal ? "bg-rule" : "animate-pulse bg-ink motion-reduce:animate-none"}`}
+        />
         {run.message}
         {run.stage === "reading" && run.total !== null && !run.terminal ? ` · ${run.done ?? 0} de ${run.total}` : ""}
       </p>
@@ -33,7 +29,7 @@ export function ResearchRun(props: { run: ResearchRunState }) {
               <span className="text-small text-ink">
                 {titleOf(offer.variantId)}
                 <span className="block text-caption text-graphite">
-                  {offer.store} · {offer.price.kind === "unknown" ? "preço desconhecido" : offer.price.originalText}
+                  {storeLabel(offer.store)} · {offer.price.kind === "unknown" ? "preço desconhecido" : offer.price.originalText}
                 </span>
               </span>
               <StoreLink url={offer.url} />
