@@ -22,6 +22,11 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["local-runs", "next"])).toBe("/api/local-runs/next");
     expect(upstreamPath(["local-runs", "abc", "steps", "0"])).toBeNull();
     expect(upstreamPath(["local-bridge", "heartbeat"])).toBeNull();
+    // T11: the center's actions and the mute link of an e-mail.
+    expect(upstreamPath(["watches", "w1", "mute"])).toBe("/api/watches/w1/mute");
+    expect(upstreamPath(["watches", "w1", "unmute"])).toBe("/api/watches/w1/unmute");
+    expect(upstreamPath(["watch-mute"])).toBe("/api/watch-mute");
+    expect(upstreamPath(["watch-mute", "x"])).toBeNull();
   });
 
   it("exige o cabeçalho da web e a mesma origem para mudar algo", () => {

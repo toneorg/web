@@ -107,6 +107,13 @@ export const api = {
   /** T16: the readings of a watch, newest first, for the panels. */
   watchResults: async (id: string) => WatchResult.array().parse(await call(`watches/${id}/results`)),
   confirmWatch: async (id: string, version: number) => Watch.parse(await send(`watches/${id}/confirm`, "POST", { version })),
+  /** T11: the center's actions. Muting stops the e-mail only; the watch keeps running. */
+  watchAction: async (id: string, action: "pause" | "resume" | "mute" | "unmute") =>
+    Watch.parse(await send(`watches/${id}/${action}`, "POST", {})),
+  checkWatch: async (id: string) => (await send(`watches/${id}/check`, "POST", {})) as { state: string },
+  deleteWatch: (id: string) => send(`watches/${id}`, "DELETE"),
+  /** T11: the mute link of an e-mail, without signing in. */
+  muteByLink: (token: string) => send("watch-mute", "POST", { token }),
   /** T14: whether the person's extension is on and recently seen. */
   localBridge: async () => (await call("local-bridge")) as { available: boolean; lastSeenAt: string | null },
   localRun: async (sessionId: string, query: string, stores: LocalStore[]) =>
