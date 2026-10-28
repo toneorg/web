@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2af3b9cf8379 (packages/shared/src/progress.ts). Não edite aqui.
+// Gerado de toneorg/extension@ae98f09796c8 (packages/shared/src/progress.ts). Não edite aqui.
 // T13: what a research run is doing, from real operations only. The server
 // numbers each event of a run (`seq`) and sends the partial result as a new
 // revision of the same envelope; clients fold both with `reduceResearchRuns`,

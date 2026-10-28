@@ -15,6 +15,7 @@ import {
   TranscriptItem,
   Watch,
   WatchResult,
+  type ClickWhere,
   type DecisionOp,
   type TurnInput,
   type WatchRule,
@@ -80,6 +81,20 @@ export const api = {
     LocalRun.parse(await send("local-runs", "POST", { sessionId, query, stores })),
   stopLocalRun: (id: string) => send(`local-runs/${id}/stop`, "POST", {}),
 };
+
+/**
+ * Records the click on a recommended product's link. Sent with keepalive, so it is not lost
+ * when the store opens in another tab; a failure never stops the link.
+ */
+export function trackClick(sessionId: string | null, url: string, title: string, where: ClickWhere) {
+  void fetch("/api/tone/events", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-tone-web": "1" },
+    credentials: "same-origin",
+    keepalive: true,
+    body: JSON.stringify({ sessionId, events: [{ type: "recommendation_clicked", url, title, ...where }] }),
+  }).catch(() => undefined);
+}
 
 /**
  * T14: tells the extension a run is waiting. It carries only the run id; the extension fetches

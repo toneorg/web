@@ -111,7 +111,19 @@ export function DecisionBoard(props: { sessionId: string; decisionId: string; ti
                 Reconsiderar
               </button>
             )}
-            <StoreLink url={row.candidate.url} />
+            <StoreLink
+              url={row.candidate.url}
+              store={row.candidate.store}
+              click={{
+                sessionId: props.sessionId,
+                title: row.candidate.title,
+                where: {
+                  source: "decision_board",
+                  offerId: row.candidate.offerId,
+                  recommended: row.classification === "meets_required",
+                },
+              }}
+            />
           </div>
         </article>
       ))}

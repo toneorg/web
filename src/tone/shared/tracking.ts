@@ -1,8 +1,27 @@
-// Gerado de toneorg/extension@2af3b9cf8379 (packages/shared/src/tracking.ts). Não edite aqui.
+// Gerado de toneorg/extension@ae98f09796c8 (packages/shared/src/tracking.ts). Não edite aqui.
 // The events the panel records for the test week (requisitos §4). Each one is
 // small and typed, so the dashboard can count them without guessing.
 import * as z from "zod";
 import { BROWSER_TOOL_NAMES } from "./tools";
+
+/** Where a recommended product's link was clicked. */
+export const ClickSource = z.enum([
+  "product_card",
+  "comparison",
+  "generated_ui",
+  "decision_board",
+  "research_run",
+  "history",
+]);
+export type ClickSource = z.infer<typeof ClickSource>;
+/** Where on the screen a product link was, sent with the click. */
+export interface ClickWhere {
+  source: ClickSource;
+  position?: number | null;
+  offerId?: string | null;
+  runId?: string | null;
+  recommended?: boolean | null;
+}
 
 export const TrackEvent = z.discriminatedUnion("type", [
   z.object({
@@ -13,7 +32,19 @@ export const TrackEvent = z.discriminatedUnion("type", [
     durationMs: z.number().finite().min(0).max(600_000),
   }),
   z.object({ type: z.literal("panel_opened"), site: z.string().nullable() }),
-  z.object({ type: z.literal("recommendation_clicked"), url: z.string(), title: z.string() }),
+  // The surface, the store and the time since the options were shown are added by the server.
+  z.object({
+    type: z.literal("recommendation_clicked"),
+    url: z.string().max(2000),
+    title: z.string().max(300),
+    source: ClickSource.optional(),
+    /** Place in the list the person saw, from 0. */
+    position: z.number().int().min(0).max(99).nullable().optional(),
+    offerId: z.string().max(80).nullable().optional(),
+    runId: z.string().max(80).nullable().optional(),
+    /** Whether the server or the agent recommended this offer, when the screen knows. */
+    recommended: z.boolean().nullable().optional(),
+  }),
   z.object({
     type: z.literal("recommendation_rejected"),
     url: z.string(),
