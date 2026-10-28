@@ -22,6 +22,8 @@ const ALLOWED: RegExp[] = [
   /^research$/,
   /^watches$/,
   /^watches\/[^/]+(\/(confirm|pause|resume|check|mute|unmute|results))?$/,
+  // T11: the mute link of an e-mail; the signed token is the only credential.
+  /^watch-mute$/,
   /^events$/,
   // T14: the web asks for and follows local research; taking steps is the extension's (not listed).
   /^local-runs$/,
