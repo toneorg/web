@@ -131,7 +131,9 @@ export function Home() {
                   href={`/conversas/${session.id}`}
                   className="flex flex-col gap-1 rounded-panel bg-surface p-4 shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                 >
-                  <span className="text-body text-ink">{session.onboarding ? "Primeira conversa" : session.title}</span>
+                  <span className="text-body text-ink" data-ph-mask>
+                    {session.onboarding ? "Primeira conversa" : session.title}
+                  </span>
                   <span className="text-caption text-graphite">
                     {when(session.lastAt)} · {session.messages} {session.messages === 1 ? "mensagem" : "mensagens"} ·{" "}
                     {session.surface === "web" ? "começou na web" : "começou na extensão"}
@@ -150,7 +152,7 @@ export function Home() {
           {memories.length === 0 ? (
             <p className="text-small text-graphite">Nada ainda. Converse comigo e eu vou anotando.</p>
           ) : (
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col gap-1" data-ph-mask>
               {memories.map((memory) => (
                 <li key={memory.id} className="flex items-center justify-between gap-2 text-small text-ink">
                   <span>
