@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import posthog from "posthog-js";
 import { joinWaitlist } from "@/app/actions";
 import type { FormState, Placement, WaitlistField } from "@/lib/forms";
 import { buttonClass } from "./button";
@@ -25,7 +26,10 @@ export function EmailCapture({ placement, lead }: { placement: Placement; lead?:
 
   async function joinAndRemember(prev: FormState<WaitlistField>, form: FormData) {
     const result = await joinWaitlist(prev, form);
-    if (result.status === "ok") join(String(form.get(EMAIL)).trim(), placement);
+    if (result.status === "ok") {
+      join(String(form.get(EMAIL)).trim(), placement);
+      posthog.capture("waitlist_joined", { placement });
+    }
     return result;
   }
 

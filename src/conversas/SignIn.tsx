@@ -2,6 +2,7 @@
 // T05/T06: entering the web with the same account as the extension. The code
 // is typed by the person; it never travels in a link.
 import { type FormEvent, useState } from "react";
+import posthog from "posthog-js";
 import { ApiError, api } from "./api";
 
 const field =
@@ -54,7 +55,7 @@ export function SignIn(props: { onDone: () => void; expired?: boolean }) {
         ))}
       </div>
       {mode === "code" ? (
-        <form className="flex flex-col gap-3" onSubmit={(event) => void run(event, async () => { await api.link(code); props.onDone(); })}>
+        <form className="flex flex-col gap-3" onSubmit={(event) => void run(event, async () => { await api.link(code); posthog.capture("sign_in_completed", { method: "extension_code" }); props.onDone(); })}>
           <label htmlFor="link-code" className="text-body font-medium text-ink">
             Código de 8 letras e números
           </label>
@@ -75,7 +76,7 @@ export function SignIn(props: { onDone: () => void; expired?: boolean }) {
           </button>
         </form>
       ) : sent ? (
-        <form className="flex flex-col gap-3" onSubmit={(event) => void run(event, async () => { await api.emailVerify(email, code); props.onDone(); })}>
+        <form className="flex flex-col gap-3" onSubmit={(event) => void run(event, async () => { await api.emailVerify(email, code); posthog.capture("sign_in_completed", { method: "email_code" }); props.onDone(); })}>
           <label htmlFor="email-code" className="text-body font-medium text-ink">
             Código de 6 números
           </label>

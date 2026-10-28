@@ -2,6 +2,7 @@
 // T08 on the web: the decision of the conversation, loaded from the server with
 // its evidence. The person changes it here as the person; the model only named its id.
 import { useCallback, useEffect, useState } from "react";
+import posthog from "posthog-js";
 import { compareDecision, type DecisionOp, type DecisionState } from "@/tone/shared";
 import { api } from "./api";
 import { StoreLink } from "./Program";
@@ -35,7 +36,10 @@ export function DecisionBoard(props: { sessionId: string; decisionId: string; ti
       setError(null);
       api
         .changeDecision(props.sessionId, state.version, ops)
-        .then(setState)
+        .then((nextState) => {
+          setState(nextState);
+          posthog.capture("decision_updated", { operation: ops[0]?.type });
+        })
         .catch((failure: unknown) => setError(failure instanceof Error ? failure.message : "Não consegui salvar."));
     },
     [props.sessionId, state],

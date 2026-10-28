@@ -3,6 +3,7 @@
 // agent researches through the server; store-tab actions stay in the extension.
 import Link from "next/link";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import posthog from "posthog-js";
 import { type AgentEvent, type Me, type ResearchRunState, reduceResearchRuns, storeLabel, type TurnInput } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { ApiError, api, streamTurn } from "./api";
@@ -157,6 +158,7 @@ export function Conversation(props: { sessionId: string }) {
       if (!trimmed || busy || state !== "ready") return;
       setDraft("");
       setItems((list) => [...list, { id: uid(), kind: "user", text: trimmed }]);
+      posthog.capture("conversation_message_sent");
       await runTurn({ type: "message", text: trimmed, page: null });
     },
     [busy, runTurn, state],
