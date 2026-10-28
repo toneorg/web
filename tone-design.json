@@ -1,5 +1,7 @@
 {
-  "include": ["src/conversas", "src/app/conversas"],
-  "allow": [],
-  "legacy": {}
+  "include": ["src"],
+  "allow": ["src/lib/tones.ts"],
+  "legacy": {
+    "src/components/floating-nav.tsx": 2
+  }
 }
