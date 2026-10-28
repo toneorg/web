@@ -1,34 +1,17 @@
 @import "tailwindcss";
-
 /*
-  One hue, many tones. Every color on the page is the brand coral (#e26b5c,
-  oklch 0.667 0.151 29) moved up or down in lightness, so the palette is
-  literally a shade range. Skin tones appear only where they are data: the
-  product-page dots and the tone picker.
-
-  Contrast notes (WCAG): wine on coral is 5.4:1, so wine is the only text
-  color allowed on a coral ground. White on coral and coral on white are both
-  3.2:1: display sizes (24px and up) only. Small coral text on white uses
-  coral-600 (5.1:1).
+  Color, type, radius and easing come from the tone design system
+  (github.com/toneorg/design): the palette, the fonts, the display-* and lead
+  text styles and the press utility. Its rules, with the contrast limits of
+  each color pair, are in node_modules/@toneorg/design/DESIGN.md. Nothing here
+  writes a color by hand: `npm run check:design` fails if it does.
 */
-@theme {
-  --color-coral: #e26b5c;
-  --color-coral-50: #fff4f2;
-  --color-coral-100: #fee9e5;
-  --color-coral-200: #ffd4cd;
-  --color-coral-300: #ffb5aa;
-  --color-coral-600: #c44134;
-  --color-coral-700: #9e2d28;
-  --color-wine: #340b10;
-  --color-wine-800: #50171c;
-  --color-wine-950: #210507;
-  --color-muted: #75595c;
+@import "@toneorg/design/theme.css";
 
-  --font-sans: var(--font-host-grotesk), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-crimson-pro), ui-serif, Georgia, serif;
-
-  --ease-soft: cubic-bezier(0.2, 0, 0, 1);
-}
+/* Tailwind reads every file in the project for class names. The docs name
+   utilities in prose (`rounded-tile`, "shadow"), so they are left out. */
+@source not "../../*.md";
+@source not "../../docs";
 
 @layer base {
   :root {
@@ -43,7 +26,7 @@
   }
 
   body {
-    background: #fff;
+    background: var(--color-white);
     color: var(--color-wine);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -70,88 +53,6 @@
 
   [id] {
     scroll-margin-top: 2rem;
-  }
-}
-
-/*
-  Display voice: Crimson Pro, set large and tight. Light on wide screens,
-  where the size carries it; one step heavier on phones, where the thin
-  strokes would otherwise fade into the coral. Its x-height is small, so the
-  sizes run larger than a grotesque would need.
-*/
-@utility display-xl {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(2.75rem, 10.8vw, 9.5rem);
-  line-height: 0.94;
-  letter-spacing: -0.025em;
-  @media (min-width: 48rem) {
-    font-weight: 300;
-  }
-}
-
-/* Same ceiling as display-xl, with a higher floor: for one or two words that
-   can stay huge on a phone where a full sentence could not. */
-@utility display-word {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(4rem, 17vw, 9.5rem);
-  line-height: 0.94;
-  letter-spacing: -0.025em;
-  @media (min-width: 48rem) {
-    font-weight: 300;
-  }
-}
-
-@utility display-lg {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(2.6rem, 8vw, 6.25rem);
-  line-height: 0.98;
-  letter-spacing: -0.02em;
-  @media (min-width: 48rem) {
-    font-weight: 300;
-  }
-}
-
-@utility display-md {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(1.95rem, 3.8vw, 3rem);
-  line-height: 1.04;
-  letter-spacing: -0.015em;
-  @media (min-width: 48rem) {
-    font-weight: 300;
-  }
-}
-
-@utility display-sm {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 1.625rem;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  @media (min-width: 48rem) {
-    font-weight: 400;
-  }
-}
-
-@utility lead {
-  font-size: clamp(1.125rem, 1.6vw, 1.3125rem);
-  line-height: 1.5;
-}
-
-@utility press {
-  transition-property: scale, background-color, color, box-shadow;
-  transition-duration: 150ms;
-  transition-timing-function: var(--ease-soft);
-  &:active:not(:disabled) {
-    scale: 0.96;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    &:active:not(:disabled) {
-      scale: 1;
-    }
   }
 }
 
