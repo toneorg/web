@@ -43,3 +43,4 @@ next-env.d.ts
 # waitlist submissions stored locally in dev
 /data
 !.env.example
+.env.local

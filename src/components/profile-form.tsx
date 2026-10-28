@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import posthog from "posthog-js";
 import { saveProfile } from "@/app/actions";
 import {
   type FormState,
@@ -55,20 +56,23 @@ function shareUrl() {
 /** Step two of the list: optional answers that help assemble the beta group. */
 export function ProfileForm({ email }: { email: string }) {
   const { profileSaved, markProfileSaved } = useSignup();
-
-  async function saveAndRemember(prev: FormState<ProfileField>, data: FormData) {
-    const result = await saveProfile(prev, data);
-    if (result.status === "ok") markProfileSaved();
-    return result;
-  }
-
-  const { state, formAction, pending, errors, formRef, alertRef, doneRef } =
-    useFormAction(saveAndRemember);
   const fields = useFields(TEXT_FIELDS);
   const [tone, setTone] = useState("");
   const [wrongShade, setWrongShade] = useState("");
   const [test, setTest] = useState(false);
   const [consent, setConsent] = useState(false);
+
+  async function saveAndRemember(prev: FormState<ProfileField>, data: FormData) {
+    const result = await saveProfile(prev, data);
+    if (result.status === "ok") {
+      markProfileSaved();
+      posthog.capture("profile_completed", { beta_interest: test });
+    }
+    return result;
+  }
+
+  const { state, formAction, pending, errors, formRef, alertRef, doneRef } =
+    useFormAction(saveAndRemember);
 
   if (profileSaved) {
     return (

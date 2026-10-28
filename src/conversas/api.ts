@@ -1,6 +1,7 @@
 "use client";
 // T06: the conversation pages' calls, all to this site's /api/tone (the BFF).
 // Responses are checked with the same contracts as the server and the extension.
+import posthog from "posthog-js";
 import {
   AccessSession,
   AgentEvent,
@@ -43,12 +44,43 @@ async function call(path: string, init: RequestInit = {}): Promise<unknown> {
 const send = (path: string, method: string, body?: unknown) =>
   call(path, { method, body: body === undefined ? undefined : JSON.stringify(body) });
 
+let identifiedUserId: string | null = null;
+
+async function me() {
+  try {
+    const person = Me.parse(await call("me"));
+    if (identifiedUserId !== person.id) {
+      const persistedUserId = posthog.get_property("$user_id");
+      if (persistedUserId && persistedUserId !== person.id) posthog.reset();
+      // Only the tone id: e-mail and name stay out of the analytics (LGPD).
+      posthog.identify(person.id);
+      identifiedUserId = person.id;
+    }
+    return person;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      if (identifiedUserId || posthog.get_property("$user_id")) posthog.reset();
+      identifiedUserId = null;
+    }
+    throw error;
+  }
+}
+
+async function logout() {
+  try {
+    await send("auth/logout", "POST", {});
+  } finally {
+    posthog.reset();
+    identifiedUserId = null;
+  }
+}
+
 export const api = {
-  me: async () => Me.parse(await call("me")),
+  me,
   link: (code: string) => send("auth/web/link", "POST", { code }),
   emailStart: (email: string) => send("auth/web/email/start", "POST", { email }),
   emailVerify: (email: string, code: string) => send("auth/web/email/verify", "POST", { email, code }),
-  logout: () => send("auth/logout", "POST", {}),
+  logout,
   linkCode: async () => LinkCodeCreated.parse(await send("auth/link-codes", "POST", {})),
   accessSessions: async () => AccessSession.array().parse(await call("auth/sessions")),
   memories: async () => Memory.array().parse(await call("memories")),

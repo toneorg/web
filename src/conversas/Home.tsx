@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import posthog from "posthog-js";
 import type { LinkCodeCreated, Me, Memory, SessionSummary } from "@/tone/shared";
 import { ApiError, api } from "./api";
 import { Shell } from "./Shell";
@@ -69,6 +70,7 @@ export function Home() {
     try {
       const { sessionId } = await api.newSession();
       const text = first.trim();
+      posthog.capture("conversation_started", { has_initial_query: Boolean(text) });
       router.push(`/conversas/${sessionId}${text ? `?primeira=${encodeURIComponent(text.slice(0, 4000))}` : ""}`);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) setState("expired");
@@ -158,7 +160,10 @@ export function Home() {
                     type="button"
                     className="min-h-11 rounded-full px-3 text-caption text-graphite focus-visible:outline-2 focus-visible:outline-ink"
                     aria-label={`Apagar ${memory.key}`}
-                    onClick={() => void api.deleteMemory(memory.id).then(load)}
+                    onClick={() => void api.deleteMemory(memory.id).then(() => {
+                      posthog.capture("memory_deleted");
+                      load();
+                    })}
                   >
                     Apagar
                   </button>
@@ -175,7 +180,10 @@ export function Home() {
             Aqui eu pesquiso pelo servidor, mesmo com o Chrome fechado. Ler a página de uma loja, escolher variação ou pôr no
             carrinho continua na extensão, com o Chrome aberto.
           </p>
-          <button type="button" className={quiet} onClick={() => void api.linkCode().then(setCode)}>
+          <button type="button" className={quiet} onClick={() => void api.linkCode().then((nextCode) => {
+            setCode(nextCode);
+            posthog.capture("extension_link_code_generated");
+          })}>
             Gerar código para a extensão
           </button>
           {code ? (
