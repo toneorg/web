@@ -6,7 +6,8 @@
 // Components that only make sense in the extension stay readable as text.
 import { type ReactNode, useState } from "react";
 import { parseProgram } from "@/tone/shared/genui";
-import { isAllowedImage, isCheckoutUrl } from "@/tone/shared";
+import { type ClickWhere, isAllowedImage, isCheckoutUrl } from "@/tone/shared";
+import { trackClick } from "./api";
 import { DecisionBoard } from "./DecisionBoard";
 import { WatchDraft } from "./WatchDraft";
 
@@ -37,22 +38,40 @@ const list = (value: unknown) => (Array.isArray(value) ? value.filter(isNode) : 
 const brl = (value: number | null) =>
   value === null ? null : value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-/** A store link only for an HTTPS store page that does not pay. */
-export function storeLink(url: string): string | null {
+/**
+ * A store link only for an HTTPS store page that does not pay. `store` is a store the server itself
+ * read and checked the offer against (T16, a remote browser); what the model writes gets only the fixed list.
+ */
+export function storeLink(url: string, store?: string): string | null {
   if (!URL.canParse(url)) return null;
   const parsed = new URL(url);
-  if (parsed.protocol !== "https:" || isCheckoutUrl(url)) return null;
-  return STORE_HOSTS.some((host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)) ? url : null;
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || isCheckoutUrl(url)) return null;
+  const hosts = store ? [...STORE_HOSTS, store] : STORE_HOSTS;
+  return hosts.some((host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)) ? url : null;
 }
 
-export function StoreLink(props: { url: string; label?: string }) {
-  const href = storeLink(props.url);
+/** What a click on the link records: the conversation, the product and where it was on the screen. */
+export interface ClickContext {
+  sessionId: string | null;
+  title: string;
+  where: ClickWhere;
+}
+
+export function StoreLink(props: { url: string; label?: string; click?: ClickContext; store?: string }) {
+  const href = storeLink(props.url, props.store);
   if (!href) return null;
+  const { click } = props;
+  // A middle click also opens the store, so it counts too; a right click does not.
+  const record = click ? () => trackClick(click.sessionId, href, click.title, click.where) : undefined;
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={record}
+      onAuxClick={(event) => {
+        if (event.button === 1) record?.();
+      }}
       className="inline-flex min-h-11 items-center rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
     >
       {props.label ?? "Ver na loja"}
@@ -70,7 +89,7 @@ function Card(props: { title?: string; children: ReactNode }) {
   );
 }
 
-function ProductRow(props: { node: Node }) {
+function ProductRow(props: { node: Node; sessionId: string; position: number }) {
   const p = props.node.props ?? {};
   const image = isAllowedImage(text(p.image), STORE_HOSTS) ? text(p.image) : null;
   const reasons = Array.isArray(p.reasons) ? (p.reasons as unknown[]).map(text).filter(Boolean) : [];
@@ -90,7 +109,14 @@ function ProductRow(props: { node: Node }) {
         </span>
         {reasons.length ? <span className="text-caption text-graphite">{reasons.join(" · ")}</span> : null}
         {text(p.caveat) ? <span className="text-caption text-graphite">Ponto fraco: {text(p.caveat)}</span> : null}
-        <StoreLink url={text(p.url)} />
+        <StoreLink
+          url={text(p.url)}
+          click={{
+            sessionId: props.sessionId,
+            title: text(p.title),
+            where: { source: "generated_ui", position: props.position },
+          }}
+        />
       </div>
     </li>
   );
@@ -153,7 +179,7 @@ function Block(props: { node: Node; host: ProgramHost }) {
         <Card title={text(p.title)}>
           <ul className="flex flex-col gap-4">
             {list(p.products).map((product, index) => (
-              <ProductRow key={index} node={product} />
+              <ProductRow key={index} node={product} sessionId={host.sessionId} position={index} />
             ))}
           </ul>
         </Card>
@@ -163,7 +189,7 @@ function Block(props: { node: Node; host: ProgramHost }) {
         <Card title={text(p.title)}>
           <ul className="flex flex-col gap-4">
             {list(p.items).map((item, index) => (
-              <ProductRow key={index} node={item} />
+              <ProductRow key={index} node={item} sessionId={host.sessionId} position={index} />
             ))}
           </ul>
         </Card>
@@ -211,7 +237,16 @@ function Block(props: { node: Node; host: ProgramHost }) {
       return (
         <Card title={product ? text(product.props?.title) : "Veredito"}>
           <p className="text-small text-ink">{text(p.summary)}</p>
-          {product ? <StoreLink url={text(product.props?.url)} /> : null}
+          {product ? (
+            <StoreLink
+              url={text(product.props?.url)}
+              click={{
+                sessionId: host.sessionId,
+                title: text(product.props?.title),
+                where: { source: "generated_ui" },
+              }}
+            />
+          ) : null}
         </Card>
       );
     }

@@ -24,7 +24,7 @@ export function ResearchRun(props: { run: ResearchRunState }) {
       </p>
       {offers.length ? (
         <ul className="flex flex-col gap-2">
-          {offers.slice(0, 5).map((offer) => (
+          {offers.slice(0, 5).map((offer, index) => (
             <li key={offer.id} className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-small text-ink">
                 {titleOf(offer.variantId)}
@@ -32,7 +32,15 @@ export function ResearchRun(props: { run: ResearchRunState }) {
                   {storeLabel(offer.store)} · {offer.price.kind === "unknown" ? "preço desconhecido" : offer.price.originalText}
                 </span>
               </span>
-              <StoreLink url={offer.url} />
+              <StoreLink
+                url={offer.url}
+                store={offer.store}
+                click={{
+                  sessionId: run.sessionId,
+                  title: titleOf(offer.variantId),
+                  where: { source: "research_run", position: index, offerId: offer.id, runId: run.runId },
+                }}
+              />
             </li>
           ))}
         </ul>
