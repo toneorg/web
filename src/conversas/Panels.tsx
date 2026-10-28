@@ -235,7 +235,8 @@ export function Panels(props: { me: Me }) {
             acompanhamento aparece aqui depois que você confirmar.
           </p>
         ) : (
-          <ul className="flex flex-col gap-3">
+          // Goals and prices are the person's own: masked in session replay, like the conversation.
+          <ul className="flex flex-col gap-3" data-ph-mask>
             {panels.map((panel) => (
               <li key={panel.watch.id}>
                 <PanelCard panel={panel} onChange={(next) => replace(panel.watch.id, next)} />
