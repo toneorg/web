@@ -256,7 +256,13 @@ export function Conversation(props: { sessionId: string }) {
         </Link>
         <p className="text-caption text-graphite">{researchNote(me)}</p>
       </header>
-      <div role="log" aria-live="polite" aria-relevant="additions" className="flex flex-1 flex-col gap-4 pb-6">
+      <div
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        data-ph-mask
+        className="flex flex-1 flex-col gap-4 pb-6"
+      >
         {state === "loading" ? <p className="text-small text-graphite">Carregando a conversa…</p> : null}
         {items.map((item) => {
           if (item.kind === "user")
