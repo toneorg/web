@@ -78,9 +78,21 @@ export function Conversation(props: { sessionId: string; first?: string | null }
       live = false;
     };
   }, [sessionId, round]);
+  // Follows the conversation as it grows, also while an answer streams in, unless the
+  // person scrolled up to read something: then it leaves the page where it is.
+  const tail = items.at(-1);
+  const growth = tail?.kind === "assistant" ? tail.text.length : 0;
+  const atBottom = useRef(true);
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-  }, [items.length]);
+    const onScroll = () => {
+      atBottom.current = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  useEffect(() => {
+    if (atBottom.current) bottom.current?.scrollIntoView({ block: "end" });
+  }, [items.length, growth]);
 
   const fold = useCallback(
     (event: Extract<AgentEvent, { type: "progress" | "research_result" }>) =>
