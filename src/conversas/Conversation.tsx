@@ -240,9 +240,10 @@ export function Conversation(props: { sessionId: string }) {
   const hostFor = (id: string): ProgramHost => ({
     sessionId,
     interactive: id === lastAssistant && !busy,
-    answer: (memoryKey, question, answer) => {
-      setItems((list) => [...list, { id: uid(), kind: "user", text: answer }]);
-      void runTurn({ type: "ui_answer", answers: [{ memoryKey: memoryKey || "geral.preferencia", question, answer }], page: null });
+    answer: (answers, display) => {
+      if (busy) return;
+      setItems((list) => [...list, { id: uid(), kind: "user", text: display }]);
+      void runTurn({ type: "ui_answer", answers, page: null });
     },
     say: (text) => void send(text),
   });
