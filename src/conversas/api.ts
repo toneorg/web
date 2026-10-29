@@ -6,7 +6,8 @@ import {
   AccessSession,
   AgentEvent,
   DecisionState,
-  LinkCodeCreated,
+  CONSENT_VERSION,
+  InviteInfo,
   LocalRun,
   type LocalStore,
   Me,
@@ -81,11 +82,14 @@ async function logout() {
 
 export const api = {
   me,
-  link: (code: string) => send("auth/web/link", "POST", { code }),
-  emailStart: (email: string) => send("auth/web/email/start", "POST", { email }),
-  emailVerify: (email: string, code: string) => send("auth/web/email/verify", "POST", { email, code }),
+  /** Every entry after the first: e-mail and password. */
+  signIn: (email: string, password: string) => send("auth/web/login", "POST", { email, password }),
+  /** First step of the first entry: the e-mail the invite was made for. */
+  invite: async (code: string) => InviteInfo.parse(await send("auth/web/invite", "POST", { code })),
+  /** The onboarding: spends the invite and sets the password. */
+  redeem: (code: string, name: string, email: string, password: string) =>
+    send("auth/web/redeem", "POST", { code, name, email, password, consent: true, consentVersion: CONSENT_VERSION }),
   logout,
-  linkCode: async () => LinkCodeCreated.parse(await send("auth/link-codes", "POST", {})),
   accessSessions: async () => AccessSession.array().parse(await call("auth/sessions")),
   memories: async () => Memory.array().parse(await call("memories")),
   deleteMemory: (id: string) => send(`memories/${id}`, "DELETE"),

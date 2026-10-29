@@ -10,8 +10,8 @@ const SEGMENT = /^[A-Za-z0-9_-]{1,80}$/;
 
 /** The API routes the web may use, after /api/. Everything else (admin, extension sign-in) is refused here. */
 const ALLOWED: RegExp[] = [
-  /^auth\/web\/(link|redeem|email\/start|email\/verify)$/,
-  /^auth\/(logout|link-codes|sessions)$/,
+  /^auth\/web\/(login|invite|redeem)$/,
+  /^auth\/(logout|sessions)$/,
   /^auth\/sessions\/[^/]+$/,
   /^me(\/(budget|export|onboarded))?$/,
   /^memories(\/[^/]+)?$/,

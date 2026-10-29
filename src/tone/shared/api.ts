@@ -1,12 +1,21 @@
-// Gerado de toneorg/extension@568dac5bb6b0 (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/extension@bc3273ad0a23 (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";
 
+/** The shortest password an account takes. */
+export const PASSWORD_MIN = 8;
+export const Password = z.string().min(PASSWORD_MIN).max(200);
+
+/**
+ * The first entry: the invite code, then the onboarding that sets the name and the
+ * password. After it, the person enters with e-mail and password only.
+ */
 export const RedeemRequest = z.object({
   code: z.string().min(4).max(64),
   name: z.string().min(1).max(80),
   email: z.email().max(200),
+  password: Password,
   consent: z.literal(true),
   consentVersion: z.string(),
 });
@@ -122,18 +131,14 @@ export const CONSENT_VERSION = "2026-10-18";
 export const AccessSurface = z.enum(["extension", "web"]);
 export type AccessSurface = z.infer<typeof AccessSurface>;
 
-/** A short code typed on the other surface; never sent in a URL. */
-export const LinkCode = z
-  .string()
-  .trim()
-  .toUpperCase()
-  .transform((value) => value.replace(/[\s-]/g, ""))
-  .pipe(z.string().regex(/^[A-HJ-NP-Z2-9]{8}$/, "Código de vínculo inválido."));
-export const LinkCodeCreated = z.object({ code: z.string(), expiresAt: z.string() });
-export type LinkCodeCreated = z.infer<typeof LinkCodeCreated>;
-export const LinkRequest = z.object({ code: LinkCode });
-export const EmailCodeStart = z.object({ email: z.email().max(200) });
-export const EmailCodeVerify = z.object({ email: z.email().max(200), code: z.string().regex(/^\d{6}$/) });
+/** What an invite code opens: the e-mail it was made for, and whether that e-mail already has an account. */
+export const InviteCheck = z.object({ code: z.string().min(4).max(64) });
+export const InviteInfo = z.object({ email: z.string().nullable(), existing: z.boolean() });
+export type InviteInfo = z.infer<typeof InviteInfo>;
+
+/** Entering an existing account, on either surface. */
+export const SignInRequest = z.object({ email: z.email().max(200), password: z.string().min(1).max(200) });
+export type SignInRequest = z.infer<typeof SignInRequest>;
 
 export const AccessSession = z.object({
   id: z.string(),

@@ -10,9 +10,12 @@ describe("BFF da web (T06)", () => {
   it("só repassa caminhos conhecidos da API, sem travessia", () => {
     expect(upstreamPath(["sessions", "abc-123", "transcript"])).toBe("/api/sessions/abc-123/transcript");
     expect(upstreamPath(["agent", "turn"])).toBe("/api/agent/turn");
-    expect(upstreamPath(["auth", "web", "link"])).toBe("/api/auth/web/link");
+    expect(upstreamPath(["auth", "web", "login"])).toBe("/api/auth/web/login");
+    expect(upstreamPath(["auth", "web", "invite"])).toBe("/api/auth/web/invite");
+    expect(upstreamPath(["auth", "web", "link"])).toBeNull();
+    expect(upstreamPath(["auth", "link-codes"])).toBeNull();
     expect(upstreamPath(["auth", "redeem"])).toBeNull();
-    expect(upstreamPath(["auth", "extension", "link"])).toBeNull();
+    expect(upstreamPath(["auth", "login"])).toBeNull();
     expect(upstreamPath(["..", "admin"])).toBeNull();
     expect(upstreamPath(["sessions", "a%2F..%2Fadmin"])).toBeNull();
     expect(upstreamPath(["admin"])).toBeNull();

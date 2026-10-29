@@ -9,7 +9,6 @@ import posthog from "posthog-js";
 import {
   canRecordOutcome,
   episodeLine,
-  type LinkCodeCreated,
   type Me,
   type Memory,
   OUTCOME_LABELS,
@@ -122,7 +121,6 @@ export function Home() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [situations, setSituations] = useState<PurchaseSituation[]>([]);
-  const [code, setCode] = useState<LinkCodeCreated | null>(null);
   const [starting, setStarting] = useState(false);
   const [ask, setAsk] = useState("");
   // Each change of `round` loads everything again (after signing in, deleting a memory, retrying).
@@ -284,20 +282,8 @@ export function Home() {
           </h2>
           <p className="text-small text-graphite">
             Aqui eu pesquiso pelo servidor, mesmo com o Chrome fechado. Ler a página de uma loja, escolher variação ou pôr no
-            carrinho continua na extensão, com o Chrome aberto.
+            carrinho continua na extensão, com o Chrome aberto. Nela, entre com o mesmo e-mail e a mesma senha.
           </p>
-          <button type="button" className={quiet} onClick={() => void api.linkCode().then((nextCode) => {
-            setCode(nextCode);
-            posthog.capture("extension_link_code_generated");
-          })}>
-            Gerar código para a extensão
-          </button>
-          {code ? (
-            <p className="text-small text-ink" aria-live="polite">
-              Código: <strong className="tabular-nums">{code.code}</strong>. Na extensão, toque em “Já tenho conta na tone”.
-              Vale até {new Date(code.expiresAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
-            </p>
-          ) : null}
         </section>
         <button
           type="button"
