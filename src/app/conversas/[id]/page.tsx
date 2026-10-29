@@ -1,6 +1,13 @@
 import { Conversation } from "@/conversas/Conversation";
 
-export default async function ConversaPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ConversaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ primeira?: string | string[] }>;
+}) {
   const { id } = await params;
-  return <Conversation sessionId={id} />;
+  const { primeira } = await searchParams;
+  return <Conversation sessionId={id} first={typeof primeira === "string" ? primeira.slice(0, 4000) : null} />;
 }

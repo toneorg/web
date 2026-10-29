@@ -35,7 +35,7 @@ type Item =
 let counter = 0;
 const uid = () => `w${Date.now().toString(36)}${(++counter).toString(36)}`;
 
-export function Conversation(props: { sessionId: string }) {
+export function Conversation(props: { sessionId: string; first?: string | null }) {
   const { sessionId } = props;
   const [items, setItems] = useState<Item[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "expired" | "error">("loading");
@@ -233,9 +233,9 @@ export function Conversation(props: { sessionId: string }) {
   }, [following, sessionId]);
 
   // T16: a conversation started from the home page arrives with its first message; it is sent once.
-  const first = useRef<string | null>(
-    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("primeira"),
-  );
+  // It comes from the page's search params: on a client navigation, window.location still
+  // shows the previous page while this one first renders.
+  const first = useRef<string | null>(props.first ?? null);
   useEffect(() => {
     const text = first.current;
     if (!text || state !== "ready" || busy) return;

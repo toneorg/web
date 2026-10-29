@@ -16,6 +16,9 @@ const ALLOWED: RegExp[] = [
   /^me(\/(budget|export|onboarded))?$/,
   /^memories(\/[^/]+)?$/,
   /^purchases$/,
+  // Purchase situations: the list on the home page and how each one went afterwards.
+  /^situations$/,
+  /^situations\/[^/]+\/outcome$/,
   /^sessions$/,
   /^sessions\/[^/]+(\/(transcript|end|research-runs|decision))?$/,
   /^agent\/turn$/,
