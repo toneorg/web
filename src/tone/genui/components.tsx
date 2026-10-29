@@ -1,9 +1,10 @@
-// Gerado de toneorg/extension@7b352c6fb2e6 (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/extension@568dac5bb6b0 (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
 import type { ComponentRenderer } from "@openuidev/react-lang";
 import { useIsStreaming } from "@openuidev/react-lang";
+import { MEMORY_CHECK_ANSWERS, MEMORY_CHECK_PREFIX, OUTCOME_CHECK_PREFIX, OUTCOME_LABELS } from "@/tone/shared";
 import { type ReactNode, useState } from "react";
 import { DecisionBoardLoader } from "./DecisionBoard";
 import { brl } from "./format";
@@ -906,6 +907,131 @@ const BuyOrWait: ComponentRenderer<{
   );
 };
 
+// ---- Situations: a solution, not a product -----------------------------------
+
+interface SolutionItemData {
+  title: string;
+  role: string;
+  owned: boolean;
+  url?: string | null;
+  image?: string | null;
+  price?: number | null;
+}
+
+/** A path for the situation: the pieces (what to buy and what the person already has) and why it works. */
+const SolutionSet: ComponentRenderer<{ situation: string; paths: unknown; note?: string | null }> = ({ props }) => {
+  const host = useHost();
+  const paths = listOf<{ label: string; items: unknown; why: string; tradeoff?: string | null }>(props.paths);
+  return (
+    <section className="card" aria-label={text(props.situation)}>
+      <p className="situation-line">{text(props.situation)}</p>
+      <ol className="paths">
+        {paths.map((path, index) => {
+          const items = listOf<SolutionItemData>(path.items);
+          const total = items.reduce((sum, item) => sum + (item.owned ? 0 : (num(item.price) ?? 0)), 0);
+          return (
+            <li key={path.label} className={index === 0 ? "path first" : "path"}>
+              <div className="scenario-head">
+                <span className="scenario-label">{text(path.label)}</span>
+                {total > 0 ? <span className="price">{brl(total)}</span> : null}
+              </div>
+              <ul className="list flat">
+                {items.map((item, position) => (
+                  <li key={`${item.role}-${item.title}`} className="list-row">
+                    <Thumb src={item.owned ? null : item.image} size="sm" />
+                    <div className="body">
+                      <div className="meta">
+                        {item.owned ? <span className="tag quiet">Você já tem</span> : text(item.role)}
+                      </div>
+                      <div className="value clamp">{text(item.title)}</div>
+                      {!item.owned && num(item.price) !== null ? (
+                        <div className="meta tabular">{brl(num(item.price))}</div>
+                      ) : null}
+                    </div>
+                    {host.actionable && !item.owned && item.url ? (
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        aria-label={`Ver ${text(item.title)} na loja`}
+                        onClick={() =>
+                          host.act({
+                            type: "open",
+                            url: text(item.url),
+                            title: text(item.title),
+                            where: { source: "generated_ui", position },
+                          })
+                        }
+                      >
+                        <Icon name="external" />
+                      </button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              <p className="small">{text(path.why)}</p>
+              {path.tradeoff ? <p className="small muted">Em troca: {text(path.tradeoff)}</p> : null}
+            </li>
+          );
+        })}
+      </ol>
+      {props.note ? <p className="small muted">{text(props.note)}</p> : null}
+    </section>
+  );
+};
+
+/** One question, fixed answers, sent once: the shape both checks share. */
+function OneTapQuestion(props: { question: string; memoryKey: string; options: readonly string[]; lead?: string }) {
+  const host = useHost();
+  const canAnswer = useCanAnswer();
+  const [picked, setPicked] = useState<string | null>(null);
+  return (
+    <section className="card" aria-label={props.question}>
+      {props.lead ? <p className="small muted">{props.lead}</p> : null}
+      <p className="question">{props.question}</p>
+      <div className="choices">
+        {props.options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            className="choice"
+            aria-pressed={picked === option}
+            disabled={picked !== null || !canAnswer}
+            onClick={() => {
+              setPicked(option);
+              host.act({
+                type: "answer",
+                answers: [{ memoryKey: props.memoryKey, question: props.question, answer: option }],
+                display: option,
+              });
+            }}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** "I have the impression that... Did I get it right?" A hypothesis the person confirms, softens or drops. */
+const MemoryCheck: ComponentRenderer<{ memoryKey: string; statement: string }> = ({ props }) => (
+  <OneTapQuestion
+    lead="Tenho a impressão de que:"
+    question={text(props.statement)}
+    memoryKey={`${MEMORY_CHECK_PREFIX}${text(props.memoryKey)}`}
+    options={MEMORY_CHECK_ANSWERS}
+  />
+);
+
+/** After the occasion: did it work? The answer closes the situation and teaches the next one. */
+const OutcomeCheck: ComponentRenderer<{ situationId: string; question: string }> = ({ props }) => (
+  <OneTapQuestion
+    question={text(props.question)}
+    memoryKey={`${OUTCOME_CHECK_PREFIX}${text(props.situationId)}`}
+    options={Object.values(OUTCOME_LABELS)}
+  />
+);
+
 // ---- Coming back --------------------------------------------------------------
 
 const SavedShortlist: ComponentRenderer<{ title: string; items: unknown }> = ({ props }) => {
@@ -1054,7 +1180,12 @@ export const RENDERERS: Record<string, ComponentRenderer<never>> = {
   Signal: Part,
   ShortlistItem: Part,
   RememberedPreference: Part,
+  SolutionItem: Part,
+  SolutionPath: Part,
   ProductCarousel,
+  SolutionSet,
+  MemoryCheck,
+  OutcomeCheck,
   PreferenceChips,
   VisualChoice,
   ProductQuiz,

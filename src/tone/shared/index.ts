@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@7b352c6fb2e6 (packages/shared/src/index.ts). Não edite aqui.
+// Gerado de toneorg/extension@568dac5bb6b0 (packages/shared/src/index.ts). Não edite aqui.
 export * from "./agent";
 export * from "./api";
 export * from "./budget";
@@ -13,6 +13,7 @@ export * from "./provenance";
 export * from "./research";
 export * from "./research-execution";
 export * from "./safety";
+export * from "./situation";
 export * from "./tools";
 export * from "./tracking";
 export * from "./watch";

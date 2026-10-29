@@ -46,6 +46,26 @@ w = WristFit(40, 16, "Casio 40 mm no seu pulso")`);
     expect(html).not.toContain("aparece completo na extensão");
   });
 
+  it("monta caminhos para uma situação: o que a pessoa já tem aparece sem link nem preço", () => {
+    const html = draw(`root = View([s])
+s = SolutionSet("Casamento à tarde · jardim", [a])
+a = SolutionPath("A melhor escolha", [d, own], "Tecido leve e combina com a sua sandália.", "Menos marcante")
+d = SolutionItem("Vestido midi verde", "Vestido", false, "https://www.amazon.com.br/dp/B0A", null, 289.9)
+own = SolutionItem("Sua sandália dourada", "Seu sapato", true, "https://tracker.example.com/x", null, 999)`);
+    expect(html).toContain("Casamento à tarde · jardim");
+    expect(html).toContain("Você já tem");
+    expect(html).toContain("Ver Vestido midi verde na loja");
+    expect(html).not.toContain("Ver Sua sandália dourada na loja");
+    expect(html).not.toContain("999");
+    expect(html).toContain("Em troca: Menos marcante");
+  });
+
+  it("pergunta se a hipótese está certa com três respostas fixas", () => {
+    const html = draw(`root = View([m])
+m = MemoryCheck("roupa.comprimento.formal", "Para eventos formais, você prefere midi")`);
+    for (const label of ["Sim", "Mais ou menos", "Não"]) expect(html).toContain(`>${label}<`);
+  });
+
   it("perguntas só respondem na última resposta", () => {
     const code = `root = View([q])
 q = PreferenceChips("Para que você vai usar?", "fone.uso", ["Treino", "Trabalho"])`;
