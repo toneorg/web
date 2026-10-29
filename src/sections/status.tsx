@@ -1,35 +1,47 @@
+import Link from "next/link";
+import { buttonClass } from "@/components/button";
 import { Reveal } from "@/components/reveal";
 import { Container, GRID, SECTION } from "@/components/site-chrome";
+import { SIGN_IN_PATH } from "@/lib/site";
 import { order } from "@/lib/stagger";
 
-// Beta size, the 7-to-10 share, the 20-confirmation floor and the batches of
-// 100 come from ../docs/mobile/01, 06 and 07 (the planning folder).
+// From toneorg/extension: README (test week from 25/10/2026) and docs/requisitos.md
+// (hypothesis, stores). The last step has no date on purpose.
 const STEPS = [
-  { when: "Agora", what: "Construindo o app e a especialista em base." },
   {
-    when: "Fim de 2026",
-    what: "Beta fechado com 30 a 50 pessoas. Metade das vagas é para as faixas de tom 7 a 10.",
+    when: "Agora",
+    what: "Teste fechado, só com convite. A extensão para o Chrome no computador e a tone na web.",
   },
   {
-    when: "Depois do beta",
-    what: "Medimos se o tom que eu previ bate com o que você confirmou. O acerto só é publicado com pelo menos 20 confirmações.",
+    when: "Onde eu pesquiso",
+    what: "Amazon Brasil e Mercado Livre. Outras lojas entram uma de cada vez.",
   },
-  { when: "Em seguida", what: "Abrimos a lista de espera, em grupos de 100." },
+  {
+    when: "Depois do teste",
+    what: "Medimos se você compra com menos esforço e mais confiança comigo do que sem ajuda.",
+  },
+  { when: "Em seguida", what: "Abrimos para quem está na lista, aos poucos." },
 ];
 
 /** Each step waits for the rule before it to finish drawing. */
 const STEP_DELAY = 4;
 
-/** Where tone is today, said plainly: not live yet. */
+/** Where tone is today, said plainly: a closed test. */
 export function Status() {
   return (
-    <section className={SECTION}>
+    <section className={`bg-coral-50 ${SECTION}`}>
       <Container>
         <div className={`${GRID} gap-8 lg:items-end`}>
-          <h2 className="display-lg lg:col-span-7">Ainda não estou no ar.</h2>
-          <p className="lead max-w-[30rem] lg:col-span-4 lg:col-start-9 lg:pb-3">
-            Por isso esta página termina numa lista de espera, e não num botão de baixar.
-          </p>
+          <h2 className="display-lg lg:col-span-7">Estou em teste fechado.</h2>
+          <div className="flex flex-col items-start gap-5 lg:col-span-4 lg:col-start-9 lg:pb-3">
+            <p className="lead max-w-[30rem]">
+              Um grupo pequeno de pessoas convidadas já usa a tone em compras de verdade. Por isso esta
+              página termina num pedido de convite.
+            </p>
+            <Link href={SIGN_IN_PATH} className={buttonClass()}>
+              Já tenho conta
+            </Link>
+          </div>
         </div>
 
         {/* The rule is the timeline itself: it runs down on phones and across on wide screens. */}
@@ -66,12 +78,12 @@ export function Status() {
           </ol>
         </Reveal>
 
-        <div className="mt-20 rounded-4xl bg-coral-100 p-6 sm:p-10 lg:mt-28 lg:p-14">
+        <div className="mt-20 rounded-tile bg-white p-6 sm:p-10 lg:mt-28 lg:p-14">
           <h3 className="display-md">O que eu ainda não sei</h3>
           <p className="lead mt-5 max-w-[42rem]">
-            Quanto eu acerto. Ninguém conferiu um veredito meu ainda, e as regras ainda não foram
-            revisadas por uma maquiadora profissional. O beta existe para medir isso, e o número
-            que sair é o que vai aparecer aqui.
+            Se eu ajudo de verdade. Até agora, poucas pessoas me usaram por poucos dias, e os
+            acompanhamentos ainda não rodaram por semanas com lojas reais. O teste existe para
+            medir isso, e o que a gente aprender vai aparecer aqui.
           </p>
         </div>
       </Container>

@@ -21,11 +21,11 @@ const hostGrotesk = Host_Grotesk({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: "tone: antes de comprar, me manda o link",
+    default: "tone: me diz o que você procura, eu pesquiso",
     template: "%s | tone",
   },
   description:
-    "A tone diz se a loja é confiável, quanto o produto custa em outras lojas e, se for base de maquiagem, se serve na sua pele. Ainda em construção: entre na lista de espera.",
+    "A tone é uma assistente de compras no Chrome: lembra do que você gosta, pesquisa na Amazon e no Mercado Livre por você e mostra poucas opções boas, com o porquê. Nunca paga nada. Em teste fechado: peça um convite.",
   openGraph: {
     type: "website",
     locale: "pt_BR",

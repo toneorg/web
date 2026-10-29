@@ -3,31 +3,31 @@
 import { useEffect, useReducer, useRef } from "react";
 import { useLoopAllowed } from "@/lib/motion";
 import { order } from "@/lib/stagger";
-import { LinkPill } from "./link-pill";
+import { ChatIcon } from "./icons";
 
-// Invented links and tone's reply to each. Together they cover every kind of
-// answer: yes, no, a store it does not trust, something it has not learned
-// yet, and "can't say".
+// Invented requests and tone's reply to each. Together they show what the
+// product does: it remembers, it browses the store, it reads the calendar
+// when connected, it watches a price, and it never pays.
 const EXCHANGES = [
   {
-    link: "lojaexemplo.com.br/base-liquida-matte",
-    reply: "Loja confiável. E serve em você: seu tom é o 35.",
+    request: "Um relógio até R$ 800 que não pareça esportivo",
+    reply: "Abri 14 na Amazon. Três combinam com o que você já usa.",
   },
   {
-    link: "outraloja.com.br/base-stick-fps30",
-    reply: "Nenhum tom desta base é o seu. Achei duas melhores pelo mesmo preço.",
+    request: "Tênis de corrida pra treino leve",
+    reply: "No seu 42, com amortecimento macio como o último que você comprou. Separei quatro.",
   },
   {
-    link: "marketplace.com.br/vendedor-novo/base",
-    reply: "Não conheço esse vendedor. A mesma base está numa loja confiável por R$ 82,90.",
+    request: "Uma cafeteira de presente, até R$ 300",
+    reply: "O aniversário é no sábado. Estas duas chegam até sexta.",
   },
   {
-    link: "lojaexemplo.com.br/shampoo-cachos",
-    reply: "Loja confiável. De cabelo eu ainda não entendo. Quer que eu aprenda?",
+    request: "Me avisa se esse fone baixar de R$ 400",
+    reply: "Combinado. Eu olho todo dia e te escrevo quando baixar.",
   },
   {
-    link: "marcanova.com.br/base-fluida",
-    reply: "Não dá para afirmar. Essa marca só lista os tons pelo nome.",
+    request: "Pode comprar pra mim?",
+    reply: "Eu deixo no carrinho. Quem paga é sempre você.",
   },
 ];
 
@@ -35,17 +35,17 @@ type Ticker = { turn: number; typed: number; replied: boolean };
 type Phase = "typing" | "reading" | "replied";
 
 /** How long each phase lasts before the next tick. */
-const DELAY: Record<Phase, number> = { typing: 38, reading: 1100, replied: 3800 };
+const DELAY: Record<Phase, number> = { typing: 38, reading: 1300, replied: 3800 };
 
 /** Starts on a finished exchange, so the first paint already shows the whole idea. */
-const START: Ticker = { turn: 0, typed: EXCHANGES[0].link.length, replied: true };
+const START: Ticker = { turn: 0, typed: EXCHANGES[0].request.length, replied: true };
 
 function phaseOf({ turn, typed, replied }: Ticker): Phase {
-  if (typed < EXCHANGES[turn].link.length) return "typing";
+  if (typed < EXCHANGES[turn].request.length) return "typing";
   return replied ? "replied" : "reading";
 }
 
-/** One step of the loop: type a character, then answer, then move to the next link. */
+/** One step of the loop: type a character, then answer, then move to the next request. */
 function tick(state: Ticker): Ticker {
   const phase = phaseOf(state);
   if (phase === "typing") return { ...state, typed: state.typed + 1 };
@@ -54,14 +54,14 @@ function tick(state: Ticker): Ticker {
 }
 
 /** tone's side of the exchange. Every bubble shares one grid cell (see below). */
-const BUBBLE = "col-start-1 row-start-1 w-fit self-start rounded-3xl rounded-ss-lg bg-white";
+const BUBBLE = "col-start-1 row-start-1 w-fit self-start rounded-panel rounded-ss-md bg-white";
 
 /**
- * The product in miniature: a link gets pasted, tone reads it, tone answers.
- * Decorative, so it is hidden from assistive tech and described once in plain
- * words instead.
+ * The product in miniature: she asks for something, tone goes looking, tone
+ * answers. Decorative, so it is hidden from assistive tech and described once
+ * in plain words instead.
  */
-export function LinkTicker() {
+export function RequestTicker() {
   const ref = useRef<HTMLDivElement>(null);
   const running = useLoopAllowed(ref);
   const [state, advance] = useReducer(tick, START);
@@ -77,18 +77,21 @@ export function LinkTicker() {
   return (
     <div ref={ref} className="w-full max-w-[26rem]">
       <p className="sr-only">
-        Exemplo: você manda o link de um produto e a tone responde se a loja é confiável e, se
-        for base, qual tom serve em você.
+        Exemplo: você pede um relógio até R$ 800 e a tone responde que abriu 14 na Amazon e que
+        três combinam com o que você já usa.
       </p>
 
       <div aria-hidden className="flex flex-col gap-2.5">
         {/* Fixed width, like a field: only the text inside it changes. */}
-        <LinkPill className="bg-wine text-coral-50">
-          <span className="truncate">{EXCHANGES[state.turn].link.slice(0, state.typed)}</span>
+        <p className="flex min-h-12 max-w-full items-center gap-2.5 rounded-full bg-wine px-5 text-ui text-coral-50">
+          <ChatIcon className="size-4 shrink-0" />
+          <span className="truncate font-normal">
+            {EXCHANGES[state.turn].request.slice(0, state.typed)}
+          </span>
           <span
             className={`-ms-2 h-4 w-px shrink-0 bg-coral-50 ${phase === "typing" ? "" : "blink"}`}
           />
-        </LinkPill>
+        </p>
 
         {/*
           Every reply is laid out in the same cell and only the current one is

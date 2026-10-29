@@ -16,6 +16,9 @@ export const ANCHOR = {
   list: "lista",
 } as const;
 
+/** Where someone who already has an account signs in: the conversations, behind SignIn. */
+export const SIGN_IN_PATH = "/conversas";
+
 /**
  * Query parameter that opens the list on the brand form. /marcas redirects
  * with it; next.config.ts spells the same pair out, because it cannot import

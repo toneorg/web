@@ -41,7 +41,7 @@ export function Wordmark({ className = "" }: { className?: string }) {
 
 /** The text link on the trailing side of the header. */
 export const HEADER_LINK =
-  "-me-3 flex min-h-11 items-center rounded-full px-3 text-[0.9375rem] font-medium underline decoration-wine/40 underline-offset-[6px] transition-colors duration-150 hover:decoration-wine";
+  "-me-3 flex min-h-11 items-center rounded-full px-3 text-ui underline decoration-wine/40 underline-offset-[6px] transition-colors duration-150 hover:decoration-wine";
 
 /** Wordmark on the leading side, one link on the trailing side. Sits on a coral ground. */
 export function SiteHeader({ children }: { children: React.ReactNode }) {
@@ -62,9 +62,9 @@ export function SiteFooter({ className = "pb-16" }: { className?: string }) {
       >
         <div className="flex flex-col gap-3">
           <Wordmark className="text-coral-50" />
-          <p className="text-[0.9375rem]">Feita em São Paulo, 2026.</p>
+          <p className="text-ui font-normal">Feita em São Paulo, 2026.</p>
         </div>
-        <nav aria-label="Rodapé" className="flex flex-wrap gap-x-8 gap-y-3 text-[0.9375rem]">
+        <nav aria-label="Rodapé" className="flex flex-wrap gap-x-8 gap-y-3 text-ui font-normal">
           <Link href="/privacidade" className="underline-offset-4 hover:underline">
             Privacidade
           </Link>
@@ -81,5 +81,5 @@ export function SiteFooter({ className = "pb-16" }: { className?: string }) {
 
 /** Small print under a sourced number. */
 export function Source({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1.5 text-[0.875rem] leading-snug text-muted">{children}</p>;
+  return <p className="mt-1.5 text-small text-muted">{children}</p>;
 }

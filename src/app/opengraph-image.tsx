@@ -1,7 +1,7 @@
 import { color } from "@toneorg/design";
 import { ImageResponse } from "next/og";
 
-export const alt = "tone: antes de comprar, me manda o link.";
+export const alt = "tone: me diz o que você procura. Eu pesquiso.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -31,7 +31,7 @@ function fallback(error: unknown) {
 }
 
 export default async function Image() {
-  const lines = ["Antes de comprar,", "me manda o link."];
+  const lines = ["Me diz o que", "você procura.", "Eu pesquiso."];
   // Headline light, wordmark medium: the same two weights the page uses.
   const [light, medium] = await Promise.all([
     loadCrimsonPro(lines.join(""), HEADLINE_WEIGHT).catch(fallback),
@@ -62,7 +62,7 @@ export default async function Image() {
           style={{
             display: "flex",
             flexDirection: "column",
-            fontSize: 132,
+            fontSize: 120,
             lineHeight: 0.94,
             letterSpacing: "-0.025em",
           }}

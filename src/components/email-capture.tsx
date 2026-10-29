@@ -13,7 +13,7 @@ const EMAIL = "email" satisfies WaitlistField;
 const PLACEMENT = "placement" satisfies WaitlistField;
 
 /**
- * Step one of the list: one field shaped like the link she will send later.
+ * Step one of the list: one e-mail field and the request for an invite.
  * Used on coral grounds only, so the field is white and the text is wine.
  *
  * The sentence under it is the consent to be written to, so it lives here,
@@ -67,12 +67,12 @@ export function EmailCapture({ placement, lead }: { placement: Placement; lead?:
           className="w-full min-w-0 flex-1 bg-transparent text-[1rem] text-wine placeholder:text-muted focus:outline-none"
         />
         <button type="submit" disabled={pending} className={buttonClass()}>
-          {pending ? "Entrando…" : "Entrar na lista"}
+          {pending ? "Enviando…" : "Pedir convite"}
         </button>
       </div>
 
       {fieldError ? (
-        <p id={`${id}-error`} role="alert" className="ps-5 text-[0.9375rem] font-medium">
+        <p id={`${id}-error`} role="alert" className="ps-5 text-ui">
           {fieldError}
         </p>
       ) : null}
@@ -81,15 +81,15 @@ export function EmailCapture({ placement, lead }: { placement: Placement; lead?:
           ref={alertRef}
           tabIndex={-1}
           role="alert"
-          className="ps-5 text-[0.9375rem] font-medium focus:outline-none"
+          className="ps-5 text-ui focus:outline-none"
         >
           {formError}
         </p>
       ) : null}
 
-      <p className="ps-5 text-[0.875rem] leading-snug">
+      <p className="ps-5 text-small">
         {lead ? `${lead} ` : null}
-        Entrando na lista, você autoriza a tone a te escrever sobre o beta e o lançamento.{" "}
+        Pedindo convite, você entra na lista e autoriza a tone a te escrever sobre o teste e o lançamento.{" "}
         <PrivacyLink className="underline underline-offset-4">Privacidade</PrivacyLink>
       </p>
     </form>

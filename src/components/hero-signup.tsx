@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { SIGN_IN_PATH } from "@/lib/site";
 import { buttonClass } from "./button";
 import { EmailCapture } from "./email-capture";
-import { SignupLink, useSignup } from "./signup-context";
+import { useSignup } from "./signup-context";
 
 /** Replaces the hero's field once she is on the list. */
 function Joined({ email, takeFocus }: { email: string; takeFocus: boolean }) {
@@ -18,16 +20,16 @@ function Joined({ email, takeFocus }: { email: string; takeFocus: boolean }) {
     <div
       ref={ref}
       tabIndex={-1}
-      className="flex flex-col items-start gap-4 rounded-3xl bg-white p-6 focus:outline-none"
+      className="flex flex-col items-start gap-4 rounded-tile bg-white p-6 focus:outline-none"
     >
       <p className="display-sm">Você está na lista.</p>
       <p className="leading-snug">
-        Eu escrevo para <span className="break-all font-medium">{email}</span> quando o beta
-        abrir.
+        Eu escrevo para <span className="break-all font-medium">{email}</span> quando chegar a
+        sua vez.
       </p>
-      <SignupLink audience="pessoa" className={buttonClass()}>
-        Quero testar o beta
-      </SignupLink>
+      <Link href={SIGN_IN_PATH} className={buttonClass({ variant: "quiet" })}>
+        Já tenho conta
+      </Link>
     </div>
   );
 }
@@ -37,5 +39,5 @@ export function HeroSignup() {
   const { email, joinedAt } = useSignup();
 
   if (email) return <Joined email={email} takeFocus={joinedAt === "topo"} />;
-  return <EmailCapture placement="topo" lead="A tone ainda está em construção." />;
+  return <EmailCapture placement="topo" lead="A tone está em teste fechado." />;
 }
