@@ -6,7 +6,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import posthog from "posthog-js";
-import type { LinkCodeCreated, Me, Memory, SessionSummary } from "@/tone/shared";
+import {
+  canRecordOutcome,
+  episodeLine,
+  type LinkCodeCreated,
+  type Me,
+  type Memory,
+  OUTCOME_LABELS,
+  OWNED_CATEGORY,
+  type PurchaseSituation,
+  type SessionSummary,
+  type SituationOutcomeVerdict,
+  todayInBrazil,
+} from "@/tone/shared";
 import { ApiError, api } from "./api";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
@@ -17,12 +29,99 @@ const quiet =
   "min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 const when = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
+const small =
+  "min-h-11 rounded-full px-3 text-caption text-graphite focus-visible:outline-2 focus-visible:outline-ink";
+
+/** What the tone remembers: hypotheses can be confirmed, everything can be deleted. */
+function MemoryList(props: { memories: Memory[]; onChange: () => void }) {
+  return (
+    <ul className="flex flex-col gap-1" data-ph-mask>
+      {props.memories.map((memory) => (
+        <li key={memory.id} className="flex items-center justify-between gap-2 text-small text-ink">
+          <span>
+            {memory.category === OWNED_CATEGORY ? memory.value : `${memory.key.replace(/[._]/g, " ")}: ${memory.value}`}
+            {memory.condition ? <span className="text-graphite"> · quando: {memory.condition}</span> : null}
+            {memory.inferred ? <span className="text-graphite"> · palpite da tone</span> : null}
+          </span>
+          <span className="flex shrink-0">
+            {memory.inferred ? (
+              <button
+                type="button"
+                className={small}
+                aria-label={`Confirmar ${memory.key}`}
+                onClick={() =>
+                  void api.confirmMemory(memory.id).then(() => {
+                    posthog.capture("memory_confirmed");
+                    props.onChange();
+                  })
+                }
+              >
+                Confirmar
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={small}
+              aria-label={`Apagar ${memory.key}`}
+              onClick={() =>
+                void api.deleteMemory(memory.id).then(() => {
+                  posthog.capture("memory_deleted");
+                  props.onChange();
+                })
+              }
+            >
+              Apagar
+            </button>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** A purchase situation; once something was chosen or the day passed, "did it work?" in one tap. */
+function SituationItem(props: { situation: PurchaseSituation; onChange: () => void }) {
+  const { situation } = props;
+  const [busy, setBusy] = useState(false);
+  const record = (verdict: SituationOutcomeVerdict) => {
+    setBusy(true);
+    void api
+      .recordOutcome(situation.id, verdict)
+      .then(() => {
+        posthog.capture("situation_outcome_recorded", { verdict });
+        props.onChange();
+      })
+      .finally(() => setBusy(false));
+  };
+  return (
+    <li className="flex flex-col gap-1 text-small text-ink">
+      <Link
+        href={`/conversas/${situation.sessionId}`}
+        className="underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      >
+        {episodeLine(situation)}
+      </Link>
+      {canRecordOutcome(situation, todayInBrazil()) ? (
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="sr-only">Funcionou?</legend>
+          {(Object.entries(OUTCOME_LABELS) as [SituationOutcomeVerdict, string][]).map(([verdict, label]) => (
+            <button key={verdict} type="button" className={quiet} disabled={busy} onClick={() => record(verdict)}>
+              {label}
+            </button>
+          ))}
+        </fieldset>
+      ) : null}
+    </li>
+  );
+}
+
 export function Home() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "signed_out" | "expired" | "error">("loading");
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [situations, setSituations] = useState<PurchaseSituation[]>([]);
   const [code, setCode] = useState<LinkCodeCreated | null>(null);
   const [starting, setStarting] = useState(false);
   const [ask, setAsk] = useState("");
@@ -31,12 +130,13 @@ export function Home() {
   const load = () => setRound((value) => value + 1);
   useEffect(() => {
     let live = true;
-    Promise.all([api.me(), api.sessions(), api.memories()])
-      .then(([person, list, notes]) => {
+    Promise.all([api.me(), api.sessions(), api.memories(), api.situations().catch(() => [])])
+      .then(([person, list, notes, occasions]) => {
         if (!live) return;
         setMe(person);
         setSessions(list);
         setMemories(notes);
+        setSituations(occasions);
         setState("ready");
       })
       .catch((error: unknown) => {
@@ -152,28 +252,32 @@ export function Home() {
           {memories.length === 0 ? (
             <p className="text-small text-graphite">Nada ainda. Converse comigo e eu vou anotando.</p>
           ) : (
-            <ul className="flex flex-col gap-1" data-ph-mask>
-              {memories.map((memory) => (
-                <li key={memory.id} className="flex items-center justify-between gap-2 text-small text-ink">
-                  <span>
-                    {memory.key.replace(/[._]/g, " ")}: {memory.value}
-                  </span>
-                  <button
-                    type="button"
-                    className="min-h-11 rounded-full px-3 text-caption text-graphite focus-visible:outline-2 focus-visible:outline-ink"
-                    aria-label={`Apagar ${memory.key}`}
-                    onClick={() => void api.deleteMemory(memory.id).then(() => {
-                      posthog.capture("memory_deleted");
-                      load();
-                    })}
-                  >
-                    Apagar
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <MemoryList memories={memories.filter((m) => m.category !== OWNED_CATEGORY)} onChange={load} />
+              {memories.some((m) => m.category === OWNED_CATEGORY) ? (
+                <>
+                  <h3 className="mt-2 text-ui text-ink">Você já tem</h3>
+                  <MemoryList memories={memories.filter((m) => m.category === OWNED_CATEGORY)} onChange={load} />
+                </>
+              ) : null}
+            </>
           )}
         </section>
+        {situations.length > 0 ? (
+          <section aria-labelledby="titulo-ocasioes" className="flex flex-col gap-2">
+            <h2 id="titulo-ocasioes" className="text-subheading text-ink">
+              Ocasiões
+            </h2>
+            <p className="text-small text-graphite">
+              O que você estava tentando resolver em cada conversa. Contar como foi me ensina o que funciona para você.
+            </p>
+            <ul className="flex flex-col gap-2" data-ph-mask>
+              {situations.map((situation) => (
+                <SituationItem key={situation.id} situation={situation} onChange={load} />
+              ))}
+            </ul>
+          </section>
+        ) : null}
         <section aria-labelledby="titulo-extensao" className="flex flex-col gap-2">
           <h2 id="titulo-extensao" className="text-subheading text-ink">
             Extensão no Chrome

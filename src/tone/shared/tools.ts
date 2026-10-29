@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@7b352c6fb2e6 (packages/shared/src/tools.ts). Não edite aqui.
+// Gerado de toneorg/extension@568dac5bb6b0 (packages/shared/src/tools.ts). Não edite aqui.
 // The tools the agent can call. Two kinds:
 //   browser  run in the extension, on the store's tab (RF2)
 //   server   run on the server (memory, RF3)
@@ -9,6 +9,7 @@
 import * as z from "zod";
 import { AgentDecisionOp } from "./decision";
 import { ResearchRequest } from "./research-execution";
+import { SituationUpdate } from "./situation";
 import { WatchRule } from "./watch";
 
 const Ref = z.string().describe("O `ref` de um elemento, como veio em read_page ou no resultado da última ação.");
@@ -162,13 +163,48 @@ export const ServerTools = {
       "Compara até 3 candidatas da decisão (IDs de oferta já adicionados com update_decision) com a foto de referência da pessoa, só nos atributos visíveis que ela confirmou. O resultado entra na decisão como evidência visual; não julga preço, material, medida ou autenticidade.",
     args: z.object({ photoId: z.string().min(1).max(60), offerIds: z.array(z.string().min(1)).min(1).max(3) }),
   },
+  update_situation: {
+    description:
+      "Guarda a situação de compra desta conversa: o que a pessoa está tentando resolver (objetivo), ocasião, quando (e a data, se souber), onde e em que ambiente, condições (clima, horas em pé), formalidade, para quem ou com quem, como quer se sentir ou parecer, orçamento, restrições, o que já tem e quer usar junto, e o que ainda falta saber que mudaria a recomendação. Mande só o que mudou; listas substituem as anteriores. Quando a pessoa escolher, mande chosen.",
+    args: SituationUpdate,
+  },
+  save_owned_item: {
+    description:
+      "Lembra de algo que a pessoa disse que já tem (sapato, bolsa, casaco, celular, monitor, panela...), para considerar em compras futuras: combinar, completar, não comprar repetido. Só o que ela disse que tem; nunca deduza posse.",
+    args: z.object({
+      name: z
+        .string()
+        .min(1)
+        .max(80)
+        .describe("Como a pessoa chama o item: 'sandália dourada', 'iPhone 15', 'blazer preto'."),
+      details: z
+        .string()
+        .max(160)
+        .nullable()
+        .describe("O que importa para combinar ou ser compatível: cor, material, modelo, tamanho, conector."),
+      category: z.string().max(30).describe("Categoria do item: roupa, calcado, bolsa, eletronicos, casa..."),
+    }),
+  },
   save_memory: {
     description:
-      "Guarda algo que você aprendeu sobre a pessoa e que vale para as próximas compras: medida, tamanho, gosto, marca, orçamento. Não guarde o que é só desta conversa.",
+      "Guarda algo que você aprendeu sobre a pessoa e que vale para as próximas compras: medida, tamanho, gosto, marca, orçamento. Preferência que só vale numa situação leva condition ('casamento', 'trabalho', 'viagem', 'calor'). O que você deduziu sem a pessoa dizer vai com inferred true, como hipótese para ela confirmar. Estado passageiro ('economizando este mês', 'viajando para o frio') leva expiresInDays. Não guarde o que é só desta conversa.",
     args: z.object({
-      key: z.string().max(60).describe("Chave estável, ex.: 'pulso.largura_cm', 'relogio.estilo', 'roupa.tamanho'."),
+      key: z
+        .string()
+        .max(60)
+        .describe(
+          "Chave estável, ex.: 'pulso.largura_cm', 'relogio.estilo', 'roupa.tamanho'. Com condição, inclua a condição na chave: 'roupa.cores.trabalho', 'calcado.salto.casamento'.",
+        ),
       value: z.string().max(200),
       category: z.string().max(30).describe("Categoria: relogio, roupa, eletronicos, beleza, geral..."),
+      condition: z
+        .string()
+        .max(60)
+        .nullable()
+        .optional()
+        .describe("A situação em que isto vale, ou null se vale sempre."),
+      inferred: z.boolean().optional().describe("true quando você deduziu e a pessoa não disse."),
+      expiresInDays: z.number().int().min(1).max(365).nullable().optional(),
     }),
   },
 } as const;

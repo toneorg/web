@@ -12,6 +12,7 @@ import {
   Me,
   Memory,
   ProductMedia,
+  PurchaseSituation,
   ResearchRunState,
   SessionSummary,
   TranscriptItem,
@@ -19,6 +20,7 @@ import {
   WatchResult,
   type ClickWhere,
   type DecisionOp,
+  type SituationOutcomeVerdict,
   type TurnInput,
   type WatchRule,
 } from "@/tone/shared";
@@ -87,6 +89,13 @@ export const api = {
   accessSessions: async () => AccessSession.array().parse(await call("auth/sessions")),
   memories: async () => Memory.array().parse(await call("memories")),
   deleteMemory: (id: string) => send(`memories/${id}`, "DELETE"),
+  /** A hypothesis of the tone, confirmed by the person from the list. */
+  confirmMemory: async (id: string) => Memory.parse(await send(`memories/${id}/confirm`, "POST", {})),
+  /** What each conversation was trying to solve, newest first. */
+  situations: async () => PurchaseSituation.array().parse(await call("situations")),
+  /** After the occasion: how it went. */
+  recordOutcome: async (id: string, verdict: SituationOutcomeVerdict) =>
+    PurchaseSituation.parse(await send(`situations/${id}/outcome`, "POST", { verdict })),
   sessions: async () => SessionSummary.array().parse(await call("sessions")),
   newSession: async () => (await send("sessions", "POST", { site: null })) as { sessionId: string; greeting: string },
   transcript: async (id: string) => TranscriptItem.array().parse(await call(`sessions/${id}/transcript`)),

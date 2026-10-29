@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@7b352c6fb2e6 (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/extension@568dac5bb6b0 (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";
@@ -24,16 +24,35 @@ export const Memory = z.object({
   value: z.string(),
   category: z.string(),
   source: MemorySource,
+  /** Conditional memory: the situation in which this holds ("casamento", "trabalho", "viagem"); null when always. */
+  condition: z.string().nullable().default(null),
+  /** A hypothesis the tone inferred and the person has not confirmed yet. */
+  inferred: z.boolean().default(false),
+  /** Temporary state ("economizando este mês"): after this instant it no longer reaches the agent. */
+  expiresAt: z.string().nullable().default(null),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 export type Memory = z.infer<typeof Memory>;
+
+/** Things the person already has live in memory under this category: a light wardrobe, no catalog. */
+export const OWNED_CATEGORY = "tenho";
+
+/**
+ * Answers to a MemoryCheck arrive under this prefix plus the memory key, and answers to an
+ * OutcomeCheck under the other plus the situation id, so a plain "Sim" to a chip question
+ * is never mistaken for a verdict.
+ */
+export const MEMORY_CHECK_PREFIX = "confirmar:";
+export const OUTCOME_CHECK_PREFIX = "ocasiao:";
+export const MEMORY_CHECK_ANSWERS = ["Sim", "Mais ou menos", "Não"] as const;
 
 export const MemoryPatch = z.object({ value: z.string().min(1).max(200) });
 export const MemoryCreate = z.object({
   key: z.string().min(1).max(60),
   value: z.string().min(1).max(200),
   category: z.string().min(1).max(30),
+  condition: z.string().min(1).max(60).nullable().optional(),
 });
 
 export const ConnectionProvider = z.enum(["gmail", "calendar"]);

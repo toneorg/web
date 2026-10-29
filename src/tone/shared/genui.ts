@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@7b352c6fb2e6 (packages/shared/src/genui.ts). Não edite aqui.
+// Gerado de toneorg/extension@568dac5bb6b0 (packages/shared/src/genui.ts). Não edite aqui.
 // The components the agent draws in the panel, in OpenUI Lang (openui.com).
 // One definition, two consumers: the server turns it into the instructions the
 // model reads and checks what the model wrote; the panel gives each component
@@ -270,6 +270,48 @@ export const PreferenceMemory = define(
   z.object({ title: text(80), items: z.array(RememberedPreference.ref).min(1).max(8) }),
 );
 
+export const SolutionItem = define(
+  "SolutionItem",
+  "Uma peça de um caminho. role: o papel dela no conjunto ('Vestido', 'Seu sapato', 'Complemento', 'Seu monitor'). owned true quando é algo que a pessoa já tem (da memória): sem url, sem preço. Produto da loja: url, image e price exatamente como vieram.",
+  z.object({
+    title: text(160),
+    role: text(40),
+    owned: z.boolean(),
+    url: optional(text(500)),
+    image: optional(text(500)),
+    price: optional(z.number()),
+  }),
+);
+
+export const SolutionPath = define(
+  "SolutionPath",
+  "Um caminho completo para a situação: rótulo ('A melhor escolha', 'Mais marcante', 'Mais confortável'), as peças (produto, o que a pessoa já tem, complemento), por que funciona para esta pessoa nesta situação e o que se perde.",
+  z.object({
+    label: text(40),
+    items: z.array(SolutionItem.ref).min(1).max(4),
+    why: text(280),
+    tradeoff: optional(text(140)),
+  }),
+);
+
+export const SolutionSet = define(
+  "SolutionSet",
+  "A recomendação para uma situação: a situação em uma linha ('Casamento à tarde · jardim · novembro') e de 1 a 3 caminhos montados, cada um com o produto, o que a pessoa já tem e o porquê.",
+  z.object({ situation: text(120), paths: z.array(SolutionPath.ref).min(1).max(3), note: optional(text(200)) }),
+);
+
+export const MemoryCheck = define(
+  "MemoryCheck",
+  "Confirma com a pessoa uma hipótese que você guardou com inferred true. memoryKey: a chave dessa memória. statement: a hipótese em uma frase, como 'Para eventos formais, você prefere comprimento midi'. A pessoa responde Sim, Mais ou menos ou Não.",
+  z.object({ memoryKey: text(60), statement: text(160) }),
+);
+
+export const OutcomeCheck = define(
+  "OutcomeCheck",
+  "Pergunta como foi uma ocasião que já passou, para aprender o que funcionou. situationId: o id da situação. question: a pergunta curta, como 'Como foi o vestido no casamento da Ana?'.",
+  z.object({ situationId: text(60), question: text(120) }),
+);
+
 export const DecisionBoard = define(
   "DecisionBoard",
   "O quadro da decisão desta conversa, guardado com update_decision: critérios, candidatas com o atendimento de cada critério e a evidência, condições de preço, lista curta e descartes. decisionId: o id devolvido por update_decision. Os dados vêm do servidor: não escreva preços, candidatas nem conclusões aqui.",
@@ -290,6 +332,7 @@ export const WristFit = define(
 
 const BLOCKS = [
   ProductCarousel,
+  SolutionSet,
   PreferenceChips,
   VisualChoice,
   ProductQuiz,
@@ -307,6 +350,8 @@ const BLOCKS = [
   DecisionBoard,
   WatchDraft,
   PreferenceMemory,
+  MemoryCheck,
+  OutcomeCheck,
   WristFit,
 ];
 
@@ -341,16 +386,26 @@ export const GENUI_COMPONENTS = [
   Signal,
   ShortlistItem,
   RememberedPreference,
+  SolutionItem,
+  SolutionPath,
   ...BLOCKS,
   View,
 ];
 
 /** Components that ask the person something: the answer comes back as the next turn. */
-export const QUESTION_COMPONENTS = new Set(["PreferenceChips", "VisualChoice", "ProductQuiz", "TradeoffSliders"]);
+export const QUESTION_COMPONENTS = new Set([
+  "PreferenceChips",
+  "VisualChoice",
+  "ProductQuiz",
+  "TradeoffSliders",
+  "MemoryCheck",
+  "OutcomeCheck",
+]);
 
 /** Components that put products in front of the person, for the funnel (requisitos §4). */
 export const PRODUCT_COMPONENTS = new Set([
   "ProductCarousel",
+  "SolutionSet",
   "ComparisonMatrix",
   "ProductVerdict",
   "SavedShortlist",
@@ -358,8 +413,12 @@ export const PRODUCT_COMPONENTS = new Set([
 ]);
 
 const COMPONENT_GROUPS = [
-  { name: "Mostrar produtos", components: ["ProductCarousel", "ComparisonMatrix", "SavedShortlist", "DecisionBoard"] },
+  {
+    name: "Mostrar produtos",
+    components: ["ProductCarousel", "SolutionSet", "ComparisonMatrix", "SavedShortlist", "DecisionBoard"],
+  },
   { name: "Perguntar", components: ["PreferenceChips", "VisualChoice", "ProductQuiz", "TradeoffSliders"] },
+  { name: "Aprender com a pessoa", components: ["MemoryCheck", "OutcomeCheck"] },
   {
     name: "Avaliar um produto",
     components: ["ProductVerdict", "EvidenceCards", "ReviewInsights", "SentimentBreakdown"],
@@ -384,6 +443,15 @@ p1 = Product("PHILIPS Fone TWS TAT1109", "https://www.amazon.com.br/dp/B0DVMQVVD
 p2 = Product("Redmi Buds 6 Play", "https://www.amazon.com.br/dp/B0DXS78MFF", 93.57, null, 4.6, 30, ["Mais barato"], "Poucas avaliações ainda", null)`,
   `root = View([chips])
 chips = PreferenceChips("Para que você vai usar o fone?", "fone.uso", ["Treino", "Trabalho", "Viagem", "Dia a dia"], false)`,
+  `root = View([set])
+set = SolutionSet("Casamento à tarde · jardim · novembro", [a, b])
+a = SolutionPath("A melhor escolha", [d1, s1], "Midi como os dois vestidos que você salvou, tecido leve para o calor e a cor conversa com a sua sandália.", "Menos marcante")
+d1 = SolutionItem("Vestido midi verde", "Vestido", false, "https://www.amazon.com.br/dp/B0EXAMPLE1", "https://m.media-amazon.com/images/I/2.jpg", 289.9)
+s1 = SolutionItem("Sua sandália dourada", "Seu sapato", true, null, null, null)
+b = SolutionPath("Mais confortável", [d2, s1], "Tecido que não amassa e corte solto para muitas horas em pé.", null)
+d2 = SolutionItem("Vestido chemise linho", "Vestido", false, "https://www.amazon.com.br/dp/B0EXAMPLE2", null, 219)`,
+  `root = View([check])
+check = MemoryCheck("roupa.comprimento.formal", "Para eventos formais, você prefere comprimento midi")`,
   `root = View([verdict])
 verdict = ProductVerdict(prod, "depende", "Bom preço, mas a bateria decepciona quem usa o dia todo.", ["Nota 4,6 em 8 mil avaliações"], ["Bateria abaixo do anunciado"], 7)
 prod = Product("PHILIPS Fone TWS TAT1109", "https://www.amazon.com.br/dp/B0DVMQVVDY", 109.9, null, 4.6, 8099, null, null, null)`,
@@ -475,6 +543,16 @@ export function checkProgram(code: string): CheckedProgram {
     if (typeof name === "string" && node.props) {
       components.push(name);
       const props = node.props;
+      if (name === "SolutionItem" && !props.owned && props.url)
+        products.push({
+          title: String(props.title ?? ""),
+          url: String(props.url ?? ""),
+          price: typeof props.price === "number" ? props.price : null,
+        });
+      if (name === "MemoryCheck")
+        questions.push({ question: String(props.statement ?? ""), memoryKey: String(props.memoryKey ?? "") });
+      if (name === "OutcomeCheck")
+        questions.push({ question: String(props.question ?? ""), memoryKey: String(props.situationId ?? "") });
       if (name === "Product" || name === "ShortlistItem")
         products.push({
           title: String(props.title ?? ""),
