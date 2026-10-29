@@ -1,9 +1,25 @@
-/* Gerado de toneorg/extension@8a4566efcee8 (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/extension@7b352c6fb2e6 (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
    duration is a token from @toneorg/design/tokens.css, which the surface loads.
    Shared by the extension's panel and the web, so both draw the same thing. */
+
+/* Text helpers the components use */
+.muted {
+  color: var(--tone-graphite);
+}
+.small {
+  font: 400 14px / 20px var(--tone-font-sans);
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 
 /* Buttons (components/button.md, neutral ground) */
 .btn {
@@ -1142,4 +1158,30 @@ fieldset.field legend {
 .watch-amount {
   width: 7rem;
   min-height: var(--tone-touch);
+}
+
+/* The product picked to talk about, above the composer */
+.picked {
+  display: flex;
+  align-items: center;
+  gap: var(--tone-space-sm);
+  padding: var(--tone-space-xs) var(--tone-space-xs) var(--tone-space-xs) var(--tone-space-sm);
+  border-radius: var(--tone-radius-panel);
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-raised);
+}
+.picked-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.picked-title {
+  overflow: hidden;
+  font: 500 15px / 20px var(--tone-font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.picked .btn {
+  flex: none;
 }

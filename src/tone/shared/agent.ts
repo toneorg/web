@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@8a4566efcee8 (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/extension@7b352c6fb2e6 (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the panel and the server.
 //
 // The panel posts a turn and reads a stream of server-sent events. When the
@@ -30,6 +30,18 @@ export const BrowserResult = z.object({
 });
 export type BrowserResult = z.infer<typeof BrowserResult>;
 
+/**
+ * A product the person picked from a component to talk about next. It travels with the
+ * message; it came from a component of this conversation, so it is store data, not orders.
+ */
+export const PickedProduct = z.object({
+  url: z.string().max(2000),
+  title: z.string().min(1).max(300),
+  price: z.number().nonnegative().nullable(),
+  image: z.string().max(2000).nullable(),
+});
+export type PickedProduct = z.infer<typeof PickedProduct>;
+
 export const TurnInput = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("message"),
@@ -37,6 +49,8 @@ export const TurnInput = z.discriminatedUnion("type", [
     page: PageContext.nullable(),
     /** T07: a reference photo of this conversation that goes with the message. */
     photoId: z.string().min(1).max(60).optional(),
+    /** The product the person picked in the conversation, shown above the composer. */
+    product: PickedProduct.optional(),
   }),
   z.object({
     type: z.literal("browser_results"),

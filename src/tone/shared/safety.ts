@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@8a4566efcee8 (packages/shared/src/safety.ts). Não edite aqui.
+// Gerado de toneorg/extension@7b352c6fb2e6 (packages/shared/src/safety.ts). Não edite aqui.
 // RNF11: the agent never pays. This is enforced in code, on both sides, and not
 // left to the model: the extension refuses to click anything that looks like a
 // payment step or to load a checkout page, whatever the model asked.
@@ -55,8 +55,21 @@ export function isAllowedNavigation(url: string, allowedHosts: readonly string[]
   return allowedHosts.some((host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`));
 }
 
-/** Where store product photos are served from, besides the stores' own hosts. */
-export const IMAGE_HOSTS = ["media-amazon.com", "ssl-images-amazon.com", "images-amazon.com", "mlstatic.com"] as const;
+/**
+ * Where store product photos are served from, besides the stores' own hosts. The research by the
+ * server lists Google Shopping's own thumbnails (encrypted-tbnN.gstatic.com), the same ones it
+ * downloads to compare photos; Google serves them, not the page text.
+ */
+export const IMAGE_HOSTS = [
+  "media-amazon.com",
+  "ssl-images-amazon.com",
+  "images-amazon.com",
+  "mlstatic.com",
+  "encrypted-tbn0.gstatic.com",
+  "encrypted-tbn1.gstatic.com",
+  "encrypted-tbn2.gstatic.com",
+  "encrypted-tbn3.gstatic.com",
+] as const;
 
 /**
  * Whether a component may load this image: HTTPS from a store or its photo CDN.

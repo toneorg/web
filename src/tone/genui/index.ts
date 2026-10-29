@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@8a4566efcee8 (packages/genui-react/src/index.ts). Não edite aqui.
+// Gerado de toneorg/extension@7b352c6fb2e6 (packages/genui-react/src/index.ts). Não edite aqui.
 // The generated components of the tone, drawn once for every surface: the
 // extension's side panel and the web. Each surface passes a GenUIHost that
 // decides what a button does; the drawings never reach a store or the server.
@@ -18,5 +18,7 @@ export {
   type WatchAccess,
 } from "./host";
 export { Icon, type IconName } from "./Icon";
+export { ProductVideos } from "./Media";
+export { PickedProductBar } from "./Picked";
 export { WatchDraftLoader, WatchDraftView } from "./WatchDraft";
 export { Fit, REJECT_REASONS, type RejectReason } from "./wrist";

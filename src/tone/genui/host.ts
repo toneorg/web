@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@8a4566efcee8 (packages/genui-react/src/host.ts). Não edite aqui.
+// Gerado de toneorg/extension@7b352c6fb2e6 (packages/genui-react/src/host.ts). Não edite aqui.
 // What a drawn component may ask of the panel. The model writes only data; the
 // panel decides what each button does, and checks every address before using it.
 import {
@@ -6,6 +6,7 @@ import {
   type DecisionOp,
   type DecisionState,
   isAllowedImage,
+  type PickedProduct,
   type Watch,
   type WatchRule,
 } from "@/tone/shared";
@@ -25,7 +26,9 @@ export type GenUIAction =
   /** The person turned a product down, with a reason. */
   | { type: "reject"; url: string; title: string; reason: string }
   /** Send a message as the person, from a button of the component. */
-  | { type: "say"; text: string };
+  | { type: "say"; text: string }
+  /** The person picked a product to talk about next (or let it go, with null). */
+  | { type: "pick"; product: PickedProduct | null };
 
 export interface GenUIHost {
   /** Stores whose pages and photos this surface may show: the extension's adapters, the web's fixed list. */
@@ -35,6 +38,8 @@ export interface GenUIHost {
   /** Products can be opened and turned down (false only where nothing should happen, like a preview). */
   actionable: boolean;
   act: (action: GenUIAction) => void;
+  /** The url of the product picked to talk about; absent where products cannot be picked. */
+  picked?: string | null;
   /** T08: the decision of this conversation, read and changed by the panel on the person's behalf. */
   decisions?: DecisionAccess;
   /** T09: watches; the panel saves drafts and confirms as the person. */

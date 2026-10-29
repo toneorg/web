@@ -11,6 +11,7 @@ import {
   type LocalStore,
   Me,
   Memory,
+  ProductMedia,
   ResearchRunState,
   SessionSummary,
   TranscriptItem,
@@ -119,6 +120,9 @@ export const api = {
   localRun: async (sessionId: string, query: string, stores: LocalStore[]) =>
     LocalRun.parse(await send("local-runs", "POST", { sessionId, query, stores })),
   stopLocalRun: (id: string) => send(`local-runs/${id}/stop`, "POST", {}),
+  /** TikToks of a product, searched by its name and saved in the conversation. */
+  media: async (sessionId: string, productTitle: string) =>
+    ProductMedia.parse(await send("media", "POST", { sessionId, productTitle })),
 };
 
 /**

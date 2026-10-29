@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@8a4566efcee8 (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/extension@7b352c6fb2e6 (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -132,6 +132,7 @@ function ProductCard(props: { product: ProductData; slide?: boolean }) {
       {host.actionable ? (
         <div className="actions">
           <OpenButton url={text(product.url)} title={text(product.title)} />
+          <PickButton product={product} />
           {rejected ? (
             <span className="small muted">Anotado: {REJECT_REASONS[rejected].toLowerCase()}</span>
           ) : host.interactive ? (
@@ -168,6 +169,32 @@ function ProductCard(props: { product: ProductData; slide?: boolean }) {
         </div>
       ) : null}
     </article>
+  );
+}
+
+/** Takes the product to the composer, to ask about it or see its videos; a second tap lets it go. */
+function PickButton(props: { product: ProductData }) {
+  const host = useHost();
+  const url = text(props.product.url);
+  const title = text(props.product.title);
+  if (host.picked === undefined || !url || !title) return null;
+  const picked = host.picked === url;
+  return (
+    <button
+      type="button"
+      className={picked ? "btn solid sm" : "btn outline sm"}
+      aria-pressed={picked}
+      onClick={() =>
+        host.act({
+          type: "pick",
+          product: picked
+            ? null
+            : { url, title, price: num(props.product.price), image: safeImage(props.product.image, host.storeHosts) },
+        })
+      }
+    >
+      <Icon name={picked ? "check" : "plus"} size={16} /> {picked ? "Selecionado" : "Selecionar"}
+    </button>
   );
 }
 

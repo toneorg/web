@@ -27,6 +27,8 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["watches", "w1", "unmute"])).toBe("/api/watches/w1/unmute");
     expect(upstreamPath(["watch-mute"])).toBe("/api/watch-mute");
     expect(upstreamPath(["watch-mute", "x"])).toBeNull();
+    // The videos of a picked product.
+    expect(upstreamPath(["media"])).toBe("/api/media");
   });
 
   it("exige o cabeçalho da web e a mesma origem para mudar algo", () => {

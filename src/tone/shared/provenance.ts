@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@8a4566efcee8 (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/extension@7b352c6fb2e6 (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
 // in the panel and on the web: observed in the index (T04), read in the store
 // by the extension in the person's Chrome (T14), or read in the store's search

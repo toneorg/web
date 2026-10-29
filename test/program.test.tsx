@@ -4,11 +4,27 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { openStore, Program, type ProgramHost, storeLink } from "../src/conversas/Program";
 
-const host: ProgramHost = { sessionId: "s1", interactive: true, answer: () => undefined, say: () => undefined };
+const host: ProgramHost = {
+  sessionId: "s1",
+  interactive: true,
+  answer: () => undefined,
+  say: () => undefined,
+  picked: null,
+  pick: () => undefined,
+};
 const draw = (code: string, h: ProgramHost = host) =>
   renderToStaticMarkup(<Program code={code} streaming={false} host={h} />);
 
 describe("componentes na web (T06)", () => {
+  it("deixa selecionar um produto e mostra a foto do Google Shopping da pesquisa", () => {
+    const code = `root = View([c])
+c = ProductCarousel("Perfumes", [p])
+p = Product("Perfume A", "https://www.amazon.com.br/dp/B0A", 199, "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:x")`;
+    expect(draw(code)).toContain("Selecionar");
+    expect(draw(code)).toContain("encrypted-tbn2.gstatic.com");
+    expect(draw(code, { ...host, picked: "https://www.amazon.com.br/dp/B0A" })).toContain("Selecionado");
+  });
+
   it("mostra os produtos como na extensão: foto da loja, preço e o porquê", () => {
     const html = draw(`root = View([c])
 c = ProductCarousel("Fones", [p1, p2])

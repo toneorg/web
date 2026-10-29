@@ -25,6 +25,8 @@ const ALLOWED: RegExp[] = [
   // T11: the mute link of an e-mail; the signed token is the only credential.
   /^watch-mute$/,
   /^events$/,
+  // The TikToks of a product picked in the conversation; the server searches and saves them.
+  /^media$/,
   // T14: the web asks for and follows local research; taking steps is the extension's (not listed).
   /^local-runs$/,
   /^local-runs\/[^/]+(\/stop)?$/,

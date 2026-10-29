@@ -4,10 +4,21 @@
 import Link from "next/link";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import posthog from "posthog-js";
-import { type AgentEvent, type Me, type ResearchRunState, reduceResearchRuns, storeLabel, type TurnInput } from "@/tone/shared";
+import { PickedProductBar, ProductVideos } from "@/tone/genui";
+import {
+  type AgentEvent,
+  MEDIA_COMPONENT,
+  type Me,
+  type PickedProduct,
+  ProductMedia,
+  type ResearchRunState,
+  reduceResearchRuns,
+  storeLabel,
+  type TurnInput,
+} from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { ApiError, api, streamTurn } from "./api";
-import { Program, type ProgramHost } from "./Program";
+import { Program, type ProgramHost, STORE_HOSTS } from "./Program";
 import { LocalResearch } from "./LocalResearch";
 import { ResearchRun } from "./ResearchRun";
 import { Shell } from "./Shell";
@@ -17,7 +28,9 @@ type Item =
   | { id: string; kind: "user"; text: string }
   | { id: string; kind: "assistant"; text: string; streaming?: boolean }
   | { id: string; kind: "notice"; text: string; error?: boolean }
-  | { id: string; kind: "research"; run: ResearchRunState };
+  | { id: string; kind: "research"; run: ResearchRunState }
+  /** TikToks of a product, asked for from the picked product above the composer. */
+  | { id: string; kind: "media"; media: ProductMedia };
 
 let counter = 0;
 const uid = () => `w${Date.now().toString(36)}${(++counter).toString(36)}`;
@@ -29,6 +42,8 @@ export function Conversation(props: { sessionId: string }) {
   const [draft, setDraft] = useState("");
   const [me, setMe] = useState<Me | null>(null);
   const [busy, setBusy] = useState(false);
+  /** The product picked from a component: it goes with every message until the person lets it go. */
+  const [picked, setPicked] = useState<PickedProduct | null>(null);
   const controller = useRef<AbortController | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
@@ -42,13 +57,14 @@ export function Conversation(props: { sessionId: string }) {
         if (!live) return;
         setMe(person);
         setItems([
-        ...transcript.map((item): Item =>
-          item.kind === "user"
-            ? { id: uid(), kind: "user", text: item.text }
-            : item.kind === "assistant"
-              ? { id: uid(), kind: "assistant", text: item.text }
-              : { id: uid(), kind: "notice", text: "Um quadro desta conversa aparece completo na extensão." },
-        ),
+        ...transcript.map((item): Item => {
+          if (item.kind === "user") return { id: uid(), kind: "user", text: item.text };
+          if (item.kind === "assistant") return { id: uid(), kind: "assistant", text: item.text };
+          const media = item.component.name === MEDIA_COMPONENT ? ProductMedia.safeParse(item.component.props) : null;
+          return media?.success
+            ? { id: uid(), kind: "media", media: media.data }
+            : { id: uid(), kind: "notice", text: "Um quadro desta conversa aparece completo na extensão." };
+        }),
         ...runs.map((run): Item => ({ id: `run-${run.runId}`, kind: "research", run })),
         ]);
         setState("ready");
@@ -159,10 +175,35 @@ export function Conversation(props: { sessionId: string }) {
       setDraft("");
       setItems((list) => [...list, { id: uid(), kind: "user", text: trimmed }]);
       posthog.capture("conversation_message_sent");
-      await runTurn({ type: "message", text: trimmed, page: null });
+      await runTurn({ type: "message", text: trimmed, page: null, ...(picked ? { product: picked } : {}) });
     },
-    [busy, runTurn, state],
+    [busy, picked, runTurn, state],
   );
+
+  /** "See videos of this product": no model involved, the server searches TikTok and saves the result. */
+  const showMedia = async () => {
+    if (!picked || busy) return;
+    setBusy(true);
+    setItems((list) => [...list, { id: uid(), kind: "user", text: "Ver vídeos deste produto" }]);
+    try {
+      const media = await api.media(sessionId, picked.title);
+      setItems((list) => [...list, { id: uid(), kind: "media", media }]);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) setState("expired");
+      else
+        setItems((list) => [
+          ...list,
+          {
+            id: uid(),
+            kind: "notice",
+            error: true,
+            text: error instanceof ApiError ? error.message : "Perdi a conexão com a tone. Tente de novo.",
+          },
+        ]);
+    } finally {
+      setBusy(false);
+    }
+  };
   // T14: a local run is followed by reading its saved state until it ends (about every 2 s, at most 12 min).
   const [following, setFollowing] = useState<string | null>(null);
   useEffect(() => {
@@ -246,6 +287,8 @@ export function Conversation(props: { sessionId: string }) {
       void runTurn({ type: "ui_answer", answers, page: null });
     },
     say: (text) => void send(text),
+    picked: picked?.url ?? null,
+    pick: setPicked,
   });
 
   return (
@@ -279,6 +322,7 @@ export function Conversation(props: { sessionId: string }) {
               </p>
             );
           if (item.kind === "research") return <ResearchRun key={item.id} run={item.run} />;
+          if (item.kind === "media") return <ProductVideos key={item.id} media={item.media} />;
           return (
             <div key={item.id} className="flex flex-col gap-3">
               {splitAnswer(item.text).map((part, index) =>
@@ -321,6 +365,15 @@ export function Conversation(props: { sessionId: string }) {
               Parar
             </button>
           </div>
+        ) : null}
+        {picked ? (
+          <PickedProductBar
+            product={picked}
+            storeHosts={STORE_HOSTS}
+            busy={busy}
+            onVideos={() => void showMedia()}
+            onRemove={() => setPicked(null)}
+          />
         ) : null}
         <div className="flex items-end gap-2">
           <label htmlFor="mensagem" className="sr-only">

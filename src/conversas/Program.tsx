@@ -2,7 +2,8 @@
 // The agent's OpenUI Lang blocks on the web, drawn by the same components as the
 // extension's panel (src/tone/genui, copied from toneorg/extension). Only the
 // actions are the web's: open a store page in a new tab when the person clicks,
-// answer a question, or change a decision or a watch as the person.
+// answer a question, pick a product to talk about, or change a decision or a
+// watch as the person.
 import { useMemo } from "react";
 import {
   type Answer,
@@ -13,7 +14,7 @@ import {
   REJECT_REASONS,
   type RejectReason,
 } from "@/tone/genui";
-import { type ClickWhere, type DecisionOp, isCheckoutUrl, type WatchRule } from "@/tone/shared";
+import { type ClickWhere, type DecisionOp, isCheckoutUrl, type PickedProduct, type WatchRule } from "@/tone/shared";
 import { api, trackClick } from "./api";
 
 /** Stores whose product photos and pages the web may show or link. */
@@ -33,6 +34,9 @@ export interface ProgramHost {
   /** The person answered a question component: what the conversation shows and what becomes memory. */
   answer: (answers: Answer[], display: string) => void;
   say: (text: string) => void;
+  /** The url of the product picked to talk about, shown above the composer. */
+  picked: string | null;
+  pick: (product: PickedProduct | null) => void;
 }
 
 /**
@@ -87,7 +91,7 @@ export function openStore(sessionId: string, url: string, title: string, where: 
 
 /** The web's side of the components: what each button does, and where decisions and watches live. */
 function useWebHost(host: ProgramHost): GenUIHost {
-  const { sessionId, interactive, answer, say } = host;
+  const { sessionId, interactive, answer, say, picked, pick } = host;
   const decisions = useMemo(
     () => ({
       load: () => api.decision(sessionId),
@@ -118,9 +122,12 @@ function useWebHost(host: ProgramHost): GenUIHost {
       case "answer":
         answer(action.answers, action.display);
         return;
+      case "pick":
+        pick(action.product);
+        return;
     }
   };
-  return { storeHosts: STORE_HOSTS, interactive, actionable: true, act, decisions, watches };
+  return { storeHosts: STORE_HOSTS, interactive, actionable: true, act, picked, decisions, watches };
 }
 
 /** One block of an answer, drawn while it streams, exactly as the extension draws it. */
