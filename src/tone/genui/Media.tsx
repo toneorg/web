@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@bc3273ad0a23 (packages/genui-react/src/Media.tsx). Não edite aqui.
+// Gerado de toneorg/extension@cab9f784af9d (packages/genui-react/src/Media.tsx). Não edite aqui.
 // Short videos of the product (TikTok). Each one is a cover
 // first; the player loads only when the person taps it, so a list of videos
 // costs nothing until one is watched. Titles and authors are third-party text,

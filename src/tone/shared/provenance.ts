@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@bc3273ad0a23 (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/extension@cab9f784af9d (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
 // in the panel and on the web: observed in the index (T04), read in the store
 // by the extension in the person's Chrome (T14), or read in the store's search
@@ -10,6 +10,21 @@ const STORE_NAMES: Record<string, string> = {
   "amazon.com.br": "Amazon Brasil",
   "amazon.com": "Amazon (EUA)",
   "magazineluiza.com.br": "Magalu",
+  "sephora.com.br": "Sephora",
+  "lojasrenner.com.br": "Renner",
+  "epocacosmeticos.com.br": "Época Cosméticos",
+  "belezanaweb.com.br": "Beleza na Web",
+  "boticario.com.br": "O Boticário",
+  "natura.com.br": "Natura",
+  "drogasil.com.br": "Drogasil",
+  "drogaraia.com.br": "Droga Raia",
+  "paguemenos.com.br": "Pague Menos",
+  "drogariasaopaulo.com.br": "Drogaria São Paulo",
+  "riachuelo.com.br": "Riachuelo",
+  "cea.com.br": "C&A",
+  "americanas.com.br": "Americanas",
+  "casasbahia.com.br": "Casas Bahia",
+  "google.com": "Google Shopping",
   "dior.com": "Dior",
 };
 /** A store's name as people say it, from its domain. */

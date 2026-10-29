@@ -14,18 +14,20 @@ import {
   REJECT_REASONS,
   type RejectReason,
 } from "@/tone/genui";
-import { type ClickWhere, type DecisionOp, isCheckoutUrl, type PickedProduct, type WatchRule } from "@/tone/shared";
+import {
+  type ClickWhere,
+  type DecisionOp,
+  GOOGLE_SHOPPING,
+  INDEX_STORES,
+  isCheckoutUrl,
+  isGoogleShoppingUrl,
+  type PickedProduct,
+  type WatchRule,
+} from "@/tone/shared";
 import { api, trackClick } from "./api";
 
-/** Stores whose product photos and pages the web may show or link. */
-export const STORE_HOSTS = [
-  "amazon.com.br",
-  "mercadolivre.com.br",
-  "mercadolibre.com",
-  "magazineluiza.com.br",
-  "sephora.com.br",
-  "lojasrenner.com.br",
-];
+/** Stores whose product photos and pages the web may show or link: the server index's (shared list). */
+export const STORE_HOSTS: string[] = [...INDEX_STORES, "mercadolibre.com"];
 
 export interface ProgramHost {
   sessionId: string;
@@ -40,10 +42,14 @@ export interface ProgramHost {
 }
 
 /**
- * A store link only for an HTTPS store page that does not pay. `store` is a store the server itself
- * read and checked the offer against (T16, a remote browser); what the model writes gets only the fixed list.
+ * A store link only for an HTTPS store page that does not pay, or a Google Shopping product page (a
+ * product known only from the index). `store` is a store the server itself read and checked the offer
+ * against (T16, a remote browser); what the model writes gets only the fixed list.
  */
 export function storeLink(url: string, store?: string): string | null {
+  if (isGoogleShoppingUrl(url)) return url;
+  // Google is never a store host: only the product page above opens, never another Google address.
+  if (store === GOOGLE_SHOPPING) store = undefined;
   if (!URL.canParse(url)) return null;
   const parsed = new URL(url);
   if (parsed.protocol !== "https:" || parsed.username || parsed.password || isCheckoutUrl(url)) return null;
@@ -75,7 +81,7 @@ export function StoreLink(props: { url: string; label?: string; click?: ClickCon
       }}
       className="inline-flex min-h-11 items-center rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
     >
-      {props.label ?? "Ver na loja"}
+      {isGoogleShoppingUrl(href) ? "Ver no Google Shopping" : (props.label ?? "Ver na loja")}
       <span className="sr-only"> (abre em outra aba)</span>
     </a>
   );

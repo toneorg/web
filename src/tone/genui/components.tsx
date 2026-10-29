@@ -1,10 +1,16 @@
-// Gerado de toneorg/extension@bc3273ad0a23 (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/extension@cab9f784af9d (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
 import type { ComponentRenderer } from "@openuidev/react-lang";
 import { useIsStreaming } from "@openuidev/react-lang";
-import { MEMORY_CHECK_ANSWERS, MEMORY_CHECK_PREFIX, OUTCOME_CHECK_PREFIX, OUTCOME_LABELS } from "@/tone/shared";
+import {
+  isGoogleShoppingUrl,
+  MEMORY_CHECK_ANSWERS,
+  MEMORY_CHECK_PREFIX,
+  OUTCOME_CHECK_PREFIX,
+  OUTCOME_LABELS,
+} from "@/tone/shared";
 import { type ReactNode, useState } from "react";
 import { DecisionBoardLoader } from "./DecisionBoard";
 import { brl } from "./format";
@@ -88,13 +94,15 @@ function Bar(props: { share: number; tone?: "ink" | "alert" | "graphite" }) {
 function OpenButton(props: { url: string; title: string; label?: string; quiet?: boolean }) {
   const host = useHost();
   if (!host.actionable || !props.url) return null;
+  // A product known only from the index opens Google Shopping, which lists who sells it: said as such.
+  const label = isGoogleShoppingUrl(props.url) ? "Ver no Google Shopping" : (props.label ?? "Ver na loja");
   return (
     <button
       type="button"
       className={props.quiet ? "btn outline sm" : "btn solid sm"}
       onClick={() => host.act({ type: "open", url: props.url, title: props.title, where: { source: "generated_ui" } })}
     >
-      <Icon name="external" size={16} /> {props.label ?? "Ver na loja"}
+      <Icon name="external" size={16} /> {label}
     </button>
   );
 }

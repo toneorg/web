@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@bc3273ad0a23 (packages/shared/src/local-run.ts). Não edite aqui.
+// Gerado de toneorg/extension@cab9f784af9d (packages/shared/src/local-run.ts). Não edite aqui.
 // T14: a local research run. The web asks the server for a short, scoped run;
 // the extension of the same account takes its steps with its own token, runs
 // them in its one work tab and posts back only product data. The web page never

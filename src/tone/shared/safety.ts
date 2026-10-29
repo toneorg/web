@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@bc3273ad0a23 (packages/shared/src/safety.ts). Não edite aqui.
+// Gerado de toneorg/extension@cab9f784af9d (packages/shared/src/safety.ts). Não edite aqui.
 // RNF11: the agent never pays. This is enforced in code, on both sides, and not
 // left to the model: the extension refuses to click anything that looks like a
 // payment step or to load a checkout page, whatever the model asked.
@@ -88,5 +88,25 @@ export function isAllowedImage(url: string | null | undefined, storeHosts: reado
   if (parsed.protocol !== "https:" && !local) return false;
   return [...IMAGE_HOSTS, ...storeHosts].some(
     (host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`),
+  );
+}
+
+/** The store of an offer known only from the index, whose link is Google Shopping's product page. */
+export const GOOGLE_SHOPPING = "google.com";
+
+/**
+ * A Google Shopping product page: the stores selling one product, from the index.
+ * Only `/search` with a product or shopping marker, never `/url` (which forwards
+ * anywhere) or another Google page.
+ */
+export function isGoogleShoppingUrl(url: string | null | undefined): boolean {
+  if (!url || !URL.canParse(url)) return false;
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port) return false;
+  if (!["google.com", "www.google.com", "google.com.br", "www.google.com.br"].includes(parsed.hostname)) return false;
+  if (parsed.pathname !== "/search") return false;
+  const params = parsed.searchParams;
+  return (
+    params.has("prds") || params.get("ibp") === "oshop" || params.get("tbm") === "shop" || params.get("udm") === "28"
   );
 }

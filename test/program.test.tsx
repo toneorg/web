@@ -16,6 +16,13 @@ const draw = (code: string, h: ProgramHost = host) =>
   renderToStaticMarkup(<Program code={code} streaming={false} host={h} />);
 
 describe("componentes na web (T06)", () => {
+  it("abre o Google Shopping só na página de produto, nunca outro endereço do Google", () => {
+    expect(storeLink("https://www.google.com/search?prds=gpcid:1")).toBe("https://www.google.com/search?prds=gpcid:1");
+    expect(storeLink("https://www.google.com/url?q=https://evil.example", "google.com")).toBeNull();
+    expect(storeLink("https://www.epocacosmeticos.com.br/perfume/p")).toBe("https://www.epocacosmeticos.com.br/perfume/p");
+    expect(storeLink("https://loja.example/p")).toBeNull();
+  });
+
   it("deixa selecionar um produto e mostra a foto do Google Shopping da pesquisa", () => {
     const code = `root = View([c])
 c = ProductCarousel("Perfumes", [p])

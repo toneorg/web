@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@bc3273ad0a23 (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/extension@cab9f784af9d (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -8,13 +8,29 @@ import { StoreScope } from "./research";
 
 const Text = (max: number) => z.string().trim().min(1).max(max);
 
-/** Stores the server index (T04) can observe without the person's browser. */
+/**
+ * Stores the server index (T04) can observe without the person's browser, and the only
+ * stores whose offers it keeps, links to and shows photos of (29/10/2026: beauty,
+ * pharmacies and department stores joined the first five).
+ */
 export const INDEX_STORES = [
   "amazon.com.br",
   "mercadolivre.com.br",
   "magazineluiza.com.br",
   "sephora.com.br",
   "lojasrenner.com.br",
+  "epocacosmeticos.com.br",
+  "belezanaweb.com.br",
+  "boticario.com.br",
+  "natura.com.br",
+  "drogasil.com.br",
+  "drogaraia.com.br",
+  "paguemenos.com.br",
+  "drogariasaopaulo.com.br",
+  "riachuelo.com.br",
+  "cea.com.br",
+  "americanas.com.br",
+  "casasbahia.com.br",
 ] as const;
 
 export const WatchCondition = z.discriminatedUnion("kind", [
