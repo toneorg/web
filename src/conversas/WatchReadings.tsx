@@ -18,6 +18,12 @@ const storeName = (store: string) => (store === "google.com" ? "Google Shopping"
 
 type Match = WatchResult["summary"]["matches"][number];
 
+/** Why this price does not count for the alert (a variant the index did not confirm, an installment…). */
+const limitationOf = (match: Match) => {
+  const value = (match as { limitation?: unknown }).limitation;
+  return typeof value === "string" && value ? value : null;
+};
+
 /** Whether an offer is inside the person's price, when the condition is a price. */
 function withinTarget(watch: Watch, match: Match): boolean {
   const condition = (watch.confirmed ?? watch.draft).condition;
@@ -44,7 +50,10 @@ function Offer(props: { watch: Watch; match: Match; position: number; sessionId:
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="line-clamp-2 text-small text-ink">{match.title}</span>
-        <span className="text-caption text-graphite">{storeName(match.store)}</span>
+        <span className="text-caption text-graphite">
+          {storeName(match.store)}
+          {limitationOf(match) ? ` · ${limitationOf(match)}` : ""}
+        </span>
         <span className="flex flex-wrap items-center gap-2">
           <span className="text-ui text-ink tabular-nums">{match.priceText}</span>
           {withinTarget(props.watch, match) ? (
