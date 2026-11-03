@@ -1,9 +1,16 @@
-// Gerado de toneorg/extension@2b0635e524d0 (packages/shared/src/research-execution.ts). Não edite aqui.
+// Gerado de toneorg/extension@43abe652d737 (packages/shared/src/research-execution.ts). Não edite aqui.
 import * as z from "zod";
 import { evaluateRequirements, ResearchIntent, ResearchResult } from "./research";
 
 export const ResearchRequest = z
   .object({
+    /** Direct store reads only; this never narrows the index. Missing asks for selection; [] disables direct reads. */
+    remoteSelection: z
+      .array(z.string().trim().min(1).max(200))
+      .optional()
+      .describe(
+        "Até três domínios relevantes do catálogo configurado para leitura direta; [] quando nenhum for adequado. Separado do escopo explícito da pessoa, que prevalece e pode ter mais lojas.",
+      ),
     intent: ResearchIntent.extend({
       query: z.string().trim().min(1).max(200),
       requirements: ResearchIntent.shape.requirements.refine((items) => items.length <= 12),
@@ -23,8 +30,12 @@ export const ResearchRequest = z
       .max(12),
   })
   .superRefine((request, context) => {
-    if (request.intent.storeScope.kind === "explicit" && request.intent.storeScope.stores.length > 5)
-      context.addIssue({ code: "custom", message: "No máximo cinco lojas." });
+    if (request.intent.storeScope.kind === "unrestricted" && (request.remoteSelection?.length ?? 0) > 3)
+      context.addIssue({
+        code: "custom",
+        path: ["remoteSelection"],
+        message: "No máximo três lojas na seleção automática.",
+      });
     const seen = new Set<string>();
     for (const [index, constraint] of request.constraints.entries()) {
       const requirement = request.intent.requirements.find((entry) => entry.id === constraint.requirementId);

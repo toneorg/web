@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2b0635e524d0 (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/extension@43abe652d737 (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
 // in the panel and on the web: observed in the index (T04), read in the store
 // by the extension in the person's Chrome (T14), or read in the store's search
@@ -24,6 +24,7 @@ const STORE_NAMES: Record<string, string> = {
   "cea.com.br": "C&A",
   "americanas.com.br": "Americanas",
   "casasbahia.com.br": "Casas Bahia",
+  "kabum.com.br": "KaBuM!",
   "google.com": "Google Shopping",
   "dior.com": "Dior",
 };

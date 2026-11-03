@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2b0635e524d0 (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/extension@43abe652d737 (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -31,6 +31,7 @@ export const INDEX_STORES = [
   "cea.com.br",
   "americanas.com.br",
   "casasbahia.com.br",
+  "kabum.com.br",
 ] as const;
 
 export const WatchCondition = z.discriminatedUnion("kind", [
@@ -56,25 +57,37 @@ export const WatchProduct = z.object({
   offerId: z.string().nullable(),
 });
 
-export const WatchRule = z.object({
-  goal: Text(200),
-  kind: z.enum(["discovery", "monitoring"]),
-  query: Text(120),
-  brands: z.array(Text(60)).max(5),
-  categories: z.array(Text(60)).max(5),
-  variants: z.array(Text(80)).max(5),
-  products: z.array(WatchProduct).max(5),
-  storeScope: StoreScope,
-  condition: WatchCondition,
-  /** Daily is the only frequency of the beta; "check now" is separate and needs balance. */
-  frequency: z.literal("daily").default("daily"),
-  notify: z.object({
-    /** The web center always shows results; e-mail is the person's choice. */
-    email: z.boolean(),
-    /** Also a summary of news, besides the alert when the condition is met. */
-    digest: z.boolean(),
-  }),
-});
+export const WatchRule = z
+  .object({
+    goal: Text(200),
+    kind: z.enum(["discovery", "monitoring"]),
+    query: Text(120),
+    brands: z.array(Text(60)).max(5),
+    categories: z.array(Text(60)).max(5),
+    variants: z.array(Text(80)).max(5),
+    products: z.array(WatchProduct).max(5),
+    storeScope: StoreScope,
+    /** Persisted direct reads, independent from the person's scope. Missing is a legacy rule. */
+    remoteSelection: z
+      .array(Text(200))
+      .optional()
+      .describe(
+        "Domínios escolhidos do catálogo para leitura direta; até três na pesquisa livre. [] mantém somente o índice. O escopo explícito da pessoa prevalece.",
+      ),
+    condition: WatchCondition,
+    /** Daily is the only frequency of the beta; "check now" is separate and needs balance. */
+    frequency: z.literal("daily").default("daily"),
+    notify: z.object({
+      /** The web center always shows results; e-mail is the person's choice. */
+      email: z.boolean(),
+      /** Also a summary of news, besides the alert when the condition is met. */
+      digest: z.boolean(),
+    }),
+  })
+  .refine((rule) => rule.storeScope.kind === "explicit" || (rule.remoteSelection?.length ?? 0) <= 3, {
+    path: ["remoteSelection"],
+    message: "No máximo três lojas na seleção automática.",
+  });
 export type WatchRule = z.infer<typeof WatchRule>;
 
 export const WatchStatus = z.enum(["draft", "active", "paused", "deleted"]);
@@ -85,7 +98,7 @@ export const WatchClarification = z.object({
   question: z.string(),
 });
 export const WatchSource = z.object({
-  id: z.enum(["google_shopping_index", "local_extension"]),
+  id: z.enum(["google_shopping_index", "remote_browser", "local_extension"]),
   label: z.string(),
   autonomous: z.boolean(),
   stores: z.array(z.string()),
@@ -155,7 +168,12 @@ const DEAL = /promo|desconto|oferta|barat|baixar|queda|liquida|black friday/i;
 const isIndexStore = (store: string) => INDEX_STORES.some((domain) => store === domain || store.endsWith(`.${domain}`));
 
 /** What still needs the person, and what each source can really do for this rule. */
-export function reviewWatch(rule: WatchRule): WatchReview {
+/**
+ * `remoteStores`: the stores this server reads by a remote browser (Pomerado), which also run in
+ * the daily check, on the store's own search. Without them, a store outside the index needs the
+ * extension and the open browser.
+ */
+export function reviewWatch(rule: WatchRule, remoteStores: readonly string[] = []): WatchReview {
   const clarifications: z.infer<typeof WatchClarification>[] = [];
   const notes: string[] = [];
   if (rule.condition.kind === "none" && (DEAL.test(rule.goal) || rule.kind === "monitoring"))
@@ -173,8 +191,15 @@ export function reviewWatch(rule: WatchRule): WatchReview {
     clarifications.push({ field: "query", question: "Que tipo de produto devo procurar?" });
   const stores = rule.storeScope.kind === "explicit" ? rule.storeScope.stores : [...INDEX_STORES];
   const covered = stores.filter(isIndexStore);
-  const uncovered = stores.filter((store) => !isIndexStore(store));
-  if (rule.storeScope.kind === "explicit" && covered.length === 0)
+  const selected = rule.storeScope.kind === "explicit" ? stores : (rule.remoteSelection ?? []);
+  const remote = selected.filter((store) => remoteStores.includes(store));
+  const unavailable = selected.filter((store) => !remoteStores.includes(store));
+  if (unavailable.length)
+    notes.push(
+      `Leitura direta indisponível em ${unavailable.join(", ")}; a cobertura fica parcial, sem substituir as lojas escolhidas.`,
+    );
+  const uncovered = stores.filter((store) => !isIndexStore(store) && !remote.includes(store));
+  if (rule.storeScope.kind === "explicit" && covered.length === 0 && remote.length === 0)
     clarifications.push({
       field: "storeScope",
       question: `${uncovered.join(", ")} só pode ser lida pela extensão com o navegador aberto. Para acompanhar todo dia sem o navegador, escolha também uma loja que eu consigo observar: ${INDEX_STORES.join(", ")}.`,
@@ -200,6 +225,17 @@ export function reviewWatch(rule: WatchRule): WatchReview {
         stores: covered,
         note: "Preço observado no índice do Google Shopping, uma vez por dia; não confirma o preço final, o frete nem o estoque na loja.",
       },
+      ...(remote.length
+        ? [
+            {
+              id: "remote_browser" as const,
+              label: "Navegador remoto na loja",
+              autonomous: true,
+              stores: remote,
+              note: "A busca do próprio site da loja, lida por um navegador remoto sem login, uma vez por dia; o preço é o da busca, sem frete.",
+            },
+          ]
+        : []),
       {
         id: "local_extension",
         label: "Leitura na loja pela extensão",
