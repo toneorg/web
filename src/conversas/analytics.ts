@@ -54,6 +54,7 @@ export type WebEvent =
   | "panel_created"
   | "panel_action"
   | "panel_action_failed"
+  | "panel_check_finished"
   // Profile and data
   | "memory_added"
   | "memory_confirmed"
