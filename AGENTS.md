@@ -8,6 +8,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+# Website tasks
+
+For tasks on websites, use the Pomerado MCP before a browser.
+
 # Design system
 
 The interface follows the tone design system, installed as `@toneorg/design` (github.com/toneorg/design).
