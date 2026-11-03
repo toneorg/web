@@ -81,6 +81,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
   const { watch, latest } = props.panel;
   const [busy, setBusy] = useState<Action | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const rule = watch.confirmed ?? watch.draft;
   const lines = describeWatch(rule);
@@ -100,8 +101,23 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
         return;
       }
       if (action === "check") {
-        await api.checkWatch(watch.id);
-        const [fresh, results] = await Promise.all([api.watch(watch.id), api.watchResults(watch.id)]);
+        // Compared with the last reading the server had, not with this browser's clock.
+        const before = (await api.watchResults(watch.id))[0]?.observedAt ?? "";
+        const { state } = await api.checkWatch(watch.id);
+        // The reading runs on the server and may end after the answer: follow it for up to a minute.
+        const newer = (list: WatchResult[]) => list.find((result) => result.observedAt > before) ?? null;
+        let results = await api.watchResults(watch.id);
+        if (state !== "done" && !newer(results)) {
+          setChecking(true);
+          for (let tries = 0; tries < 20 && !newer(results); tries++) {
+            await new Promise((resolve) => window.setTimeout(resolve, 3000));
+            results = await api.watchResults(watch.id);
+          }
+          setChecking(false);
+        }
+        const fresh = await api.watch(watch.id);
+        track("panel_check_finished", { found: Boolean(newer(results)), waited: state !== "done" });
+        if (!newer(results)) setError("A leitura ainda não terminou. O resultado aparece aqui quando chegar.");
         if (fresh) props.onChange({ watch: fresh, latest: results[0] ?? latest });
         return;
       }
@@ -161,6 +177,11 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
           Primeira leitura{watch.nextCheckAt ? ` em ${when(watch.nextCheckAt)}` : " em breve"}.
         </span>
       )}
+      {checking ? (
+        <span role="status" className="text-caption text-ink">
+          Verificando agora; o resultado aparece aqui em instantes.
+        </span>
+      ) : null}
       {latest?.conditionMet ? <span className="text-ui text-ink">Condição atingida</span> : null}
       {facts.problem ? <span className="text-caption text-ink">{facts.problem}</span> : null}
       {facts.stale ? (
