@@ -14,11 +14,14 @@ import {
   reduceResearchRuns,
   storeLabel,
   type TurnInput,
+  type Watch,
+  type WatchResult,
 } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { since, track } from "./analytics";
 import { ApiError, api, streamTurn } from "./api";
-import { Program, type ProgramHost, STORE_HOSTS } from "./Program";
+import { Program, type ProgramHost, STORE_HOSTS, WATCHES_CHANGED } from "./Program";
+import { WatchReadings } from "./WatchReadings";
 import { LocalResearch } from "./LocalResearch";
 import { ResearchRun } from "./ResearchRun";
 import { Shell } from "./Shell";
@@ -78,6 +81,30 @@ export function Conversation(props: { sessionId: string; first?: string | null }
       live = false;
     };
   }, [sessionId, round]);
+  // A panel is a conversation: the watches made here, with their readings, close the log.
+  const [panels, setPanels] = useState<{ watch: Watch; results: WatchResult[] }[]>([]);
+  useEffect(() => {
+    let live = true;
+    const fetchPanels = () =>
+      api
+        .watches()
+        .then((list) =>
+          Promise.all(
+            list
+              .filter((watch) => watch.sessionId === sessionId && watch.status !== "deleted" && watch.confirmed)
+              .map(async (watch) => ({ watch, results: await api.watchResults(watch.id).catch(() => []) })),
+          ),
+        )
+        .then((found) => live && setPanels(found))
+        .catch(() => undefined);
+    void fetchPanels();
+    window.addEventListener(WATCHES_CHANGED, fetchPanels);
+    return () => {
+      live = false;
+      window.removeEventListener(WATCHES_CHANGED, fetchPanels);
+    };
+  }, [sessionId, round]);
+
   // Follows the conversation as it grows, also while an answer streams in, unless the
   // person scrolled up to read something: then it leaves the page where it is.
   const tail = items.at(-1);
@@ -383,6 +410,9 @@ export function Conversation(props: { sessionId: string; first?: string | null }
             </div>
           );
         })}
+        {panels.map((panel) => (
+          <WatchReadings key={panel.watch.id} watch={panel.watch} results={panel.results} sessionId={sessionId} />
+        ))}
         <div ref={bottom} />
       </div>
       {state === "ready" && !busy && !me?.remoteStores?.length ? (

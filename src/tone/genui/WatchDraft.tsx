@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@25eacf43b3e3 (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
+// Gerado de toneorg/extension@2b0635e524d0 (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
 // T09: the draft of a watch, for the person to review and confirm. The model
 // writes only the id; the rule comes from the server and every button is the
 // panel's: it saves the person's edits and confirms the version on screen.
@@ -98,7 +98,6 @@ export function WatchDraftView(props: {
   // Choosing an option that needs a number moves the keyboard to its field.
   const amountField = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs after each choice the person makes.
   useEffect(() => {
     if (picked) amountField.current?.focus();
   }, [picked]);

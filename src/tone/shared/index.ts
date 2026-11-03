@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@25eacf43b3e3 (packages/shared/src/index.ts). Não edite aqui.
+// Gerado de toneorg/extension@2b0635e524d0 (packages/shared/src/index.ts). Não edite aqui.
 export * from "./agent";
 export * from "./api";
 export * from "./budget";
