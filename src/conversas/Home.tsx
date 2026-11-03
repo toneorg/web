@@ -10,9 +10,7 @@ import {
   canRecordOutcome,
   episodeLine,
   type Me,
-  type Memory,
   OUTCOME_LABELS,
-  OWNED_CATEGORY,
   type PurchaseSituation,
   type SessionSummary,
   type SituationOutcomeVerdict,
@@ -27,56 +25,6 @@ const primary =
 const quiet =
   "min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 const when = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-
-const small =
-  "min-h-11 rounded-full px-3 text-caption text-graphite focus-visible:outline-2 focus-visible:outline-ink";
-
-/** What the tone remembers: hypotheses can be confirmed, everything can be deleted. */
-function MemoryList(props: { memories: Memory[]; onChange: () => void }) {
-  return (
-    <ul className="flex flex-col gap-1" data-ph-mask>
-      {props.memories.map((memory) => (
-        <li key={memory.id} className="flex items-center justify-between gap-2 text-small text-ink">
-          <span>
-            {memory.category === OWNED_CATEGORY ? memory.value : `${memory.key.replace(/[._]/g, " ")}: ${memory.value}`}
-            {memory.condition ? <span className="text-graphite"> · quando: {memory.condition}</span> : null}
-            {memory.inferred ? <span className="text-graphite"> · palpite da tone</span> : null}
-          </span>
-          <span className="flex shrink-0">
-            {memory.inferred ? (
-              <button
-                type="button"
-                className={small}
-                aria-label={`Confirmar ${memory.key}`}
-                onClick={() =>
-                  void api.confirmMemory(memory.id).then(() => {
-                    posthog.capture("memory_confirmed");
-                    props.onChange();
-                  })
-                }
-              >
-                Confirmar
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className={small}
-              aria-label={`Apagar ${memory.key}`}
-              onClick={() =>
-                void api.deleteMemory(memory.id).then(() => {
-                  posthog.capture("memory_deleted");
-                  props.onChange();
-                })
-              }
-            >
-              Apagar
-            </button>
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 /** A purchase situation; once something was chosen or the day passed, "did it work?" in one tap. */
 function SituationItem(props: { situation: PurchaseSituation; onChange: () => void }) {
@@ -119,7 +67,6 @@ export function Home() {
   const [me, setMe] = useState<Me | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "signed_out" | "expired" | "error">("loading");
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [memories, setMemories] = useState<Memory[]>([]);
   const [situations, setSituations] = useState<PurchaseSituation[]>([]);
   const [starting, setStarting] = useState(false);
   const [ask, setAsk] = useState("");
@@ -128,12 +75,11 @@ export function Home() {
   const load = () => setRound((value) => value + 1);
   useEffect(() => {
     let live = true;
-    Promise.all([api.me(), api.sessions(), api.memories(), api.situations().catch(() => [])])
-      .then(([person, list, notes, occasions]) => {
+    Promise.all([api.me(), api.sessions(), api.situations().catch(() => [])])
+      .then(([person, list, occasions]) => {
         if (!live) return;
         setMe(person);
         setSessions(list);
-        setMemories(notes);
         setSituations(occasions);
         setState("ready");
       })
@@ -243,24 +189,6 @@ export function Home() {
         )}
       </section>
       <div className="grid gap-6 md:grid-cols-2">
-        <section aria-labelledby="titulo-memoria" className="flex flex-col gap-2">
-          <h2 id="titulo-memoria" className="text-subheading text-ink">
-            O que eu sei sobre você
-          </h2>
-          {memories.length === 0 ? (
-            <p className="text-small text-graphite">Nada ainda. Converse comigo e eu vou anotando.</p>
-          ) : (
-            <>
-              <MemoryList memories={memories.filter((m) => m.category !== OWNED_CATEGORY)} onChange={load} />
-              {memories.some((m) => m.category === OWNED_CATEGORY) ? (
-                <>
-                  <h3 className="mt-2 text-ui text-ink">Você já tem</h3>
-                  <MemoryList memories={memories.filter((m) => m.category === OWNED_CATEGORY)} onChange={load} />
-                </>
-              ) : null}
-            </>
-          )}
-        </section>
         {situations.length > 0 ? (
           <section aria-labelledby="titulo-ocasioes" className="flex flex-col gap-2">
             <h2 id="titulo-ocasioes" className="text-subheading text-ink">
@@ -285,13 +213,6 @@ export function Home() {
             carrinho continua na extensão, com o Chrome aberto. Nela, entre com o mesmo e-mail e a mesma senha.
           </p>
         </section>
-        <button
-          type="button"
-          className={`${quiet} justify-self-start`}
-          onClick={() => void api.logout().finally(() => setState("signed_out"))}
-        >
-          Sair desta web
-        </button>
       </div>
     </main>
     </Shell>

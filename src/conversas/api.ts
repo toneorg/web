@@ -95,6 +95,14 @@ export const api = {
   deleteMemory: (id: string) => send(`memories/${id}`, "DELETE"),
   /** A hypothesis of the tone, confirmed by the person from the list. */
   confirmMemory: async (id: string) => Memory.parse(await send(`memories/${id}/confirm`, "POST", {})),
+  /** Something the person wrote about themselves ("tamanho de tênis: 40 · já tenho sandália dourada"). */
+  addMemory: (key: string, value: string, category: string) => send("memories", "POST", { key, value, category }),
+  /** Every note about the person, gone; the conversations stay. */
+  deleteAllMemories: () => send("memories", "DELETE"),
+  /** The whole record of the account, as JSON, for the person to keep. */
+  exportData: async () => await call("me/export"),
+  /** Everything of the account, gone. Not reversible. */
+  deleteAccount: () => send("me", "DELETE"),
   /** What each conversation was trying to solve, newest first. */
   situations: async () => PurchaseSituation.array().parse(await call("situations")),
   /** After the occasion: how it went. */

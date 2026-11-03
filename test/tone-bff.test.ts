@@ -35,6 +35,13 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["situations", "s1"])).toBeNull();
     // The videos of a picked product.
     expect(upstreamPath(["media"])).toBe("/api/media");
+    // The person's own page: the notes, the confirmation of a guess and the data keys.
+    expect(upstreamPath(["memories"])).toBe("/api/memories");
+    expect(upstreamPath(["memories", "m1"])).toBe("/api/memories/m1");
+    expect(upstreamPath(["memories", "m1", "confirm"])).toBe("/api/memories/m1/confirm");
+    expect(upstreamPath(["memories", "m1", "other"])).toBeNull();
+    expect(upstreamPath(["me", "export"])).toBe("/api/me/export");
+    expect(upstreamPath(["me"])).toBe("/api/me");
   });
 
   it("exige o cabeçalho da web e a mesma origem para mudar algo", () => {

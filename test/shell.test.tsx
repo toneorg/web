@@ -1,11 +1,11 @@
 // T16: the web app's frame, the person's panels and what the research can do here.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { Me, ResearchRunState, WatchResult } from "../src/tone/shared";
+import type { BudgetStatement, Me, ResearchRunState, WatchResult } from "../src/tone/shared";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined }) }));
 const { researchNote } = await import("../src/conversas/Conversation");
-const { lowestOf } = await import("../src/conversas/Panels");
+const { lowestOf, weekLeftPercent } = await import("../src/conversas/Panels");
 const { ResearchRun } = await import("../src/conversas/ResearchRun");
 const { Shell } = await import("../src/conversas/Shell");
 
@@ -17,6 +17,22 @@ const me = (remoteStores?: string[]): Me => ({
   spentTodayUsd: 0,
   dailyCapUsd: 1,
   ...(remoteStores ? { remoteStores } : {}),
+});
+const budget = (availableUsd: number, weeklyCapUsd = 1): BudgetStatement => ({
+  windowStart: "2026-10-27T00:00:00.000Z",
+  windowEnd: "2026-11-03T00:00:00.000Z",
+  weeklyCapUsd,
+  spentUsd: 0,
+  reservedUsd: 0,
+  availableUsd,
+  overheadUsd: null,
+  complete: true,
+  pending: [],
+  resumesAt: null,
+  categories: [],
+  totalsByBasis: { measuredUsd: 0, estimatedUsd: 0, allocatedUsd: 0 },
+  tokens: { inputTokens: 0, outputTokens: 0 },
+  indirectCosts: [],
 });
 const result = (matches: { priceText: string; amount: number | null }[]): WatchResult => ({
   id: "r1",
@@ -42,6 +58,18 @@ describe("moldura da web (T16)", () => {
     expect(html).toContain("Seus painéis");
     expect(html).toContain("conversa");
     expect(html).toContain(">A<");
+    // The avatar opens the person's own page, where their data lives.
+    expect(html).toContain('href="/conversas/perfil"');
+  });
+
+  it("o uso da semana é uma porcentagem: US$ 1 por semana é o uso cheio", () => {
+    expect(weekLeftPercent(budget(1))).toBe(100);
+    expect(weekLeftPercent(budget(0.72))).toBe(72);
+    expect(weekLeftPercent(budget(0))).toBe(0);
+    // Never below zero nor above the cap, and a missing cap is no use at all.
+    expect(weekLeftPercent(budget(-0.5))).toBe(0);
+    expect(weekLeftPercent(budget(2))).toBe(100);
+    expect(weekLeftPercent(budget(1, 0))).toBe(0);
   });
 
   it("o painel mostra o menor preço comparável da última leitura", () => {
