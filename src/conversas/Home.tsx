@@ -5,7 +5,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import posthog from "posthog-js";
 import {
   canRecordOutcome,
   episodeLine,
@@ -16,7 +15,9 @@ import {
   type SituationOutcomeVerdict,
   todayInBrazil,
 } from "@/tone/shared";
+import { track } from "./analytics";
 import { ApiError, api } from "./api";
+import { Onboarding, onboardingSeen } from "./Onboarding";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
 
@@ -35,7 +36,7 @@ function SituationItem(props: { situation: PurchaseSituation; onChange: () => vo
     void api
       .recordOutcome(situation.id, verdict)
       .then(() => {
-        posthog.capture("situation_outcome_recorded", { verdict });
+        track("situation_outcome_recorded", { verdict });
         props.onChange();
       })
       .finally(() => setBusy(false));
@@ -73,6 +74,8 @@ export function Home() {
   // Each change of `round` loads everything again (after signing in, deleting a memory, retrying).
   const [round, setRound] = useState(0);
   const load = () => setRound((value) => value + 1);
+  /** The tour: on the first visit of the account on this browser, or from "Rever o tour" (?tour=1). */
+  const [tour, setTour] = useState<"first_visit" | "reopened" | null>(null);
   useEffect(() => {
     let live = true;
     Promise.all([api.me(), api.sessions(), api.situations().catch(() => [])])
@@ -82,6 +85,9 @@ export function Home() {
         setSessions(list);
         setSituations(occasions);
         setState("ready");
+        const asked = new URLSearchParams(window.location.search).has("tour");
+        if (asked) window.history.replaceState(null, "", window.location.pathname);
+        setTour((current) => current ?? (asked ? "reopened" : onboardingSeen(person.id) ? null : "first_visit"));
       })
       .catch((error: unknown) => {
         if (!live) return;
@@ -114,7 +120,11 @@ export function Home() {
     try {
       const { sessionId } = await api.newSession();
       const text = first.trim();
-      posthog.capture("conversation_started", { has_initial_query: Boolean(text) });
+      track("conversation_started", {
+        has_initial_query: Boolean(text),
+        source: text ? "home_form" : "new_button",
+        conversations_before: sessions.length,
+      });
       router.push(`/conversas/${sessionId}${text ? `?primeira=${encodeURIComponent(text.slice(0, 4000))}` : ""}`);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) setState("expired");
@@ -169,10 +179,17 @@ export function Home() {
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {sessions.map((session) => (
+            {sessions.map((session, position) => (
               <li key={session.id}>
                 <Link
                   href={`/conversas/${session.id}`}
+                  onClick={() =>
+                    track("conversation_opened", {
+                      position,
+                      started_on: session.surface,
+                      messages: session.messages,
+                    })
+                  }
                   className="flex flex-col gap-1 rounded-panel bg-surface p-4 shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                 >
                   <span className="text-body text-ink" data-ph-mask>
@@ -215,6 +232,18 @@ export function Home() {
         </section>
       </div>
     </main>
+    {tour ? (
+      <Onboarding
+        userId={me.id}
+        origin={tour}
+        onClose={() => {
+          setTour(null);
+          // "Escrever o meu": the request field is where the person goes next.
+          window.setTimeout(() => document.getElementById("pedido")?.focus(), 0);
+        }}
+        onStart={(text) => void start(text)}
+      />
+    ) : null}
     </Shell>
   );
 }

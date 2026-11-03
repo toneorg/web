@@ -1,4 +1,4 @@
-/* Gerado de toneorg/extension@cab9f784af9d (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/extension@25eacf43b3e3 (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -1126,38 +1126,183 @@ fieldset.field legend {
   border: 0;
 }
 
-/* T09: a watch draft. */
-.watch-lines,
-.watch-sources {
+/* T09: a watch draft. Labelled facts, what is missing, the condition form, one action. */
+.card.watch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tone-space-lg);
+}
+.watch-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--tone-space-md);
+}
+.card.watch .watch-head h3 {
   margin: 0;
-  padding-left: var(--tone-space-lg);
+  text-wrap: balance;
+}
+.watch-head .tag {
+  flex: none;
+}
+.watch-head .tag.quiet {
+  background: var(--tone-sunken);
+}
+.card.watch .meta {
+  margin: calc(-1 * var(--tone-space-md)) 0 0;
+  font: 400 14px / 20px var(--tone-font-sans);
+  color: var(--tone-graphite);
+}
+.watch-facts {
+  margin: 0;
+  padding: var(--tone-space-lg);
+  border-radius: var(--tone-radius-panel);
+  background: var(--tone-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tone-space-md);
+}
+.watch-facts > div {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, max-content) 1fr;
+  gap: var(--tone-space-md);
+}
+.watch-facts dt {
+  font: 400 14px / 20px var(--tone-font-sans);
+  color: var(--tone-graphite);
+}
+.watch-facts dd {
+  margin: 0;
+  font: 500 14px / 20px var(--tone-font-sans);
+  color: var(--tone-ink);
+  overflow-wrap: anywhere;
+}
+.watch-questions {
   display: flex;
   flex-direction: column;
   gap: var(--tone-space-xs);
-  font: 400 14px / 20px var(--tone-font-sans);
-  color: var(--tone-ink);
+  padding: var(--tone-space-md) var(--tone-space-lg);
+  border-radius: var(--tone-radius-panel);
+  box-shadow: inset 0 0 0 1px var(--tone-edge);
 }
-.watch-sources {
-  font-size: 13px;
-  line-height: 18px;
-  color: var(--tone-graphite);
+.watch-questions p {
+  margin: 0;
+  font: 400 14px / 20px var(--tone-font-sans);
+  text-wrap: pretty;
+}
+.watch-questions .watch-questions-title {
+  font-weight: 600;
 }
 .watch-edit {
-  margin: var(--tone-space-sm) 0 0;
+  margin: 0;
   padding: 0;
   border: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tone-space-sm);
+}
+.watch-edit legend {
+  padding: 0;
+  margin-bottom: var(--tone-space-xs);
+  font: 600 15px / 20px var(--tone-font-sans);
+  color: var(--tone-ink);
+}
+.watch-edit .hint,
+.watch-actions .hint {
+  margin: 0;
+  font: 400 14px / 20px var(--tone-font-sans);
+  color: var(--tone-graphite);
+}
+.watch-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tone-space-sm) var(--tone-space-md);
+  padding: var(--tone-space-xs) var(--tone-space-md);
+  border-radius: var(--tone-radius-input);
+  box-shadow: inset 0 0 0 1px var(--tone-rule);
+  transition: box-shadow var(--tone-duration-fast) var(--tone-ease-soft);
+}
+.watch-option.selected {
+  box-shadow: inset 0 0 0 2px var(--tone-ink);
+}
+.watch-choice {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--tone-space-md);
+  min-height: var(--tone-touch);
+  font: 400 15px / 20px var(--tone-font-sans);
+  cursor: pointer;
+}
+.watch-choice input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--tone-ink);
+}
+.watch-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tone-space-sm);
+  font: 500 15px / 20px var(--tone-font-sans);
+}
+.watch-amount .input {
+  width: 7rem;
+  min-height: var(--tone-touch);
+  font-variant-numeric: tabular-nums;
+}
+.watch-email {
+  margin-top: var(--tone-space-xs);
+  align-items: center;
+}
+.watch-sources summary {
+  min-height: var(--tone-touch);
+  display: flex;
+  align-items: center;
+  gap: var(--tone-space-sm);
+  list-style: none;
+  font: 500 14px / 20px var(--tone-font-sans);
+  color: var(--tone-ink);
+  cursor: pointer;
+}
+.watch-sources summary::-webkit-details-marker {
+  display: none;
+}
+/* A chevron that turns when the disclosure opens: the cue that there is more. */
+.watch-sources summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--tone-duration-fast) var(--tone-ease-soft);
+}
+.watch-sources[open] summary::before {
+  transform: rotate(45deg);
+}
+.watch-sources summary:focus-visible {
+  outline: 2px solid var(--tone-ink);
+  outline-offset: 2px;
+  border-radius: var(--tone-radius-tag);
+}
+.watch-sources ul {
+  margin: 0;
+  padding-inline-start: var(--tone-space-lg);
   display: flex;
   flex-direction: column;
   gap: var(--tone-space-xs);
-}
-.watch-edit legend {
-  font: 600 13px / 18px var(--tone-font-sans);
+  font: 400 13px / 18px var(--tone-font-sans);
   color: var(--tone-graphite);
-  margin-bottom: var(--tone-space-xs);
 }
-.watch-amount {
-  width: 7rem;
-  min-height: var(--tone-touch);
+.watch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tone-space-md);
 }
 
 /* The product picked to talk about, above the composer */

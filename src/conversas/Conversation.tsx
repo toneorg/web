@@ -3,7 +3,6 @@
 // agent researches through the server; store-tab actions stay in the extension.
 import Link from "next/link";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
-import posthog from "posthog-js";
 import { PickedProductBar, ProductVideos } from "@/tone/genui";
 import {
   type AgentEvent,
@@ -17,6 +16,7 @@ import {
   type TurnInput,
 } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
+import { since, track } from "./analytics";
 import { ApiError, api, streamTurn } from "./api";
 import { Program, type ProgramHost, STORE_HOSTS } from "./Program";
 import { LocalResearch } from "./LocalResearch";
@@ -116,6 +116,9 @@ export function Conversation(props: { sessionId: string; first?: string | null }
       controller.current = abort;
       setBusy(true);
       let assistant: string | null = null;
+      const started = performance.now();
+      // What the turn showed, for the analytics: counts and kinds only, never the text.
+      const shown = { firstTextMs: null as number | null, components: 0, research: 0, memories: 0, errorCode: null as string | null };
       try {
         await streamTurn(
           sessionId,
@@ -123,6 +126,7 @@ export function Conversation(props: { sessionId: string; first?: string | null }
           (event) => {
             switch (event.type) {
               case "text": {
+                if (shown.firstTextMs === null) shown.firstTextMs = since(started);
                 if (!assistant) {
                   const id = uid();
                   assistant = id;
@@ -137,12 +141,15 @@ export function Conversation(props: { sessionId: string; first?: string | null }
               }
               case "progress":
               case "research_result":
+                if (event.type === "research_result") shown.research += 1;
                 fold(event);
                 break;
               case "memory_saved":
+                shown.memories += 1;
                 setItems((list) => [...list, { id: uid(), kind: "notice", text: `Anotei: ${event.key.replace(/[._]/g, " ")} — ${event.value}` }]);
                 break;
               case "error":
+                shown.errorCode = event.code ?? "error";
                 setItems((list) => [
                   ...list,
                   {
@@ -162,7 +169,24 @@ export function Conversation(props: { sessionId: string; first?: string | null }
           },
           abort.signal,
         );
+        const props = {
+          input: input.type,
+          duration_ms: since(started),
+          first_text_ms: shown.firstTextMs,
+          research_results: shown.research,
+          memories_saved: shown.memories,
+        };
+        if (shown.errorCode) track("conversation_turn_failed", { ...props, reason: shown.errorCode });
+        else track("conversation_turn_completed", props);
       } catch (error) {
+        if (abort.signal.aborted) track("conversation_turn_stopped", { input: input.type, duration_ms: since(started) });
+        else
+          track("conversation_turn_failed", {
+            input: input.type,
+            duration_ms: since(started),
+            reason: "connection",
+            status: error instanceof ApiError ? error.status : null,
+          });
         if (!abort.signal.aborted) {
           if (error instanceof ApiError && error.status === 401) setState("expired");
           else
@@ -186,10 +210,14 @@ export function Conversation(props: { sessionId: string; first?: string | null }
       if (!trimmed || busy || state !== "ready") return;
       setDraft("");
       setItems((list) => [...list, { id: uid(), kind: "user", text: trimmed }]);
-      posthog.capture("conversation_message_sent");
+      track("conversation_message_sent", {
+        with_product: Boolean(picked),
+        length: trimmed.length,
+        turn: items.filter((item) => item.kind === "user").length + 1,
+      });
       await runTurn({ type: "message", text: trimmed, page: null, ...(picked ? { product: picked } : {}) });
     },
-    [busy, picked, runTurn, state],
+    [busy, items, picked, runTurn, state],
   );
 
   /** "See videos of this product": no model involved, the server searches TikTok and saves the result. */
@@ -197,10 +225,12 @@ export function Conversation(props: { sessionId: string; first?: string | null }
     if (!picked || busy) return;
     setBusy(true);
     setItems((list) => [...list, { id: uid(), kind: "user", text: "Ver vídeos deste produto" }]);
+    track("product_videos_requested");
     try {
       const media = await api.media(sessionId, picked.title);
       setItems((list) => [...list, { id: uid(), kind: "media", media }]);
     } catch (error) {
+      track("product_videos_failed", { status: error instanceof ApiError ? error.status : null });
       if (error instanceof ApiError && error.status === 401) setState("expired");
       else
         setItems((list) => [
@@ -295,16 +325,20 @@ export function Conversation(props: { sessionId: string; first?: string | null }
     interactive: id === lastAssistant && !busy,
     answer: (answers, display) => {
       if (busy) return;
+      track("conversation_reply_selected", { answers: Object.keys(answers).length });
       setItems((list) => [...list, { id: uid(), kind: "user", text: display }]);
       void runTurn({ type: "ui_answer", answers, page: null });
     },
     say: (text) => void send(text),
     picked: picked?.url ?? null,
-    pick: setPicked,
+    pick: (product) => {
+      track(product ? "product_picked" : "product_unpicked");
+      setPicked(product);
+    },
   });
 
   return (
-    <Shell me={me} current="conversas">
+    <Shell me={me} current="conversas" sessionId={sessionId}>
     <main id="conteudo" className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
       <header className="flex flex-wrap items-center justify-between gap-3 py-2">
         <Link href="/conversas" className="min-h-11 content-center text-ui text-ink underline-offset-4 hover:underline">
@@ -361,7 +395,10 @@ export function Conversation(props: { sessionId: string; first?: string | null }
           {following ? (
             <button
               type="button"
-              onClick={() => void api.stopLocalRun(following).finally(() => setFollowing(null))}
+              onClick={() => {
+                track("local_research_stopped");
+                void api.stopLocalRun(following).finally(() => setFollowing(null));
+              }}
               className="min-h-11 self-start rounded-full px-4 text-ui text-ink focus-visible:outline-2 focus-visible:outline-ink"
             >
               Parar a pesquisa no meu Chrome
@@ -384,7 +421,10 @@ export function Conversation(props: { sessionId: string; first?: string | null }
             storeHosts={STORE_HOSTS}
             busy={busy}
             onVideos={() => void showMedia()}
-            onRemove={() => setPicked(null)}
+            onRemove={() => {
+              track("product_unpicked");
+              setPicked(null);
+            }}
           />
         ) : null}
         <div className="flex items-end gap-2">

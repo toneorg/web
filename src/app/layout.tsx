@@ -1,4 +1,4 @@
-import { color } from "@toneorg/design";
+import { neutral } from "@toneorg/design";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s | tone",
   },
   description:
-    "A tone é uma assistente de compras no Chrome: lembra do que você gosta, pesquisa na Amazon e no Mercado Livre por você e mostra poucas opções boas, com o porquê. Nunca paga nada. Em teste fechado: peça um convite.",
+    "A tone é uma assistente de compras: lembra do que você gosta, pesquisa nas lojas por você e mostra poucas opções boas, com o porquê. Nunca paga nada. Em teste fechado, só com convite.",
   openGraph: {
     type: "website",
     locale: "pt_BR",
@@ -35,16 +35,16 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: color.coral[500],
+  themeColor: neutral.light.paper,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth" className={`${crimsonPro.variable} ${hostGrotesk.variable}`}>
-      <body className="min-h-dvh">
+      <body className="min-h-dvh bg-paper text-ink">
         <a
           href="#conteudo"
-          className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-wine focus:px-4 focus:py-2 focus:text-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-on-ink"
         >
           Pular para o conteúdo
         </a>

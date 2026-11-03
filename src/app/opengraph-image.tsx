@@ -1,12 +1,13 @@
-import { color } from "@toneorg/design";
+import { neutral } from "@toneorg/design";
 import { ImageResponse } from "next/og";
 
 export const alt = "tone: me diz o que você procura. Eu pesquiso.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const CORAL = color.coral[500];
-const WINE = color.wine[900];
+// Black and white, like the site and the app.
+const PAPER = neutral.light.paper;
+const INK = neutral.light.ink;
 
 const WORDMARK = "tone";
 const HEADLINE_WEIGHT = 300;
@@ -49,8 +50,8 @@ export default async function Image() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "56px 72px 64px",
-          background: CORAL,
-          color: WINE,
+          background: PAPER,
+          color: INK,
           fontFamily: loaded ? "Crimson Pro" : "serif",
           fontWeight: HEADLINE_WEIGHT,
         }}

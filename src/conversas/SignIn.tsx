@@ -3,8 +3,8 @@
 // time, the invite code (made for one e-mail) opens the onboarding: name,
 // password and the consent, the same steps as in the extension.
 import { type FormEvent, useState } from "react";
-import posthog from "posthog-js";
 import { type InviteInfo, PASSWORD_MIN } from "@/tone/shared";
+import { track } from "./analytics";
 import { ApiError, api } from "./api";
 
 const field =
@@ -20,6 +20,7 @@ const CONSENT = [
   "As conversas comigo, suas respostas e o que aprendo sobre seus gostos e medidas.",
   "As páginas da loja que eu leio e as ações que faço nelas, enquanto o painel da extensão está em uso.",
   "Se você conectar: e-mails de confirmação de pedido (Gmail) e eventos da agenda, só para entender suas compras.",
+  "Na web, como você usa as telas: cliques, erros e uma gravação da tela com o texto que você digita e as conversas mascarados.",
   "Serve só para testar o produto, e só a equipe da tone que conduz o teste vê.",
   "Os textos são processados por provedores de modelos de IA (OpenRouter e TypeSafe) para gerar as respostas.",
   "Eu nunca pago nem finalizo uma compra. Você vê, corrige e apaga tudo em “Você”, quando quiser.",
@@ -27,7 +28,12 @@ const CONSENT = [
 
 type Step = "signin" | "invite" | "onboarding";
 
-export function SignIn(props: { onDone: () => void; expired?: boolean }) {
+export function SignIn(props: {
+  onDone: () => void;
+  expired?: boolean;
+  /** Inside another page (the home page): a section with a smaller title, not the page's main. */
+  embedded?: boolean;
+}) {
   const [step, setStep] = useState<Step>("signin");
   const [code, setCode] = useState("");
   const [invite, setInvite] = useState<InviteInfo | null>(null);
@@ -52,6 +58,11 @@ export function SignIn(props: { onDone: () => void; expired?: boolean }) {
     try {
       await action();
     } catch (failure) {
+      track("sign_in_failed", {
+        step,
+        status: failure instanceof ApiError ? failure.status : null,
+        reason: failure instanceof ApiError ? "api" : "validation",
+      });
       setError(failure instanceof ApiError || failure instanceof Error ? failure.message : "Não deu certo. Tente de novo.");
     } finally {
       setBusy(false);
@@ -60,11 +71,17 @@ export function SignIn(props: { onDone: () => void; expired?: boolean }) {
   const invalid = error ? true : undefined;
   const described = error ? "signin-error" : undefined;
 
+  const Frame = props.embedded ? "section" : "main";
+  const Title = props.embedded ? "h2" : "h1";
   return (
-    <main id="conteudo" className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 py-12">
-      <h1 className="display-sm font-display text-ink">
+    <Frame
+      id={props.embedded ? "entrar" : "conteudo"}
+      aria-labelledby="entrar-titulo"
+      className={props.embedded ? "flex w-full flex-col gap-6" : "mx-auto flex w-full max-w-md flex-col gap-6 px-5 py-12"}
+    >
+      <Title id="entrar-titulo" className="display-sm font-display text-ink">
         {step === "signin" ? "Entrar na tone" : step === "invite" ? "Entrar com o convite" : invite?.existing ? "Defina a sua senha" : "Criar a sua conta"}
-      </h1>
+      </Title>
       {props.expired && step === "signin" ? (
         <p role="status" className="text-small text-ink">
           Sua sessão na web terminou. Entre de novo para continuar suas conversas.
@@ -77,7 +94,7 @@ export function SignIn(props: { onDone: () => void; expired?: boolean }) {
           onSubmit={(event) =>
             void run(event, async () => {
               await api.signIn(email, password);
-              posthog.capture("sign_in_completed", { method: "password" });
+              track("sign_in_completed", { method: "password" });
               props.onDone();
             })
           }
@@ -100,6 +117,7 @@ export function SignIn(props: { onDone: () => void; expired?: boolean }) {
           onSubmit={(event) =>
             void run(event, async () => {
               const info = await api.invite(code);
+              track("invite_checked", { existing_account: Boolean(info.existing) });
               setInvite(info);
               if (info.email) setEmail(info.email);
               go("onboarding");
@@ -127,7 +145,7 @@ export function SignIn(props: { onDone: () => void; expired?: boolean }) {
               if (!consent) throw new Error("Para testar, é preciso aceitar o termo.");
               // An existing account keeps its name; the field only has to be filled.
               await api.redeem(code, invite?.existing ? "-" : name, email, password);
-              posthog.capture("sign_in_completed", { method: "invite" });
+              track("sign_in_completed", { method: "invite", existing_account: Boolean(invite?.existing) });
               props.onDone();
             })
           }
@@ -198,6 +216,6 @@ export function SignIn(props: { onDone: () => void; expired?: boolean }) {
       {step === "signin" ? (
         <p className="text-small text-graphite">Ainda não tem conta? A tone está em teste fechado, só com convite.</p>
       ) : null}
-    </main>
+    </Frame>
   );
 }

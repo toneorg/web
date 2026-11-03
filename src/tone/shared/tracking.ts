@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@cab9f784af9d (packages/shared/src/tracking.ts). Não edite aqui.
+// Gerado de toneorg/extension@25eacf43b3e3 (packages/shared/src/tracking.ts). Não edite aqui.
 // The events the panel records for the test week (requisitos §4). Each one is
 // small and typed, so the dashboard can count them without guessing.
 import * as z from "zod";
@@ -74,6 +74,24 @@ export const TrackEvent = z.discriminatedUnion("type", [
     type: z.literal("benchmark_step"),
     benchmarkId: z.string(),
     step: z.enum(["navigation", "search", "click"]),
+  }),
+  // The feedback button (web and extension): the person's own words, to the team on purpose.
+  z.object({
+    type: z.literal("feedback_submitted"),
+    kind: z.enum(["bug", "idea", "missing"]),
+    message: z.string().trim().min(1).max(2000),
+    /** The screen it was sent from (a path on the web, a view in the extension). */
+    path: z.string().max(200).optional(),
+    /** PostHog's session id on the web, so the feedback links to the replay of that moment. */
+    replaySessionId: z.string().max(100).optional(),
+  }),
+  // An error the screen caught (a crash of the panel, an unhandled rejection). The message is
+  // kept with the account for the team; only where and what kind go on to the analytics.
+  z.object({
+    type: z.literal("client_error"),
+    where: z.string().max(100),
+    errorType: z.string().max(60),
+    message: z.string().max(500),
   }),
   z.object({
     type: z.literal("benchmark_finished"),

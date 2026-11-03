@@ -18,12 +18,24 @@ async function handle(request: Request, context: Context) {
     });
   }
 
-  const response = await proxyToTone(request, (await context.params).path, { apiUrl, siteUrl });
+  const path = (await context.params).path;
+  const started = performance.now();
+  const response = await proxyToTone(request, path, { apiUrl, siteUrl });
 
+  // The route without ids ("sessions/:id/transcript"), so slow or failing endpoints group together.
+  const route = path.map((part, index) => (index > 0 && /\d|^[A-Za-z0-9_-]{16,}$/.test(part) ? ":id" : part)).join("/");
   posthogLog?.emit({
     body: "tone_api_proxy_completed",
-    severityNumber: response.ok ? SeverityNumber.INFO : SeverityNumber.WARN,
-    attributes: { method: request.method, status_code: response.status },
+    severityNumber:
+      response.status >= 500 ? SeverityNumber.ERROR : response.ok ? SeverityNumber.INFO : SeverityNumber.WARN,
+    attributes: {
+      method: request.method,
+      route,
+      status_code: response.status,
+      // Until the headers arrive; a streamed turn keeps going after this.
+      duration_ms: Math.round(performance.now() - started),
+      request_id: response.headers.get("x-request-id") ?? undefined,
+    },
   });
 
   return response;

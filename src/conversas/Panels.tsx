@@ -6,10 +6,12 @@
 // rule itself happens in the conversation that made it, with a new confirmation.
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { type BudgetStatement, describeWatch, type Me, type Watch, type WatchResult } from "@/tone/shared";
+import { type BudgetStatement, describeWatch, type Me, type Watch, type WatchResult, watchTitle } from "@/tone/shared";
 import { PlusIcon } from "@/components/icons";
+import { track } from "./analytics";
 import { api } from "./api";
 import { NewPanelSheet } from "./NewPanel";
+import { WATCHES_CHANGED } from "./Program";
 
 const STATUS: Record<Watch["status"], string> = {
   draft: "Rascunho",
@@ -82,7 +84,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
   const [error, setError] = useState<string | null>(null);
   const rule = watch.confirmed ?? watch.draft;
   const lines = describeWatch(rule);
-  const what = lines[0]?.replace(/^(Acompanhar|Procurar novidades): /, "");
+  const what = watchTitle(rule);
   const condition = lines.find((line) => line.startsWith("Avisar"));
   const lowest = lowestOf(latest);
   const facts = panelFacts(watch);
@@ -90,6 +92,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
   const run = async (action: Action) => {
     setBusy(action);
     setError(null);
+    track("panel_action", { action, status: watch.status });
     try {
       if (action === "delete") {
         await api.deleteWatch(watch.id);
@@ -104,6 +107,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
       }
       props.onChange({ watch: await api.watchAction(watch.id, action), latest });
     } catch (failure) {
+      track("panel_action_failed", { action });
       setError(failure instanceof Error ? failure.message : "Não deu certo agora.");
     } finally {
       setBusy(null);
@@ -141,7 +145,17 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
       ) : latest ? (
         <span className="text-caption text-graphite">{latest.summary.message}</span>
       ) : watch.status === "draft" ? (
-        <span className="text-caption text-graphite">Esperando sua confirmação na conversa.</span>
+        <span className="text-caption text-graphite">
+          Rascunho: nada roda antes de você confirmar.{" "}
+          {watch.sessionId ? (
+            <Link
+              href={`/conversas/${watch.sessionId}`}
+              className="font-medium text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              Revisar e confirmar
+            </Link>
+          ) : null}
+        </span>
       ) : (
         <span className="text-caption text-graphite">
           Primeira leitura{watch.nextCheckAt ? ` em ${when(watch.nextCheckAt)}` : " em breve"}.
@@ -236,6 +250,13 @@ export function Panels(props: { me: Me }) {
     },
     [],
   );
+  // Reloads when a watch is saved or confirmed in the conversation next to it.
+  const [reload, setReload] = useState(0);
+  useEffect(() => {
+    const again = () => setReload((value) => value + 1);
+    window.addEventListener(WATCHES_CHANGED, again);
+    return () => window.removeEventListener(WATCHES_CHANGED, again);
+  }, []);
   useEffect(() => {
     let live = true;
     api
@@ -253,7 +274,7 @@ export function Panels(props: { me: Me }) {
     return () => {
       live = false;
     };
-  }, []);
+  }, [reload]);
   const replace = (id: string, next: Panel | null) =>
     setPanels((current) =>
       (current ?? []).flatMap((panel) => (panel.watch.id === id ? (next ? [next] : []) : [panel])),
@@ -281,7 +302,11 @@ export function Panels(props: { me: Me }) {
           <button
             type="button"
             aria-label="Criar um painel"
-            onClick={() => setPlanning(true)}
+            data-tour="paineis"
+            onClick={() => {
+              track("panel_create_opened", { panels: panels?.length ?? 0 });
+              setPlanning(true);
+            }}
             className="press grid size-11 place-items-center rounded-full bg-surface text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             <PlusIcon className="size-5" />

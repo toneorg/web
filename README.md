@@ -1,14 +1,15 @@
-# tone: landing page and waitlist
+# tone: home page and web app
 
-Next.js 16 + Tailwind 4, in Portuguese. The page says what tone is today (a shopping assistant in a Chrome side panel and on the web, built in `toneorg/extension`), why it exists, what it does, and ends in an invite request, because the product is in a closed test. "Entrar" (header, floating nav, status and end sections) goes to `/conversas`, where an existing account signs in.
+Next.js 16 + Tailwind 4, in Portuguese. While the product is in a closed test, the home page is only the logo, one paragraph on what tone is and the way in: sign in, or create the account with an invite (the same steps as `/conversas`). Everything is black and white, the neutral bench of the design system, like the extension.
 
 | Route | What it is |
 |---|---|
-| `/` | The landing page. One e-mail field at the top and one at the end ("Pedir convite"), and links to sign in |
-| `/marcas` | Redirects to `/?para=marca#lista`, which opens the end section on the brand form. The page no longer pitches brands; this only keeps old links and QR codes working |
-| `/privacidade` | Plain-language data note, linked from every form |
+| `/` | Logo, one paragraph, sign in. Someone already signed in gets a button to the app |
+| `/conversas` | The app (below). The first visit of an account shows a five-step tour (`src/conversas/Onboarding.tsx`); "Rever o tour da tone" in the profile shows it again |
+| `/marcas` | Redirects to `/`, so old links and QR codes still land somewhere |
+| `/privacidade` | Plain-language data note |
 
-What the page is allowed to promise comes from `toneorg/extension` (`README.md`, `docs/requisitos.md`, `docs/acompanhamentos.md`). Each section names the requirement it leans on. Nothing here promises payment, automatic purchases or a store beyond Amazon Brasil and Mercado Livre.
+What is measured (product analytics, cost, errors, session replay, feedback) and how to read it: [`docs/analytics.md`](docs/analytics.md).
 
 ## Conversations (`/conversas`)
 
@@ -29,64 +30,14 @@ What it does not do yet, and how it was checked: `toneorg/extension` `docs/web-c
 npm install
 cp .env.example .env.local   # optional in dev
 npm run dev                  # http://localhost:3000
-npm test                     # vitest: the BFF and the conversation components
+npm test                     # vitest: the BFF, the conversation components, analytics and feedback
 ```
-
-Without `SUBMISSIONS_WEBHOOK_URL`, submissions go to `data/submissions.jsonl` (git-ignored). In a production build that fallback is refused unless `SUBMISSIONS_ALLOW_DISK=1`, so a missing webhook fails loudly instead of losing signups.
 
 ## Deploy
 
-Vercel works out of the box. Set these environment variables first:
-
-- `SUBMISSIONS_WEBHOOK_URL`: required in production. See `docs/google-sheets-webhook.md` for a 5-minute Google Sheet setup. The request times out after 15 s (longer than the 10 s the script may wait for its lock), and an HTML reply (what Apps Script sends when the script crashes) counts as a failure.
-- `NEXT_PUBLIC_SITE_URL`: the public URL, so link previews in WhatsApp and Instagram show the image, and the share link on the success screen points home.
-- `NEXT_PUBLIC_CONTACT_EMAIL`: the address for deletion requests on `/privacidade` and in the footer.
-
-## The three forms
-
-Each one is a server action in `src/app/actions.ts` and saves one record, told apart by `kind`.
-
-| `kind` | When | Fields |
-|---|---|---|
-| `waitlist` | She types her e-mail, at the top or at the end (`placement`) | e-mail only. This alone puts her on the list |
-| `profile` | No longer shown on the page (it asked about skin tone, for the old foundation product). The action `saveProfile` and the contract stay so earlier rows keep their meaning | tone band 1 to 10, current foundation, how often she bought the wrong shade, opt-in to test the beta (reveals WhatsApp), and a consent box. Matched to the `waitlist` row by e-mail |
-| `brand` | The end section in brand mode | name, e-mail, brand, site, platform and the commitment ladder: 30-minute call → swatch photos → 60-day pilot with a control group |
-
-The tone band is sensitive data under the LGPD, so it is only collected in the second step, behind its own consent box, and stored as a number.
-
-Each form has a hidden trap field that only bots fill. A row that arrives with it filled is still saved, with `suspect: true`, so a person whose browser autofilled it is not lost; filter that column out when reading the sheet.
-
-Once she joins, the page remembers it in `sessionStorage` for the life of the tab (`src/lib/signup-store.ts`), so a reload or a visit to the privacy note does not ask for the e-mail again.
-
-Every record also carries `utm_source`, `utm_medium`, `utm_campaign`, `ref` and the referrer. Tagged links:
-
-- People: `https://<domain>/?utm_source=evento&utm_medium=qr&utm_campaign=<nome-do-evento>`
-- Brands: `https://<domain>/marcas?utm_source=evento&utm_medium=qr&utm_campaign=<nome-do-evento>`
-
-Shares from the success screen arrive with `?ref=convite`.
-
-## Where to edit
-
-- Copy and layout of each section: `src/sections/` (one file per section, in page order in `src/app/page.tsx`); the privacy note is `src/app/privacidade/page.tsx`
-- Field names, option values and the saved record shape: `src/lib/forms.ts` (shared by the forms and the server actions). Validation and its messages: `src/lib/forms.server.ts`
-- Site-wide constants (public URL, contact address, section anchors): `src/lib/site.ts`
-- Form layout: `src/components/email-capture.tsx`, `brand-form.tsx`; shared pieces in `form-parts.tsx`; the state the two e-mail fields share in `signup-context.tsx`
-- Colors and type: the design system, `@toneorg/design` (see Design below). This page's motion: `src/app/globals.css`. The skin-tone scale: `src/lib/tones.ts`
-
-## Design
-
-The palette, the fonts, the text styles and the rules for using them live in the tone design system, [`toneorg/design`](https://github.com/toneorg/design), installed here as `@toneorg/design` at a fixed tag. `src/app/globals.css` imports its Tailwind theme, and `npm run check:design` (also in CI) fails when a color is written by hand outside `src/lib/tones.ts`. To change a color or a font, change it there, release a version and run `npm install github:toneorg/design#vX.Y.Z` here. What follows is how this page applies those rules.
-
-- **Color.** One hue. Every color is the brand coral `#e26b5c` moved up or down in lightness, down to a wine `#340b10` that serves as ink. Coral grounds are where tone speaks in the first person: the hero, the "Eu nunca pago" promise and the list. The landing page shows no skin tones; `src/lib/tones.ts` stays for the form contract.
-- **Contrast.** Wine on coral is 5.4:1, so wine is the only text color on coral. White on coral and coral on white are both 3.2:1, which only passes at display sizes; small coral text on white uses `coral-600`.
-- **Type.** Crimson Pro for display, light on wide screens and one step heavier on phones. Host Grotesk for everything else. Italic serif is her voice (the questions); roman is tone answering.
-- **Motion.** Each animation shows something the product does: a request being typed and answered in the hero, her questions drifting past, the side panel's research steps and short list arriving in order, the list of what tone does not do being crossed out, the timeline drawing itself. All of it stops under `prefers-reduced-motion`, and the looping pieces rest while off screen.
+Vercel works out of the box. Set `TONE_API_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` (see `.env.example` and `docs/analytics.md`).
 
 ## Before publishing, check
 
-- The side-panel demo, the watch card, the memories and the hero exchanges are invented and labelled "Exemplo ilustrativo" where they are not plainly decorative. Replace them with real outputs once the test has them.
-- The status section says the test is closed and invite-only, on Amazon Brasil and Mercado Livre. Confirm against `toneorg/extension` before each deploy.
-- The sourced numbers in `src/sections/why.tsx` are quoted from `../docs/comum/01-tese-e-posicionamento.md`. If a number changes there, change it here.
 - The footer says "Feita em São Paulo, 2026."
-- The privacy note has not been reviewed by a lawyer.
-- Visits are counted with Vercel Web Analytics (`<Analytics />` in `src/app/layout.tsx`), without cookies. It collects nothing until Analytics is enabled for the project in the Vercel dashboard, and nothing in local dev. `/privacidade` says so.
+- The privacy note has not been reviewed by a lawyer. It names PostHog and the session replay; keep it in step with `instrumentation-client.ts`.

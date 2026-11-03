@@ -3,6 +3,7 @@
 // Shown only when the extension is on and was seen recently; otherwise it says what is needed.
 import { type FormEvent, useEffect, useState } from "react";
 import { LOCAL_STORES, type LocalStore } from "@/tone/shared";
+import { track } from "./analytics";
 import { ApiError, api, nudgeExtension } from "./api";
 
 const LABEL: Record<LocalStore, string> = { "amazon.com.br": "Amazon", "mercadolivre.com.br": "Mercado Livre" };
@@ -38,10 +39,12 @@ export function LocalResearch(props: { sessionId: string; suggestion: string; on
     setBusy(true);
     try {
       const run = await api.localRun(props.sessionId, query.trim(), stores);
+      track("local_research_started", { stores: stores.length, store: stores.join(",") });
       nudgeExtension(run.id);
       props.onStarted(run.id);
       setOpen(false);
     } catch (failure) {
+      track("local_research_failed", { status: failure instanceof ApiError ? failure.status : null });
       setError(failure instanceof ApiError ? failure.message : "Não deu certo. Tente de novo.");
     } finally {
       setBusy(false);
@@ -52,6 +55,7 @@ export function LocalResearch(props: { sessionId: string; suggestion: string; on
       <button
         type="button"
         onClick={() => {
+          track("local_research_opened");
           setQuery(props.suggestion.slice(0, 120));
           setOpen(true);
         }}

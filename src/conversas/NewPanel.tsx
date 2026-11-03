@@ -4,7 +4,9 @@
 // acompanhamento. Approving it builds the panel; nothing runs before that.
 import Link from "next/link";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { describeWatch, type Watch } from "@/tone/shared";
+import { WatchDraftView } from "@/tone/genui";
+import { type Watch, type WatchRule, watchTitle } from "@/tone/shared";
+import { since, track } from "./analytics";
 import { ApiError, api, streamTurn } from "./api";
 import { Sheet, useSheetClose } from "./Sheet";
 
@@ -37,6 +39,7 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
     const controller = new AbortController();
     abort.current = controller;
     const outcome: { failed?: string } = {};
+    const started = performance.now();
     try {
       const created = await api.newSession();
       setSessionId(created.sessionId);
@@ -49,6 +52,7 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
         controller.signal,
       );
       if (outcome.failed) {
+        track("panel_plan_failed", { reason: "agent_error", duration_ms: since(started) });
         setError(outcome.failed);
         setStep("writing");
         return;
@@ -57,6 +61,7 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
       const newest = watches
         .filter((watch) => watch.sessionId === created.sessionId && watch.status !== "deleted")
         .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
+      track("panel_planned", { planned: Boolean(newest), duration_ms: since(started) });
       if (!newest) {
         setStep("unplanned");
         return;
@@ -64,17 +69,36 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
       setDraft(newest);
       setStep("review");
     } catch (failure) {
+      if (!controller.signal.aborted)
+        track("panel_plan_failed", {
+          reason: "request",
+          status: failure instanceof ApiError ? failure.status : null,
+          duration_ms: since(started),
+        });
       setError(failure instanceof ApiError ? failure.message : "Não consegui falar com a tone agora. Tente de novo.");
       setStep("writing");
     }
   };
 
-  const approve = async () => {
+  /** Saves the person's edits (when there are any) and confirms; if something is still missing, shows it. */
+  const approve = async (edited?: WatchRule) => {
     if (!draft || approving) return;
     setApproving(true);
     setError(null);
     try {
-      props.onBuilt(await api.confirmWatch(draft.id, draft.version));
+      const saved = edited ? await api.saveWatch(draft.id, draft.version, edited) : draft;
+      if (!saved.review.canConfirm) {
+        setDraft(saved);
+        setApproving(false);
+        return;
+      }
+      const watch = await api.confirmWatch(saved.id, saved.version);
+      track("panel_created", {
+        kind: watch.confirmed?.kind ?? null,
+        condition: watch.confirmed?.condition.kind ?? null,
+        email: watch.confirmed?.notify.email ?? null,
+      });
+      props.onBuilt(watch);
       close();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Não deu certo agora.");
@@ -100,7 +124,7 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
           />
           <div className="flex flex-wrap gap-2">
             <button type="submit" className={primary} disabled={!pedido.trim()}>
-              Planejar
+              Montar o plano
             </button>
             <button type="button" className={quiet} onClick={close}>
               Cancelar
@@ -121,48 +145,26 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
 
       {step === "review" && draft ? (
         <>
-          <p className="text-small text-graphite">É este o plano do acompanhamento:</p>
-          <ul className="flex flex-col gap-1 text-small text-ink">
-            {describeWatch(draft.draft).map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-          {draft.review.sources
-            .filter((source) => source.stores.length)
-            .map((source) => (
-              <p key={source.id} className="text-caption text-graphite">
-                {source.label}: {source.autonomous ? "roda sem o navegador" : "só com o navegador aberto"}.
-              </p>
-            ))}
-          {draft.review.clarifications.length ? (
-            <div className="flex flex-col gap-1 rounded-panel bg-sunken p-4">
-              <p className="text-ui text-ink">Falta combinar</p>
-              {draft.review.clarifications.map((clarification) => (
-                <p key={clarification.field} className="text-small text-ink">
-                  {clarification.question}
-                </p>
-              ))}
-            </div>
-          ) : null}
-          {draft.review.notes.length ? (
-            <ul className="flex flex-col gap-1 text-caption text-graphite">
-              {draft.review.notes.map((note) => (
-                <li key={note}>{note}</li>
-              ))}
-            </ul>
-          ) : null}
+          <p className="text-small text-graphite">
+            Este é o plano. Escolha quando avisar e confirme; nada roda antes disso.
+          </p>
+          <WatchDraftView
+            watch={draft}
+            title={watchTitle(draft.draft)}
+            actionable
+            busy={approving}
+            onSave={(rule) => void approve(rule)}
+            onConfirm={() => void approve()}
+            onSaveAndConfirm={(rule) => void approve(rule)}
+          />
           <div className="flex flex-wrap gap-2">
-            {draft.review.canConfirm ? (
-              <button type="button" className={primary} disabled={approving} onClick={() => void approve()}>
-                {approving ? "Construindo…" : "Aprovar e construir"}
-              </button>
-            ) : sessionId ? (
-              <Link href={`/conversas/${sessionId}`} className={primary}>
+            {sessionId && !draft.review.canConfirm ? (
+              <Link href={`/conversas/${sessionId}`} className={`${quiet} inline-flex items-center`}>
                 Responder na conversa
               </Link>
             ) : null}
             <button type="button" className={quiet} disabled={approving} onClick={() => setStep("writing")}>
-              Voltar
+              Escrever de novo
             </button>
           </div>
         </>

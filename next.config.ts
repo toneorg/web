@@ -1,12 +1,16 @@
 import type { NextConfig } from "next";
+import { posthogRewrites } from "./posthog-proxy";
 
 const nextConfig: NextConfig = {
   turbopack: { root: __dirname },
-  // The brand page became a mode of the signup section. Old /marcas links and
-  // QR codes keep working, and their utm parameters pass through. The query
-  // pair and the anchor mirror BRAND_PARAM and ANCHOR.list in src/lib/site.ts.
+  // PostHog's API paths end in a slash (/e/, /flags/); a redirect would break them behind the proxy.
+  skipTrailingSlashRedirect: true,
+  // The brand page is gone; old /marcas links and QR codes land on the home page.
   async redirects() {
-    return [{ source: "/marcas", destination: "/?para=marca#lista", permanent: false }];
+    return [{ source: "/marcas", destination: "/", permanent: false }];
+  },
+  async rewrites() {
+    return posthogRewrites(process.env.NEXT_PUBLIC_POSTHOG_HOST);
   },
 };
 

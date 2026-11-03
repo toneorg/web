@@ -4,6 +4,7 @@
 // Escape, the scrim or any control inside that calls useSheetClose closes it,
 // and the focus goes back to whatever opened it.
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const Close = createContext<() => void>(() => {});
 
@@ -44,7 +45,8 @@ export function Sheet(props: { title: string; onClose: () => void; children: Rea
       previous?.focus();
     };
   }, [close]);
-  return (
+  // On the body: an ancestor with a filter or backdrop blur (the top bar) would trap a fixed element inside it.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       {/* The scrim closes the folha on a click; from the keyboard, Escape does. */}
       <button
@@ -65,6 +67,7 @@ export function Sheet(props: { title: string; onClose: () => void; children: Rea
         <h2 className="display-sm text-ink">{props.title}</h2>
         <Close.Provider value={close}>{props.children}</Close.Provider>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
