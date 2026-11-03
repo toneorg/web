@@ -20,14 +20,13 @@
 
   html {
     scroll-behavior: smooth;
-    /* Room for the floating nav, so a control focused by keyboard is never under it. */
-    scroll-padding-bottom: 6rem;
     -webkit-text-size-adjust: 100%;
   }
 
+  /* The neutral bench everywhere: the site, the app and the extension are black and white. */
   body {
-    background: var(--color-white);
-    color: var(--color-wine);
+    background: var(--color-paper);
+    color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -47,8 +46,8 @@
   }
 
   ::selection {
-    background: var(--color-coral-200);
-    color: var(--color-wine);
+    background: var(--color-ink);
+    color: var(--color-on-ink);
   }
 
   [id] {
@@ -57,8 +56,7 @@
 }
 
 /*
-  An element's place in a staged entrance (set with `order()` in
-  lib/stagger.ts). Registered so it does not inherit: a staggered element
+  An element's place in a staged entrance (`[--i:2]` on the element). Registered so it does not inherit: a staggered element
   inside another staggered element starts from zero instead of picking up its
   ancestor's delay. A card that wants its marks to follow it passes its place
   down as `--card`.
@@ -71,7 +69,7 @@
 
 /*
   Staged entrance: opacity, a short rise and a little blur, 100ms apart.
-  Runs on load in the hero and once on scroll elsewhere (see Reveal). It ends
+  Runs once, on load. It ends
   on `none`, so nothing is left holding a stacking context after it plays.
 */
 @keyframes rise {
@@ -91,182 +89,6 @@
   animation: rise 400ms ease-out both;
   animation-delay: calc(var(--i, 0) * 100ms);
   @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-}
-
-/* Children wait while the section is off screen, then enter in order. */
-[data-reveal="pending"] .reveal-item {
-  opacity: 0;
-}
-
-[data-reveal="in"] .reveal-item {
-  animation: rise 400ms ease-out both;
-  animation-delay: calc(var(--i, 0) * 100ms);
-}
-
-/* Her questions drifting past. The track holds the list twice, so half its
-   width is exactly one loop. */
-@keyframes marquee {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-@utility marquee {
-  animation: marquee 60s linear infinite;
-}
-
-/* The text cursor in the hero's link field, when it is not typing. */
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-@utility blink {
-  animation: blink 1s steps(1) infinite;
-}
-
-/* Three dots while tone reads the link. */
-@keyframes thinking {
-  0%,
-  80%,
-  100% {
-    opacity: 0.25;
-  }
-  40% {
-    opacity: 1;
-  }
-}
-
-@utility thinking {
-  animation: thinking 1.1s ease-in-out infinite;
-  animation-delay: calc(var(--i, 0) * 160ms);
-}
-
-/* The halo around "Agora" on the timeline: this is where we are. */
-@keyframes halo {
-  from {
-    transform: scale(1);
-    opacity: 0.55;
-  }
-  to {
-    transform: scale(3.4);
-    opacity: 0;
-  }
-}
-
-@utility halo {
-  animation: halo 2.4s ease-out infinite;
-}
-
-/* A line drawn through what tone is not. Struck by default, so the meaning
-   survives without JavaScript. */
-@keyframes strike {
-  from {
-    background-size: 0% 1.5px;
-  }
-}
-
-@utility strike {
-  background-image: linear-gradient(currentColor, currentColor);
-  background-repeat: no-repeat;
-  background-position: 0 58%;
-  background-size: 100% 1.5px;
-}
-
-[data-reveal="pending"] .strike {
-  background-size: 0% 1.5px;
-}
-
-[data-reveal="in"] .strike {
-  animation: strike 500ms var(--ease-soft) both;
-  animation-delay: calc(var(--i, 0) * 160ms + 150ms);
-}
-
-/* Lines that draw themselves: the timeline rule and the check marks. A mark
-   inside a card waits for the card (`--card`) and then for its own turn
-   among the card's marks (`--j`). */
-@keyframes uncover {
-  from {
-    clip-path: inset(0 100% 100% 0);
-  }
-  to {
-    clip-path: inset(0);
-  }
-}
-
-[data-reveal="pending"] .uncover {
-  clip-path: inset(0 100% 100% 0);
-}
-
-[data-reveal="in"] .uncover {
-  animation: uncover 500ms var(--ease-soft) both;
-  animation-delay: calc((var(--i, 0) + var(--card, 0)) * 100ms + var(--j, 0) * 140ms + 350ms);
-}
-
-@keyframes pop {
-  from {
-    transform: scale(0);
-    opacity: 0;
-  }
-}
-
-[data-reveal="pending"] .pop {
-  opacity: 0;
-}
-
-[data-reveal="in"] .pop {
-  animation: pop 300ms var(--ease-soft) both;
-  animation-delay: calc((var(--i, 0) + var(--card, 0)) * 100ms + var(--j, 0) * 140ms + 350ms);
-}
-
-/* Her three questions gain their color as they cross the screen. Browsers
-   without scroll-driven animations show them in full color from the start. */
-@keyframes ink-in {
-  from {
-    color: var(--color-coral-200);
-  }
-}
-
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .ink-in {
-      animation: ink-in linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 38%;
-    }
-  }
-}
-
-/*
-  With reduced motion, and on paper, every staged element shows its final
-  state at once. One rule per class, each undoing only what that class set.
-*/
-@media (prefers-reduced-motion: reduce), print {
-  [data-reveal] :is(.reveal-item, .pop) {
-    opacity: 1;
-    animation: none;
-  }
-
-  [data-reveal] .uncover {
-    clip-path: none;
-    animation: none;
-  }
-
-  [data-reveal] .strike {
-    background-size: 100% 1.5px;
-    animation: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  :is(.marquee, .blink, .halo, .thinking) {
     animation: none;
   }
 }
@@ -317,5 +139,89 @@
   .sheet-out,
   .build-bar {
     animation: none;
+  }
+}
+
+/*
+  Onboarding (src/conversas/Onboarding.tsx): each step plays its drawing once,
+  showing what the product does in that step. `--d` is the delay of a piece.
+*/
+@keyframes ob-type {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes ob-draw {
+  from {
+    stroke-dashoffset: var(--len, 400);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ob-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes ob-slide {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes ob-choose {
+  to {
+    transform: translateY(-6px);
+    box-shadow: 0 0 0 2px var(--color-ink);
+  }
+}
+
+.ob-type {
+  animation: ob-type 1100ms steps(28, end) both;
+  animation-delay: var(--d, 0ms);
+}
+
+.ob-rise {
+  animation: rise 400ms var(--ease-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+
+.ob-draw {
+  stroke-dasharray: var(--len, 400);
+  animation: ob-draw 1400ms var(--ease-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+
+.ob-pop {
+  animation: ob-pop 300ms var(--ease-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+
+.ob-slide {
+  animation: ob-slide 500ms var(--ease-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+
+.ob-choose {
+  animation: ob-choose 300ms var(--ease-soft) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.ob-type, .ob-rise, .ob-draw, .ob-pop, .ob-slide) {
+    animation: none;
+  }
+  .ob-choose {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
   }
 }

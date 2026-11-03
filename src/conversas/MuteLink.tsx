@@ -4,6 +4,7 @@
 // click, and the signed token in the link is the only credential.
 import Link from "next/link";
 import { useState } from "react";
+import { track } from "./analytics";
 import { api } from "./api";
 
 type State = "idle" | "busy" | "done" | "failed";
@@ -48,7 +49,10 @@ export function MuteLink(props: { token: string | null }) {
           setError(null);
           api
             .muteByLink(token)
-            .then(() => setState("done"))
+            .then(() => {
+              track("watch_muted_by_link");
+              setState("done");
+            })
             .catch((failure: unknown) => {
               setError(failure instanceof Error ? failure.message : "Não deu certo agora. Tente de novo.");
               setState("failed");

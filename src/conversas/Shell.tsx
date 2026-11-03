@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import type { Me } from "@/tone/shared";
+import { FeedbackButton } from "./Feedback";
 import { Panels } from "./Panels";
 
 const ring = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
@@ -22,6 +23,8 @@ export function Shell(props: {
   me: Me | null;
   /** Which part of the app is open, for the top bar. */
   current?: "conversas" | "perfil";
+  /** The open conversation, so feedback sent from it is tied to it. */
+  sessionId?: string;
   children: ReactNode;
 }) {
   const initial = props.me?.name.trim().charAt(0).toUpperCase() || "?";
@@ -51,6 +54,8 @@ export function Shell(props: {
             Painéis
           </button>
         </nav>
+        <div className="flex items-center gap-2">
+        <FeedbackButton sessionId={props.sessionId ?? null} />
         {props.me ? (
           <Link
             href="/conversas/perfil"
@@ -68,6 +73,7 @@ export function Shell(props: {
             {initial}
           </span>
         )}
+        </div>
       </header>
       <div className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 pb-6 md:grid-cols-[minmax(16rem,22rem)_1fr] md:px-6">
         <aside

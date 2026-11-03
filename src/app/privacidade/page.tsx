@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Container, HEADER_LINK, SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { SiteFooter, Wordmark } from "@/components/site-chrome";
 import { CONTACT_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Privacidade",
-  description: "Quais dados a lista de espera da tone guarda, para quê e como apagar.",
+  description: "Quais dados a tone guarda, para quê e como apagar.",
 };
 
 const sections: { title: string; body: React.ReactNode }[] = [
   {
-    title: "O que guardamos",
+    title: "Se você entrou na lista de espera",
     body: (
       <>
-        Para entrar na lista, só o seu e-mail e de onde veio a visita (por exemplo, o link de um
-        convite). Antes, a lista também perguntava a sua faixa de tom, como um número de 1 a 10, a
+        Guardamos o seu e-mail e de onde veio a visita (por exemplo, o link de um convite). A
+        lista também perguntava a sua faixa de tom, como um número de 1 a 10, a
         base que você usava, quantas vezes já tinha errado o tom e o seu WhatsApp. Quem respondeu
         continua com essas respostas guardadas até pedir para apagar. Não pedimos nem guardamos
         foto.
@@ -25,8 +25,8 @@ const sections: { title: string; body: React.ReactNode }[] = [
     title: "Para que usamos",
     body: (
       <>
-        Para avisar quando chegar a sua vez de testar e quando a tone for lançada. Não vendemos
-        nem compartilhamos seus dados para publicidade.
+        Os dados da lista servem para avisar quando chegar a sua vez de testar e quando a tone
+        for lançada. Nada é vendido nem compartilhado para publicidade.
       </>
     ),
   },
@@ -51,11 +51,15 @@ const sections: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
-    title: "Visitas à página",
+    title: "Visitas à página e uso da tone na web",
     body: (
       <>
-        Contamos as visitas com o Vercel Analytics, que não usa cookies e não identifica quem
-        visitou. Serve para saber quantas pessoas chegam e por qual caminho.
+        Contamos as visitas com o Vercel Analytics, que não usa cookies. Na tone, usamos o PostHog
+        para entender o que é usado e encontrar erros: quais telas e botões você usa, os erros que
+        aparecem, o custo de cada pesquisa e uma gravação da tela durante o uso. Na gravação, o que
+        você digita, as conversas, a memória e os nomes das conversas aparecem mascarados: só ficam
+        o desenho da tela e os cliques. Seu e-mail e seu nome não vão para o PostHog. O que você
+        escreve no botão de feedback vai, para a equipe ler e responder.
       </>
     ),
   },
@@ -66,7 +70,7 @@ const sections: { title: string; body: React.ReactNode }[] = [
         Escreva para{" "}
         <a
           href={`mailto:${CONTACT_EMAIL}`}
-          className="font-medium text-wine underline underline-offset-4"
+          className="font-medium text-ink underline underline-offset-4"
         >
           {CONTACT_EMAIL}
         </a>{" "}
@@ -80,8 +84,8 @@ const sections: { title: string; body: React.ReactNode }[] = [
     title: "E a extensão?",
     body: (
       <>
-        Esta página fala só da lista de espera. A extensão e a tone na web mostram o próprio
-        termo antes de você entrar, com o que guardam e para quê.
+        A extensão e a tone na web mostram o próprio termo antes de você entrar, com o que guardam
+        e para quê. Você vê, corrige, exporta e apaga seus dados em “Você”, dentro da tone.
       </>
     ),
   },
@@ -89,40 +93,27 @@ const sections: { title: string; body: React.ReactNode }[] = [
 
 export default function Privacy() {
   return (
-    <>
-      <div className="bg-coral">
-        <Container className="pt-6 sm:pt-8">
-          <SiteHeader>
-            <Link href="/" className={HEADER_LINK}>
-              Voltar para a tone
-            </Link>
-          </SiteHeader>
-        </Container>
-      </div>
-
+    <div className="flex min-h-dvh flex-col bg-paper text-ink">
+      <header className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 pt-6">
+        <Wordmark />
+        <Link href="/" className="min-h-11 content-center text-ui underline underline-offset-4">
+          Voltar para a tone
+        </Link>
+      </header>
       {/* The title is inside main, so the skip link lands on it. */}
-      <main id="conteudo">
-        <div className="bg-coral">
-          <Container className="pb-12 pt-16 sm:pb-16 sm:pt-24">
-            <h1 className="display-lg">Privacidade</h1>
-            <p className="lead mt-5 max-w-[33rem]">
-              O que acontece com os dados da lista de espera, em linguagem direta.
-            </p>
-          </Container>
+      <main id="conteudo" className="mx-auto w-full max-w-2xl flex-1 px-5 py-12 sm:py-16">
+        <h1 className="display-md font-display">Privacidade</h1>
+        <p className="lead mt-4 max-w-[33rem] text-graphite">O que acontece com os seus dados, em linguagem direta.</p>
+        <div className="mt-12 flex max-w-[40rem] flex-col gap-10">
+          {sections.map(({ title, body }) => (
+            <section key={title}>
+              <h2 className="display-sm font-display">{title}</h2>
+              <p className="mt-3 leading-relaxed text-graphite">{body}</p>
+            </section>
+          ))}
         </div>
-
-        <Container className="py-16 sm:py-24">
-          <div className="flex max-w-[40rem] flex-col gap-12">
-            {sections.map(({ title, body }) => (
-              <section key={title}>
-                <h2 className="display-sm">{title}</h2>
-                <p className="mt-3 leading-relaxed text-muted">{body}</p>
-              </section>
-            ))}
-          </div>
-        </Container>
       </main>
       <SiteFooter />
-    </>
+    </div>
   );
 }

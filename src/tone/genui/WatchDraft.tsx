@@ -1,17 +1,41 @@
-// Gerado de toneorg/extension@cab9f784af9d (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
+// Gerado de toneorg/extension@25eacf43b3e3 (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
 // T09: the draft of a watch, for the person to review and confirm. The model
 // writes only the id; the rule comes from the server and every button is the
 // panel's: it saves the person's edits and confirms the version on screen.
-import { describeWatch, type Watch, type WatchCondition, type WatchRule } from "@/tone/shared";
-import { useEffect, useRef, useState } from "react";
+//
+// Read top to bottom: what it is and its state, the plan in a few labelled
+// lines, what is still missing, when to notify (the one thing the person
+// usually sets here), and one action. Where and how the price is read is
+// behind a disclosure: it matters, but it is not the decision.
+import { type Watch, type WatchCondition, type WatchRule, watchFacts } from "@/tone/shared";
+import { useEffect, useId, useRef, useState } from "react";
 import type { WatchAccess } from "./host";
 
 const STATUS: Record<Watch["status"], string> = {
-  draft: "Rascunho: nada roda antes de você confirmar",
+  draft: "Rascunho",
   active: "Ativo",
   paused: "Pausado",
   deleted: "Excluído",
 };
+
+/** The condition the person chose, ready to save, or null while it is incomplete. */
+function complete(condition: WatchCondition, amount: string): WatchCondition | null {
+  if (condition.kind === "target_price") {
+    const value = Number(amount.replace(",", "."));
+    return Number.isFinite(value) && value >= 1 ? { ...condition, amount: value } : null;
+  }
+  if (condition.kind === "drop_percent") {
+    const value = Math.round(Number(amount));
+    return Number.isFinite(value) && value >= 1 && value <= 90 ? { kind: "drop_percent", percent: value } : null;
+  }
+  return condition;
+}
+
+function amountOf(condition: WatchCondition): string {
+  if (condition.kind === "target_price") return condition.amount >= 1 ? String(condition.amount) : "";
+  if (condition.kind === "drop_percent") return String(condition.percent);
+  return "";
+}
 
 export function WatchDraftView(props: {
   watch: Watch;
@@ -19,140 +43,203 @@ export function WatchDraftView(props: {
   actionable: boolean;
   onSave: (draft: WatchRule) => void;
   onConfirm: () => void;
+  /** Saves the edits and confirms the saved version in one step. Without it, saving comes first. */
+  onSaveAndConfirm?: (draft: WatchRule) => void;
+  busy?: boolean;
 }) {
   const { watch, actionable } = props;
+  const ids = useId();
   const [condition, setCondition] = useState<WatchCondition>(watch.draft.condition);
+  const [amount, setAmount] = useState(amountOf(watch.draft.condition));
   const [email, setEmail] = useState(watch.draft.notify.email);
   useEffect(() => {
     setCondition(watch.draft.condition);
+    setAmount(amountOf(watch.draft.condition));
     setEmail(watch.draft.notify.email);
   }, [watch]);
+
+  const chosen = complete(condition, amount);
+  const draft: WatchRule = {
+    ...watch.draft,
+    condition: chosen ?? watch.draft.condition,
+    notify: { ...watch.draft.notify, email },
+  };
   const edited =
-    JSON.stringify(condition) !== JSON.stringify(watch.draft.condition) || email !== watch.draft.notify.email;
-  const pending = watch.confirmed && watch.confirmedVersion !== watch.version;
+    JSON.stringify(draft.condition) !== JSON.stringify(watch.draft.condition) || email !== watch.draft.notify.email;
+  const pending = Boolean(watch.confirmed) && watch.confirmedVersion !== watch.version;
+  const live = watch.confirmedVersion === watch.version && watch.status !== "draft";
+  // What the card itself can answer (when to notify) is the form; the rest needs the conversation.
+  const conditionQuestion = watch.review.clarifications.find((c) => c.field === "condition");
+  const elsewhere = watch.review.clarifications.filter((c) => !(actionable && c.field === "condition"));
+  const conditionMissing = draft.condition.kind === "none" && Boolean(conditionQuestion);
+  const incomplete = condition.kind !== "none" && !chosen;
+  const blocked = elsewhere.length > 0 || conditionMissing || incomplete;
+  const reason = incomplete
+    ? condition.kind === "drop_percent"
+      ? amount
+        ? "Diga uma queda entre 1% e 90%."
+        : "Escreva a queda, em %."
+      : amount
+        ? "Diga um preço a partir de R$ 1."
+        : "Escreva o preço máximo."
+    : conditionMissing && elsewhere.length
+      ? "Para ativar, escolha quando avisar e responda o que falta na conversa."
+      : conditionMissing
+        ? "Para ativar, escolha quando avisar."
+        : elsewhere.length
+          ? "Para ativar, responda o que falta na conversa."
+          : null;
+
+  const confirm = () => {
+    if (!edited) return props.onConfirm();
+    if (props.onSaveAndConfirm) return props.onSaveAndConfirm(draft);
+    props.onSave(draft);
+  };
+  // Choosing an option that needs a number moves the keyboard to its field.
+  const amountField = useRef<HTMLInputElement>(null);
+  const [picked, setPicked] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs after each choice the person makes.
+  useEffect(() => {
+    if (picked) amountField.current?.focus();
+  }, [picked]);
+  const pick = (next: WatchCondition) => {
+    setCondition(next);
+    setAmount(amountOf(next));
+    setPicked((value) => value + 1);
+  };
+
   return (
-    <section className="card watch" aria-label={props.title}>
-      <h3>{props.title}</h3>
-      <p className="meta">
-        {STATUS[watch.status]}
-        {pending ? " · há mudanças ainda não confirmadas; a versão confirmada continua valendo" : ""}
-      </p>
-      <ul className="watch-lines">
-        {describeWatch(watch.draft).map((line) => (
-          <li key={line}>{line}</li>
+    <section className="card watch" aria-labelledby={`${ids}-title`}>
+      <header className="watch-head">
+        <h3 id={`${ids}-title`}>{props.title}</h3>
+        <span className={watch.status === "active" ? "tag" : "tag quiet"}>{STATUS[watch.status]}</span>
+      </header>
+      {watch.status === "draft" || pending ? (
+        <p className="meta">
+          {pending
+            ? "Há mudanças ainda não confirmadas; a versão confirmada continua valendo."
+            : "Rascunho: nada roda antes de você confirmar."}
+        </p>
+      ) : null}
+
+      <dl className="watch-facts">
+        {watchFacts(draft).map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
         ))}
-      </ul>
-      {watch.review.clarifications.length ? (
+      </dl>
+
+      {elsewhere.length ? (
         <div className="watch-questions" role="note">
-          {watch.review.clarifications.map((c) => (
-            <p key={c.field} className="notice">
-              {c.question}
-            </p>
+          <p className="watch-questions-title">Falta combinar</p>
+          {elsewhere.map((c) => (
+            <p key={c.field}>{c.question}</p>
           ))}
         </div>
       ) : null}
-      <ul className="watch-sources">
-        {watch.review.sources
-          .filter((source) => source.stores.length)
-          .map((source) => (
-            <li key={source.id}>
-              <strong>{source.label}</strong>
-              {source.autonomous ? " · roda sem o navegador" : " · só com o navegador aberto"}: {source.note}
-            </li>
-          ))}
-        {watch.review.notes.map((note) => (
-          <li key={note}>{note}</li>
-        ))}
-      </ul>
+
       {actionable ? (
-        <fieldset className="watch-edit">
+        <fieldset className="watch-edit" aria-describedby={conditionQuestion ? `${ids}-why` : undefined}>
           <legend>Quando avisar</legend>
-          <label className="checkbox">
-            <input
-              type="radio"
-              name={`cond-${watch.id}`}
-              checked={condition.kind === "target_price"}
-              onChange={() => setCondition({ kind: "target_price", amount: 100, currency: "BRL" })}
-            />
-            <span>Preço observado até R$</span>
-            {condition.kind === "target_price" ? (
-              <input
-                className="input watch-amount"
-                type="number"
-                min={1}
-                aria-label="Preço máximo em reais"
-                value={condition.amount}
-                onChange={(event) =>
-                  setCondition({ kind: "target_price", amount: Number(event.target.value) || 1, currency: "BRL" })
-                }
-              />
-            ) : null}
-          </label>
-          <label className="checkbox">
-            <input
-              type="radio"
-              name={`cond-${watch.id}`}
-              checked={condition.kind === "drop_percent"}
-              onChange={() => setCondition({ kind: "drop_percent", percent: 15 })}
-            />
-            <span>Queda desde a primeira observação, em %</span>
-            {condition.kind === "drop_percent" ? (
-              <input
-                className="input watch-amount"
-                type="number"
-                min={1}
-                max={90}
-                aria-label="Queda mínima em porcentagem"
-                value={condition.percent}
-                onChange={(event) =>
-                  setCondition({
-                    kind: "drop_percent",
-                    percent: Math.min(90, Math.max(1, Number(event.target.value) || 1)),
-                  })
-                }
-              />
-            ) : null}
-          </label>
-          {watch.draft.kind === "discovery" ? (
-            <label className="checkbox">
+          {conditionQuestion ? (
+            <p id={`${ids}-why`} className="hint">
+              O que conta como promoção para você?
+            </p>
+          ) : null}
+          <div className={`watch-option${condition.kind === "target_price" ? " selected" : ""}`}>
+            <label className="watch-choice">
               <input
                 type="radio"
-                name={`cond-${watch.id}`}
-                checked={condition.kind === "new_match"}
-                onChange={() => setCondition({ kind: "new_match" })}
+                name={`${ids}-cond`}
+                checked={condition.kind === "target_price"}
+                onChange={() => pick({ kind: "target_price", amount: 0, currency: "BRL" })}
               />
-              <span>Quando aparecer uma alternativa nova</span>
+              <span>Quando o preço ficar em até</span>
             </label>
+            {condition.kind === "target_price" ? (
+              <span className="watch-amount">
+                <span aria-hidden="true">R$</span>
+                <input
+                  ref={amountField}
+                  className="input"
+                  inputMode="decimal"
+                  aria-label="Preço máximo, em reais"
+                  placeholder="300"
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value.replace(/[^\d,.]/g, ""))}
+                />
+              </span>
+            ) : null}
+          </div>
+          <div className={`watch-option${condition.kind === "drop_percent" ? " selected" : ""}`}>
+            <label className="watch-choice">
+              <input
+                type="radio"
+                name={`${ids}-cond`}
+                checked={condition.kind === "drop_percent"}
+                onChange={() => pick({ kind: "drop_percent", percent: 15 })}
+              />
+              <span>Quando cair pelo menos</span>
+            </label>
+            {condition.kind === "drop_percent" ? (
+              <span className="watch-amount">
+                <input
+                  ref={amountField}
+                  className="input"
+                  inputMode="numeric"
+                  aria-label="Queda mínima, em porcentagem"
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value.replace(/\D/g, "").slice(0, 2))}
+                />
+                <span aria-hidden="true">%</span>
+              </span>
+            ) : null}
+          </div>
+          {watch.draft.kind === "discovery" ? (
+            <div className={`watch-option${condition.kind === "new_match" ? " selected" : ""}`}>
+              <label className="watch-choice">
+                <input
+                  type="radio"
+                  name={`${ids}-cond`}
+                  checked={condition.kind === "new_match"}
+                  onChange={() => pick({ kind: "new_match" })}
+                />
+                <span>Quando aparecer uma opção nova</span>
+              </label>
+            </div>
           ) : null}
-          <label className="checkbox">
+          <label className="checkbox watch-email">
             <input type="checkbox" checked={email} onChange={(event) => setEmail(event.target.checked)} />
-            <span>Também por e-mail</span>
+            <span>Avisar também por e-mail</span>
           </label>
         </fieldset>
       ) : null}
-      {actionable ? (
-        <div className="row-actions">
-          {edited ? (
-            <button
-              type="button"
-              className="btn outline sm"
-              onClick={() => props.onSave({ ...watch.draft, condition, notify: { ...watch.draft.notify, email } })}
-            >
-              Salvar ajustes
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="btn solid sm"
-            disabled={
-              edited ||
-              !watch.review.canConfirm ||
-              (watch.confirmedVersion === watch.version && watch.status !== "draft")
-            }
-            onClick={props.onConfirm}
-          >
-            {watch.confirmed ? "Confirmar esta versão" : "Confirmar e ativar"}
+
+      <details className="watch-sources">
+        <summary>Onde e como eu confiro</summary>
+        <ul>
+          {watch.review.sources
+            .filter((source) => source.stores.length)
+            .map((source) => (
+              <li key={source.id}>
+                <strong>{source.label}</strong>
+                {source.autonomous ? ", roda sem o navegador" : ", só com o navegador aberto"}: {source.note}
+              </li>
+            ))}
+          {watch.review.notes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      </details>
+
+      {actionable && !(live && !edited) ? (
+        <div className="watch-actions">
+          <button type="button" className="btn solid" disabled={blocked || props.busy} onClick={confirm}>
+            {props.busy ? "Salvando…" : watch.confirmed ? "Confirmar esta versão" : "Confirmar e ativar"}
           </button>
+          {reason ? <p className="hint">{reason}</p> : null}
         </div>
       ) : null}
     </section>
@@ -162,6 +249,7 @@ export function WatchDraftView(props: {
 export function WatchDraftLoader(props: { watchId: string; title: string; actionable: boolean; access?: WatchAccess }) {
   const [watch, setWatch] = useState<Watch | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const current = useRef(props.access);
   current.current = props.access;
   const available = Boolean(props.access);
@@ -181,20 +269,32 @@ export function WatchDraftLoader(props: { watchId: string; title: string; action
   if (error && watch === undefined) return <p className="notice error">{error}</p>;
   if (watch === undefined) return <p className="notice">Carregando o acompanhamento…</p>;
   if (!watch) return <p className="notice">Este acompanhamento não existe mais.</p>;
-  const run = (action: Promise<Watch>) => {
+  const run = (action: () => Promise<Watch>) => {
     setError(null);
-    action
+    setBusy(true);
+    action()
       .then(setWatch)
-      .catch((failure: unknown) => setError(failure instanceof Error ? failure.message : "Não deu certo."));
+      .catch((failure: unknown) => setError(failure instanceof Error ? failure.message : "Não deu certo."))
+      .finally(() => setBusy(false));
   };
+  const access = props.access;
   return (
     <>
       <WatchDraftView
         watch={watch}
         title={props.title}
         actionable={props.actionable && available}
-        onSave={(draft) => props.access && run(props.access.save(watch.id, watch.version, draft))}
-        onConfirm={() => props.access && run(props.access.confirm(watch.id, watch.version))}
+        busy={busy}
+        onSave={(draft) => access && run(() => access.save(watch.id, watch.version, draft))}
+        onConfirm={() => access && run(() => access.confirm(watch.id, watch.version))}
+        onSaveAndConfirm={(draft) =>
+          access &&
+          run(async () => {
+            const saved = await access.save(watch.id, watch.version, draft);
+            // Something else is still missing (a product, a store): show the saved draft and what is left.
+            return saved.review.canConfirm ? await access.confirm(saved.id, saved.version) : saved;
+          })
+        }
       />
       {error ? (
         <p className="error" role="alert">

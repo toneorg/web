@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@cab9f784af9d (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/extension@25eacf43b3e3 (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -216,10 +216,52 @@ const money = (amount: number, currency: string) =>
     : `${amount.toLocaleString("pt-BR")} ${currency}`;
 
 /** The rule in a few lines the person can check: what, where, how often, when it notifies. */
+const productsOf = (rule: WatchRule) =>
+  rule.products.map((p) => `${p.title}${p.variantLabel ? ` (${p.variantLabel})` : ""}`).join("; ");
+
+/** A short name for a watch, never empty: the product, the search, or the person's goal. */
+export function watchTitle(rule: WatchRule): string {
+  const title = (productsOf(rule) || rule.query || rule.goal || "Novo acompanhamento").slice(0, 120);
+  return title.charAt(0).toLocaleUpperCase("pt-BR") + title.slice(1);
+}
+
+/** The plan as labelled lines, for a card to show as label and value. */
+export function watchFacts(rule: WatchRule): [label: string, value: string][] {
+  const what =
+    rule.kind === "monitoring"
+      ? productsOf(rule) || "Produto ainda não escolhido"
+      : [
+          rule.query,
+          rule.brands.length ? `marcas ${rule.brands.join(", ")}` : "",
+          rule.categories.length ? `em ${rule.categories.join(", ")}` : "",
+        ]
+          .filter(Boolean)
+          .join(", ") || "Ainda não definido";
+  const when =
+    rule.condition.kind === "target_price"
+      ? `Preço em até ${money(rule.condition.amount, rule.condition.currency)}`
+      : rule.condition.kind === "drop_percent"
+        ? `Queda de ${rule.condition.percent}% ou mais desde a primeira leitura`
+        : rule.condition.kind === "new_match"
+          ? "Quando aparecer uma opção nova"
+          : "Ainda não definido";
+  return [
+    [rule.kind === "monitoring" ? "Acompanhar" : "Procurar", what],
+    ...(rule.variants.length ? [["Variantes", rule.variants.join(", ")] as [string, string]] : []),
+    ["Onde", rule.storeScope.kind === "explicit" ? rule.storeScope.stores.join(", ") : "Lojas que o índice observa"],
+    ["Quando avisar", when],
+    ["Frequência", "Uma vez por dia"],
+    [
+      "Avisos",
+      `Aqui${rule.notify.email ? " e por e-mail" : ""}${rule.notify.digest ? ", com resumo de novidades" : ""}`,
+    ],
+  ];
+}
+
 export function describeWatch(rule: WatchRule): string[] {
   const what =
     rule.kind === "monitoring"
-      ? `Acompanhar: ${rule.products.map((p) => `${p.title}${p.variantLabel ? ` (${p.variantLabel})` : ""}`).join("; ")}`
+      ? `Acompanhar: ${productsOf(rule) || "produto ainda não escolhido"}`
       : `Procurar novidades: ${rule.query}${rule.brands.length ? `, marcas ${rule.brands.join(", ")}` : ""}${rule.categories.length ? `, em ${rule.categories.join(", ")}` : ""}`;
   const where =
     rule.storeScope.kind === "explicit"

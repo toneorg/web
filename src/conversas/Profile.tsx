@@ -1,10 +1,11 @@
 "use client";
 // The person's own page on the web: who they are, what the tone knows about
 // them, and the keys to their data. The same account as the extension.
+import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
-import posthog from "posthog-js";
 import { type Me, type Memory, OWNED_CATEGORY } from "@/tone/shared";
 import { ToneWordmark } from "@/components/tone-logo";
+import { track } from "./analytics";
 import { ApiError, api } from "./api";
 import { Sheet, useSheetClose } from "./Sheet";
 import { Shell } from "./Shell";
@@ -39,7 +40,7 @@ function MemoryList(props: { memories: Memory[]; onChange: () => void }) {
                 aria-label={`Confirmar ${memory.key}`}
                 onClick={() =>
                   void api.confirmMemory(memory.id).then(() => {
-                    posthog.capture("memory_confirmed");
+                    track("memory_confirmed");
                     props.onChange();
                   })
                 }
@@ -53,7 +54,7 @@ function MemoryList(props: { memories: Memory[]; onChange: () => void }) {
               aria-label={`Apagar ${memory.key}`}
               onClick={() =>
                 void api.deleteMemory(memory.id).then(() => {
-                  posthog.capture("memory_deleted");
+                  track("memory_deleted");
                   props.onChange();
                 })
               }
@@ -159,10 +160,12 @@ export function Profile() {
       const owned = /^(j[aá] )?tenho:?\s+(.+)$/i.exec(text);
       if (owned?.[2]) {
         await api.addMemory(`${OWNED_CATEGORY}.${Date.now().toString(36)}`, owned[2].trim().slice(0, 200), OWNED_CATEGORY);
+        track("memory_added", { kind: "owned" });
       } else {
         const [rawKey, ...rest] = text.split(":");
         const key = (rest.length ? (rawKey ?? "nota") : `nota.${Date.now().toString(36)}`).trim().slice(0, 60) || "nota";
         await api.addMemory(key, (rest.length ? rest.join(":").trim() : text).slice(0, 200), "geral");
+        track("memory_added", { kind: rest.length ? "key_value" : "note" });
       }
       setNewFact("");
       setNotice("Anotei.");
@@ -184,6 +187,7 @@ export function Profile() {
       link.download = "meus-dados-tone.json";
       link.click();
       URL.revokeObjectURL(url);
+      track("data_exported");
     } catch (failure) {
       setNotice(failure instanceof ApiError ? failure.message : "Não consegui preparar o arquivo agora.");
     }
@@ -195,7 +199,7 @@ export function Profile() {
     <Shell me={me} current="perfil">
       <main id="conteudo" className="flex flex-col gap-8 py-4">
         <header className="flex flex-col gap-2">
-          <ToneWordmark className="h-6 w-auto text-wine" />
+          <ToneWordmark className="h-6 w-auto text-ink" />
           <h1 className="mt-2 display-sm font-display text-ink">Meu perfil</h1>
           <p className="text-body text-ink" data-ph-mask>
             {me.name}
@@ -267,6 +271,7 @@ export function Profile() {
                   confirm: "Apagar anotações",
                   run: async () => {
                     await api.deleteAllMemories();
+                    track("memories_cleared", { count: memories.length });
                     load();
                   },
                 })
@@ -276,6 +281,9 @@ export function Profile() {
             </button>
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
+            <Link href="/conversas?tour=1" className={`${quiet} inline-flex items-center`}>
+              Rever o tour da tone
+            </Link>
             <button
               type="button"
               className={quiet}
@@ -292,6 +300,7 @@ export function Profile() {
                   text: "Apago conversas, anotações, conexões e eventos. Não dá para desfazer.",
                   confirm: "Apagar minha conta",
                   run: async () => {
+                    track("account_deleted");
                     await api.deleteAccount();
                     setState("signed_out");
                   },

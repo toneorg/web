@@ -24,6 +24,7 @@ import {
   type PickedProduct,
   type WatchRule,
 } from "@/tone/shared";
+import { track } from "./analytics";
 import { api, trackClick } from "./api";
 
 /** Stores whose product photos and pages the web may show or link: the server index's (shared list). */
@@ -95,21 +96,37 @@ export function openStore(sessionId: string, url: string, title: string, where: 
   window.open(href, "_blank", "noopener,noreferrer");
 }
 
+/** Tells the panels column a watch changed in the conversation, so it shows the new state. */
+export const WATCHES_CHANGED = "tone:watches-changed";
+function announceWatches<T>(watch: T): T {
+  window.dispatchEvent(new Event(WATCHES_CHANGED));
+  return watch;
+}
+
 /** The web's side of the components: what each button does, and where decisions and watches live. */
 function useWebHost(host: ProgramHost): GenUIHost {
   const { sessionId, interactive, answer, say, picked, pick } = host;
   const decisions = useMemo(
     () => ({
       load: () => api.decision(sessionId),
-      change: (version: number, ops: DecisionOp[]) => api.changeDecision(sessionId, version, ops),
+      change: (version: number, ops: DecisionOp[]) => {
+        track("decision_changed", { ops: ops.length, kind: ops[0]?.type ?? null });
+        return api.changeDecision(sessionId, version, ops);
+      },
     }),
     [sessionId],
   );
   const watches = useMemo(
     () => ({
       load: (id: string) => api.watch(id),
-      save: (id: string, version: number, draft: WatchRule) => api.saveWatch(id, version, draft),
-      confirm: (id: string, version: number) => api.confirmWatch(id, version),
+      save: (id: string, version: number, draft: WatchRule) => {
+        track("watch_draft_saved", { kind: draft.kind, condition: draft.condition.kind });
+        return api.saveWatch(id, version, draft).then(announceWatches);
+      },
+      confirm: (id: string, version: number) => {
+        track("watch_draft_confirmed", { source: "conversation" });
+        return api.confirmWatch(id, version).then(announceWatches);
+      },
     }),
     [],
   );
@@ -119,6 +136,7 @@ function useWebHost(host: ProgramHost): GenUIHost {
         openStore(sessionId, action.url, action.title, action.where ?? { source: "generated_ui" });
         return;
       case "reject":
+        track("recommendation_rejected_clicked", { reason: action.reason });
         if (action.reason in REJECT_REASONS)
           say(`Não curti "${action.title}". Motivo: ${REJECT_REASONS[action.reason as RejectReason].toLowerCase()}.`);
         return;

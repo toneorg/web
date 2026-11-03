@@ -25,25 +25,43 @@ import {
   type TurnInput,
   type WatchRule,
 } from "@/tone/shared";
+import { routeOf, track } from "./analytics";
 
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
   }
 }
 
+/** A failed call, for the health dashboard. Not being signed in yet is not a failure. */
+function failed(path: string, method: string, status: number) {
+  if (status === 401 && path === "me") return;
+  track("api_request_failed", { route: routeOf(path), method, status });
+}
+
 async function call(path: string, init: RequestInit = {}): Promise<unknown> {
-  const response = await fetch(`/api/tone/${path}`, {
-    ...init,
-    headers: { "content-type": "application/json", "x-tone-web": "1", ...init.headers },
-    credentials: "same-origin",
-    cache: "no-store",
-  });
+  const method = init.method ?? "GET";
+  let response: Response;
+  try {
+    response = await fetch(`/api/tone/${path}`, {
+      ...init,
+      headers: { "content-type": "application/json", "x-tone-web": "1", ...init.headers },
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+  } catch (error) {
+    failed(path, method, 0);
+    throw new ApiError("Não consegui falar com a tone. Confira a internet e tente de novo.", 0, { cause: error });
+  }
   const body = (await response.json().catch(() => null)) as { error?: string } | null;
-  if (!response.ok) throw new ApiError(body?.error ?? `Erro ${response.status}`, response.status);
+  if (!response.ok) {
+    failed(path, method, response.status);
+    throw new ApiError(body?.error ?? `Erro ${response.status}`, response.status);
+  }
   return body;
 }
 const send = (path: string, method: string, body?: unknown) =>
@@ -73,6 +91,7 @@ async function me() {
 
 async function logout() {
   try {
+    track("signed_out");
     await send("auth/logout", "POST", {});
   } finally {
     posthog.reset();
@@ -191,6 +210,7 @@ export async function streamTurn(
     credentials: "same-origin",
   });
   if (!response.ok || !response.body) {
+    failed("agent/turn", "POST", response.status);
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new ApiError(body.error ?? `Erro ${response.status}`, response.status);
   }

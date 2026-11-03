@@ -1,36 +1,30 @@
-import { FloatingNav, NAV_CLEARANCE } from "@/components/floating-nav";
-import { SignupProvider } from "@/components/signup-context";
+import { LandingEntry } from "@/components/landing-entry";
 import { SiteFooter } from "@/components/site-chrome";
-import { Hero } from "@/sections/hero";
-import { How } from "@/sections/how";
-import { List } from "@/sections/list";
-import { Neutrality } from "@/sections/neutrality";
-import { Status } from "@/sections/status";
-import { Watch } from "@/sections/watch";
-import { What } from "@/sections/what";
-import { Why } from "@/sections/why";
+import { ToneWordmark } from "@/components/tone-logo";
 
 /*
-  The page argues in the order a skeptical reader asks: what is this (Hero),
-  why does it exist (Why), what does it do (What, Watch), can I trust it
-  (Neutrality, How), does it exist yet (Status), and then the list.
-  Coral grounds are where tone speaks in the first person.
+  The home page while the product is in a closed test: what tone is, in one
+  paragraph, and the way in. Black and white, like the extension and the app.
 */
 export default function Home() {
   return (
-    <SignupProvider>
-      <main id="conteudo">
-        <Hero />
-        <Why />
-        <What />
-        <Watch />
-        <Neutrality />
-        <How />
-        <Status />
-        <List />
+    <div className="flex min-h-dvh flex-col bg-paper text-ink">
+      <main id="conteudo" className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-10 px-5 py-16">
+        <header className="flex flex-col gap-6">
+          <h1 className="rise">
+            <ToneWordmark className="h-12 w-auto sm:h-14" />
+          </h1>
+          <p className="rise text-body text-graphite [--i:1]">
+            A tone é uma assistente de compras. Você conta o que procura, ela lembra do que você gosta, pesquisa nas
+            lojas por você e volta com poucas opções boas, com o porquê de cada uma. Também acompanha preços e avisa
+            quando vale a pena. Ela nunca paga nada. Está em teste fechado, só com convite.
+          </p>
+        </header>
+        <div className="rise rounded-card bg-surface p-5 shadow-raised [--i:2]">
+          <LandingEntry />
+        </div>
       </main>
-      <SiteFooter className={NAV_CLEARANCE} />
-      <FloatingNav />
-    </SignupProvider>
+      <SiteFooter />
+    </div>
   );
 }
