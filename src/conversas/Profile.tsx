@@ -3,7 +3,7 @@
 // them, and the keys to their data. The same account as the extension.
 import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
-import { type Me, type Memory, OWNED_CATEGORY } from "@/tone/shared";
+import { type Me, type Memory, memoryLabel, OWNED_CATEGORY } from "@/tone/shared";
 import { ToneWordmark } from "@/components/tone-logo";
 import { track } from "./analytics";
 import { ApiError, api, peek } from "./api";
@@ -28,7 +28,7 @@ function MemoryList(props: { memories: Memory[]; onChange: () => void }) {
       {props.memories.map((memory) => (
         <li key={memory.id} className="flex items-center justify-between gap-2 text-small text-ink">
           <span>
-            {memory.category === OWNED_CATEGORY ? memory.value : `${memory.key.replace(/[._]/g, " ")}: ${memory.value}`}
+            {memory.category === OWNED_CATEGORY ? memory.value : `${memoryLabel(memory.key, memory.condition)}: ${memory.value}`}
             {memory.condition ? <span className="text-graphite"> · quando: {memory.condition}</span> : null}
             {memory.inferred ? <span className="text-graphite"> · palpite da tone</span> : null}
           </span>
@@ -37,7 +37,7 @@ function MemoryList(props: { memories: Memory[]; onChange: () => void }) {
               <button
                 type="button"
                 className={small}
-                aria-label={`Confirmar ${memory.key}`}
+                aria-label={`Confirmar ${memoryLabel(memory.key, memory.condition)}`}
                 onClick={() =>
                   void api.confirmMemory(memory.id).then(() => {
                     track("memory_confirmed");
@@ -51,7 +51,7 @@ function MemoryList(props: { memories: Memory[]; onChange: () => void }) {
             <button
               type="button"
               className={small}
-              aria-label={`Apagar ${memory.key}`}
+              aria-label={`Apagar ${memoryLabel(memory.key, memory.condition)}`}
               onClick={() =>
                 void api.deleteMemory(memory.id).then(() => {
                   track("memory_deleted");

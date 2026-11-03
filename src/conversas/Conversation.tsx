@@ -8,6 +8,7 @@ import {
   type AgentEvent,
   MEDIA_COMPONENT,
   type Me,
+  memoryLabel,
   type PickedProduct,
   ProductMedia,
   type ResearchRunState,
@@ -195,7 +196,7 @@ export function Conversation(props: { sessionId: string; first?: string | null }
                 break;
               case "memory_saved":
                 shown.memories += 1;
-                setItems((list) => [...list, { id: uid(), kind: "notice", text: `Anotei: ${event.key.replace(/[._]/g, " ")} — ${event.value}` }]);
+                setItems((list) => [...list, { id: uid(), kind: "notice", text: `Anotei: ${memoryLabel(event.key)} — ${event.value}` }]);
                 break;
               case "error":
                 shown.errorCode = event.code ?? "error";

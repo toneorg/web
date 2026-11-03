@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@63f84475b50f (packages/shared/src/photo.ts). Não edite aqui.
+// Gerado de toneorg/extension@dafb8f78d22e (packages/shared/src/photo.ts). Não edite aqui.
 // T07: a personal reference photo and what the tone read in it. The photo is
 // private and goes through its own path (never `isAllowedImage`, which is for
 // store images). Only visible attributes are interpreted; authenticity,

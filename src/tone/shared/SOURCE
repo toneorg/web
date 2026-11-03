@@ -1,4 +1,4 @@
-toneorg/extension@63f84475b50fad70f483f6b27d8a972f76689830
+toneorg/extension@dafb8f78d22e41e12ca9ea39f8396da0ddd232c3
 agent.ts
 api.ts
 budget.ts
@@ -8,6 +8,7 @@ genui.ts
 index.ts
 local-run.ts
 media.ts
+memory-label.ts
 page.ts
 photo.ts
 progress.ts

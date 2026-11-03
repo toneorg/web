@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@63f84475b50f (packages/genui-react/src/Reviews.tsx). Não edite aqui.
+// Gerado de toneorg/extension@dafb8f78d22e (packages/genui-react/src/Reviews.tsx). Não edite aqui.
 // Síntese de reviews: what YouTube reviews say, as tone read them (spec
 // 2026-11-03). Every point names its videos and opens the moment it was said,
 // on YouTube, in a new tab, only when the person clicks. Titles, channels and
