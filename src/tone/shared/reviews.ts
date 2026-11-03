@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@dafb8f78d22e (packages/shared/src/reviews.ts). Não edite aqui.
+// Gerado de toneorg/extension@aac1a1679a89 (packages/shared/src/reviews.ts). Não edite aqui.
 // Síntese de reviews: YouTube reviews read for the person (spec 2026-11-03,
 // ADR 0002). A run is started by the agent and ends apart from the turn, so
 // the research results never wait for the videos. Channel names, titles and

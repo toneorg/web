@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@dafb8f78d22e (packages/shared/src/media.ts). Não edite aqui.
+// Gerado de toneorg/extension@aac1a1679a89 (packages/shared/src/media.ts). Não edite aqui.
 // Videos of the product the person is looking at: TikToks found by the
 // product's name. Titles and authors come from third parties, so
 // the panel shows them as plain text and the model never reads them.

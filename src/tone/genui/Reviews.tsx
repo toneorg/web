@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@dafb8f78d22e (packages/genui-react/src/Reviews.tsx). Não edite aqui.
+// Gerado de toneorg/extension@aac1a1679a89 (packages/genui-react/src/Reviews.tsx). Não edite aqui.
 // Síntese de reviews: what YouTube reviews say, as tone read them (spec
 // 2026-11-03). Every point names its videos and opens the moment it was said,
 // on YouTube, in a new tab, only when the person clicks. Titles, channels and
@@ -10,6 +10,9 @@ import { Icon } from "./Icon";
 const MAX_SOURCES = 2;
 /** What shows before "Ver mais": the card stays a reading of a few lines, the rest one tap away. */
 const VISIBLE = { matters: 4, consensus: 4, divergences: 3 } as const;
+
+/** Topics are kept in lower case to group them; a heading starts with a capital. */
+const heading = (text: string) => text.charAt(0).toLocaleUpperCase("pt-BR") + text.slice(1);
 
 const year = new Intl.DateTimeFormat("pt-BR", { month: "short", year: "numeric" });
 
@@ -89,11 +92,11 @@ export function ReviewSynthesisCard(props: { run: ReviewRunState; onOpen?: (vide
     ? [
         ...synthesis.matters
           .slice(VISIBLE.matters)
-          .map((m) => ({ text: `${m.topic}: ${m.why}`, claimIds: m.claimIds })),
+          .map((m) => ({ text: `${heading(m.topic)}: ${m.why}`, claimIds: m.claimIds })),
         ...synthesis.consensus.slice(VISIBLE.consensus).map((c) => ({ text: c.statement, claimIds: c.claimIds })),
         ...synthesis.divergences
           .slice(VISIBLE.divergences)
-          .map((d) => ({ text: `${d.topic}: ${d.note}`, claimIds: [...d.positiveIds, ...d.negativeIds] })),
+          .map((d) => ({ text: `${heading(d.topic)}: ${d.note}`, claimIds: [...d.positiveIds, ...d.negativeIds] })),
       ]
     : [];
   return (
@@ -114,7 +117,7 @@ export function ReviewSynthesisCard(props: { run: ReviewRunState; onOpen?: (vide
               <ul>
                 {synthesis.matters.slice(0, VISIBLE.matters).map((item) => (
                   <li key={item.topic}>
-                    <strong>{item.topic}</strong>: {item.why}
+                    <strong>{heading(item.topic)}</strong>: {item.why}
                     {sources(item.claimIds)}
                   </li>
                 ))}
@@ -140,7 +143,7 @@ export function ReviewSynthesisCard(props: { run: ReviewRunState; onOpen?: (vide
               <ul>
                 {synthesis.divergences.slice(0, VISIBLE.divergences).map((item) => (
                   <li key={item.topic}>
-                    <strong>{item.topic}</strong>: {item.note}
+                    <strong>{heading(item.topic)}</strong>: {item.note}
                     <div className="review-sides">
                       <div>
                         <span className="small muted">A favor</span>
