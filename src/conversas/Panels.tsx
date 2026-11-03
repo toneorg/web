@@ -36,9 +36,17 @@ type Action = "pause" | "resume" | "mute" | "unmute" | "check" | "delete";
 
 /** The lowest comparable price of a reading, as the store showed it. */
 export function lowestOf(result: WatchResult | null): string | null {
+  return lowestMatch(result)?.priceText ?? null;
+}
+
+/** The cheapest offer of a reading with a known price, and why it does not count for the alert, if so. */
+export function lowestMatch(result: WatchResult | null) {
   const priced = (result?.summary.matches ?? []).filter((match) => match.amount !== null);
   priced.sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0));
-  return priced[0]?.priceText ?? null;
+  const match = priced[0];
+  if (!match) return null;
+  const limitation = (match as { limitation?: unknown }).limitation;
+  return { priceText: match.priceText, limitation: typeof limitation === "string" && limitation ? limitation : null };
 }
 
 /**
@@ -182,6 +190,9 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
         <span className="rounded-panel bg-sunken p-4">
           <span className="block text-caption text-graphite">Menor preço observado no índice</span>
           <span className="display-sm block font-display text-ink tabular-nums">{lowest}</span>
+          {lowestMatch(latest)?.limitation ? (
+            <span className="block text-caption text-graphite">{lowestMatch(latest)?.limitation}</span>
+          ) : null}
           {latest ? <span className="block text-caption text-graphite">em {when(latest.observedAt)}</span> : null}
           {props.panel.emptyRound ? (
             <span className="mt-1 block text-caption text-graphite">

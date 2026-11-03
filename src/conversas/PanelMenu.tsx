@@ -67,14 +67,18 @@ export function PanelMenu(props: { label: string; items: MenuItem[]; disabled?: 
 
   const close = (focusButton = true) => {
     setOpen(false);
+    setPlace(null);
     if (focusButton) button.current?.focus();
   };
   useLayoutEffect(() => {
     if (!open || !button.current) return;
     const rect = button.current.getBoundingClientRect();
     setPlace({ top: rect.bottom + 6, right: Math.max(8, window.innerWidth - rect.right) });
-    menu.current?.querySelector<HTMLElement>("[role=menuitem]")?.focus();
   }, [open]);
+  // The menu is drawn once its place is known; then the keyboard starts on its first item.
+  useEffect(() => {
+    if (open && place) menu.current?.querySelector<HTMLElement>("[role=menuitem]")?.focus();
+  }, [open, place]);
   useEffect(() => {
     if (!open) return;
     const outside = (event: PointerEvent) => {
