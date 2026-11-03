@@ -270,3 +270,52 @@
     animation: none;
   }
 }
+
+/*
+  A folha (components/surface.md): a panel over a scrim, in and out with the
+  design system's durations and curve. The exit is softer than the entrance.
+  Used by the app's own pages (src/conversas), where the tokens are loaded.
+*/
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes sheet-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.sheet-in {
+  animation: sheet-in var(--tone-duration-enter, 300ms) var(--ease-soft) both;
+}
+
+.sheet-out {
+  animation: sheet-out var(--tone-duration-exit, 150ms) var(--ease-soft) both;
+}
+
+/* A panel being built: the highlight sweeps across while the card is assembled. */
+@keyframes build {
+  from {
+    transform: translateX(-300%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.build-bar {
+  animation: build 1.1s var(--ease-soft) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-in,
+  .sheet-out,
+  .build-bar {
+    animation: none;
+  }
+}

@@ -14,7 +14,8 @@ const ALLOWED: RegExp[] = [
   /^auth\/(logout|sessions)$/,
   /^auth\/sessions\/[^/]+$/,
   /^me(\/(budget|export|onboarded))?$/,
-  /^memories(\/[^/]+)?$/,
+  // The list, one note (read, correct, delete) and the confirmation of a guess.
+  /^memories(\/[^/]+(\/confirm)?)?$/,
   /^purchases$/,
   // Purchase situations: the list on the home page and how each one went afterwards.
   /^situations$/,

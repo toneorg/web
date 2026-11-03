@@ -5,9 +5,11 @@
 // person pauses, resumes, mutes the e-mail, checks now or deletes; changing the
 // rule itself happens in the conversation that made it, with a new confirmation.
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { describeWatch, type Me, type Watch, type WatchResult } from "@/tone/shared";
+import { useEffect, useRef, useState } from "react";
+import { type BudgetStatement, describeWatch, type Me, type Watch, type WatchResult } from "@/tone/shared";
+import { PlusIcon } from "@/components/icons";
 import { api } from "./api";
+import { NewPanelSheet } from "./NewPanel";
 
 const STATUS: Record<Watch["status"], string> = {
   draft: "Rascunho",
@@ -73,7 +75,7 @@ const LABEL: Record<Action, [idle: string, busy: string]> = {
 const BUTTON =
   "press min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 
-function PanelCard(props: { panel: Panel; onChange: (panel: Panel | null) => void }) {
+function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Panel | null) => void }) {
   const { watch, latest } = props.panel;
   const [busy, setBusy] = useState<Action | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -110,7 +112,10 @@ function PanelCard(props: { panel: Panel; onChange: (panel: Panel | null) => voi
   };
 
   return (
-    <article className="flex flex-col gap-2 rounded-card bg-surface p-5 shadow-raised" aria-busy={busy !== null}>
+    <article
+      className={`flex flex-col gap-2 rounded-card bg-surface p-5 shadow-raised${props.fresh ? " rise" : ""}`}
+      aria-busy={busy !== null}
+    >
       <span className="flex items-start justify-between gap-2">
         {watch.sessionId ? (
           <Link
@@ -193,9 +198,44 @@ function PanelCard(props: { panel: Panel; onChange: (panel: Panel | null) => voi
   );
 }
 
+/** One dollar a week is the full use (the beta cap): what is left of the week, as a percentage. */
+export function weekLeftPercent(budget: BudgetStatement): number {
+  if (budget.weeklyCapUsd <= 0) return 0;
+  return Math.round(Math.max(0, Math.min(1, budget.availableUsd / budget.weeklyCapUsd)) * 100);
+}
+
+/** The panel being built, just before the confirmed card takes its place. */
+function BuildingCard() {
+  return (
+    <article
+      className="flex flex-col gap-3 rounded-card bg-surface p-5 shadow-raised"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <p className="text-ui text-ink">Construindo o painel…</p>
+      <span className="bar">
+        <span className="fill ink build-bar w-1/3" />
+      </span>
+      <span className="block h-4 w-2/3 rounded-full bg-sunken" />
+      <span className="block h-4 w-1/3 rounded-full bg-sunken" />
+    </article>
+  );
+}
+
 export function Panels(props: { me: Me }) {
   const [panels, setPanels] = useState<Panel[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  /** The panel being built now, and the one that has just been built (it rises in). */
+  const [building, setBuilding] = useState<string | null>(null);
+  const [fresh, setFresh] = useState<string | null>(null);
+  const buildTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (buildTimer.current) window.clearTimeout(buildTimer.current);
+    },
+    [],
+  );
   useEffect(() => {
     let live = true;
     api
@@ -218,51 +258,89 @@ export function Panels(props: { me: Me }) {
     setPanels((current) =>
       (current ?? []).flatMap((panel) => (panel.watch.id === id ? (next ? [next] : []) : [panel])),
     );
+  /** A confirmed watch from the "+" folha: it appears first, as a panel being built. */
+  const onBuilt = (watch: Watch) => {
+    setPanels((current) => [{ watch, latest: null }, ...(current ?? [])]);
+    setFresh(null);
+    setBuilding(watch.id);
+    if (buildTimer.current) window.clearTimeout(buildTimer.current);
+    buildTimer.current = window.setTimeout(() => {
+      setBuilding(null);
+      setFresh(watch.id);
+    }, 1400);
+  };
   const budget = props.me.budget;
+  const leftPercent = budget ? weekLeftPercent(budget) : 0;
   return (
     <>
       <section aria-labelledby="titulo-paineis" className="flex flex-col gap-3">
-        <h2 id="titulo-paineis" className="text-subheading text-ink">
-          Seus painéis
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="titulo-paineis" className="text-subheading text-ink">
+            Seus painéis
+          </h2>
+          <button
+            type="button"
+            aria-label="Criar um painel"
+            onClick={() => setPlanning(true)}
+            className="press grid size-11 place-items-center rounded-full bg-surface text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            <PlusIcon className="size-5" />
+          </button>
+        </div>
         {failed ? (
           <p className="text-small text-graphite">Não consegui carregar seus painéis agora.</p>
         ) : !panels ? (
           <p className="text-small text-graphite">Carregando…</p>
         ) : panels.length === 0 ? (
           <p className="rounded-card bg-surface p-5 text-small text-graphite shadow-raised">
-            Nada por aqui ainda. Peça numa conversa, por exemplo “me avise quando o fone baixar de R$ 300”, e o
-            acompanhamento aparece aqui depois que você confirmar.
+            Nada por aqui ainda. Toque no + e diga o que quer acompanhar, por exemplo “me avise quando o fone baixar
+            de R$ 300”.
           </p>
         ) : (
           // Goals and prices are the person's own: masked in session replay, like the conversation.
           <ul className="flex flex-col gap-3" data-ph-mask>
             {panels.map((panel) => (
               <li key={panel.watch.id}>
-                <PanelCard panel={panel} onChange={(next) => replace(panel.watch.id, next)} />
+                {building === panel.watch.id ? (
+                  <BuildingCard />
+                ) : (
+                  <PanelCard
+                    panel={panel}
+                    fresh={fresh === panel.watch.id}
+                    onChange={(next) => replace(panel.watch.id, next)}
+                  />
+                )}
               </li>
             ))}
           </ul>
         )}
       </section>
       {budget ? (
-        <section aria-labelledby="titulo-saldo" className="flex flex-col gap-2 rounded-card bg-surface p-5 shadow-raised">
+        <section aria-labelledby="titulo-saldo" className="flex flex-col gap-3 rounded-card bg-surface p-5 shadow-raised">
           <h2 id="titulo-saldo" className="text-subheading text-ink">
             Uso da tone
           </h2>
-          <p className="text-small text-graphite">Últimos sete dias, o mesmo saldo da extensão.</p>
-          <div className="grid grid-cols-2 gap-2">
-            <span className="rounded-panel bg-sunken p-4">
-              <span className="block text-caption text-graphite">Disponível</span>
-              <span className="block text-ui text-ink tabular-nums">{usd(budget.availableUsd)}</span>
-            </span>
-            <span className="rounded-panel bg-sunken p-4">
-              <span className="block text-caption text-graphite">Teto</span>
-              <span className="block text-ui text-ink tabular-nums">{usd(budget.weeklyCapUsd)}</span>
-            </span>
-          </div>
+          <p className="text-small text-graphite">Nesta semana ainda restam</p>
+          <p className="display-sm font-display text-ink tabular-nums">
+            {leftPercent}% <span className="text-ui text-graphite">do uso</span>
+          </p>
+          <span
+            className="bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={leftPercent}
+            aria-valuetext={`${leftPercent}% de uso restante nesta semana`}
+          >
+            <span className="fill ink" style={{ width: `${leftPercent}%` }} />
+          </span>
+          <p className="text-caption text-graphite">
+            {usd(budget.availableUsd)} de {usd(budget.weeklyCapUsd)} · {usd(budget.weeklyCapUsd)} por semana é o uso
+            cheio.
+          </p>
         </section>
       ) : null}
+      {planning ? <NewPanelSheet onClose={() => setPlanning(false)} onBuilt={onBuilt} /> : null}
     </>
   );
 }

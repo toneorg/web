@@ -21,7 +21,7 @@ function HomeIcon() {
 export function Shell(props: {
   me: Me | null;
   /** Which part of the app is open, for the top bar. */
-  current: "conversas";
+  current?: "conversas" | "perfil";
   children: ReactNode;
 }) {
   const initial = props.me?.name.trim().charAt(0).toUpperCase() || "?";
@@ -51,13 +51,23 @@ export function Shell(props: {
             Painéis
           </button>
         </nav>
-        <span
-          role="img"
-          aria-label={props.me ? `Conta de ${props.me.name}` : "Conta"}
-          className="grid size-11 place-items-center rounded-full bg-ink text-ui text-on-ink"
-        >
-          {initial}
-        </span>
+        {props.me ? (
+          <Link
+            href="/conversas/perfil"
+            aria-label={`Perfil de ${props.me.name}: seus dados e o que a tone sabe`}
+            className={`grid size-11 place-items-center rounded-full bg-ink text-ui text-on-ink ${ring}`}
+          >
+            {initial}
+          </Link>
+        ) : (
+          <span
+            role="img"
+            aria-label="Conta"
+            className="grid size-11 place-items-center rounded-full bg-ink text-ui text-on-ink"
+          >
+            {initial}
+          </span>
+        )}
       </header>
       <div className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 pb-6 md:grid-cols-[minmax(16rem,22rem)_1fr] md:px-6">
         <aside

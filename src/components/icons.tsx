@@ -38,3 +38,11 @@ export function ChatIcon({ className, bold }: IconProps) {
     </svg>
   );
 }
+
+export function PlusIcon({ className, bold }: IconProps) {
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" className={className} {...stroke(bold)}>
+      <path d="M8 3v10M3 8h10" />
+    </svg>
+  );
+}
