@@ -88,3 +88,31 @@ describe("tour", () => {
     expect(onboardingSeen("u1")).toBe(true);
   });
 });
+
+describe("leitura mostrada no painel", async () => {
+  const { readingOf } = await import("../src/conversas/Panels");
+  const reading = (id: string, amount: number | null) => ({
+    id,
+    version: 1,
+    outcome: "partial",
+    conditionMet: false,
+    observedAt: "2026-11-03T13:00:00.000Z",
+    summary: {
+      message: "",
+      matches: amount === null ? [] : [{ title: "Fone", store: "x", url: "https://x", priceText: `R$ ${amount}`, amount }],
+    },
+  });
+
+  it("uma rodada vazia não apaga o último preço visto", () => {
+    expect(readingOf([reading("r3", null), reading("r2", 1532)])).toMatchObject({ latest: { id: "r2" }, emptyRound: true });
+  });
+
+  it("com preço na rodada mais nova, é ela", () => {
+    expect(readingOf([reading("r3", 1499), reading("r2", 1532)])).toMatchObject({ latest: { id: "r3" }, emptyRound: false });
+  });
+
+  it("sem nenhum preço, mostra a mais nova como está", () => {
+    expect(readingOf([reading("r3", null)])).toMatchObject({ latest: { id: "r3" }, emptyRound: false });
+    expect(readingOf([])).toEqual({ latest: null, emptyRound: false });
+  });
+});

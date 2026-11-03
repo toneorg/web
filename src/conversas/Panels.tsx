@@ -28,6 +28,8 @@ const when = (iso: string) =>
 interface Panel {
   watch: Watch;
   latest: WatchResult | null;
+  /** The newest round found no offer, so `latest` is an older reading with a price. */
+  emptyRound?: boolean;
 }
 type Action = "pause" | "resume" | "mute" | "unmute" | "check" | "delete";
 
@@ -36,6 +38,15 @@ export function lowestOf(result: WatchResult | null): string | null {
   const priced = (result?.summary.matches ?? []).filter((match) => match.amount !== null);
   priced.sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0));
   return priced[0]?.priceText ?? null;
+}
+
+/**
+ * The reading the card shows: the newest one with a price. The index sometimes comes back empty
+ * for a round; a price seen minutes before is still the useful thing to show.
+ */
+export function readingOf(results: WatchResult[]): Pick<Panel, "latest" | "emptyRound"> {
+  const latest = results.find((result) => lowestOf(result) !== null) ?? results[0] ?? null;
+  return { latest, emptyRound: Boolean(latest && results[0] && latest.id !== results[0].id) };
 }
 
 /** What the center says about a watch's runs, besides its latest reading. */
@@ -118,7 +129,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
         const fresh = await api.watch(watch.id);
         track("panel_check_finished", { found: Boolean(newer(results)), waited: state !== "done" });
         if (!newer(results)) setError("A leitura ainda não terminou. O resultado aparece aqui quando chegar.");
-        if (fresh) props.onChange({ watch: fresh, latest: results[0] ?? latest });
+        if (fresh) props.onChange({ watch: fresh, ...(results.length ? readingOf(results) : { latest }) });
         return;
       }
       props.onChange({ watch: await api.watchAction(watch.id, action), latest });
@@ -157,6 +168,11 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
           <span className="block text-caption text-graphite">Menor preço observado no índice</span>
           <span className="display-sm block font-display text-ink tabular-nums">{lowest}</span>
           {latest ? <span className="block text-caption text-graphite">em {when(latest.observedAt)}</span> : null}
+          {props.panel.emptyRound ? (
+            <span className="mt-1 block text-caption text-graphite">
+              A leitura mais recente não achou ofertas no índice; este é o último preço visto.
+            </span>
+          ) : null}
         </span>
       ) : latest ? (
         <span className="text-caption text-graphite">{latest.summary.message}</span>
@@ -286,10 +302,10 @@ export function Panels(props: { me: Me }) {
         const shown = watches.filter((watch) => watch.status !== "deleted");
         const latest = await Promise.all(
           shown.map((watch) =>
-            watch.confirmed ? api.watchResults(watch.id).then((list) => list[0] ?? null, () => null) : null,
+            watch.confirmed ? api.watchResults(watch.id).then(readingOf, () => null) : null,
           ),
         );
-        if (live) setPanels(shown.map((watch, index) => ({ watch, latest: latest[index] ?? null })));
+        if (live) setPanels(shown.map((watch, index) => ({ watch, latest: latest[index]?.latest ?? null, emptyRound: latest[index]?.emptyRound })));
       })
       .catch(() => live && setFailed(true));
     return () => {
