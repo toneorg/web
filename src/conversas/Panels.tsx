@@ -11,6 +11,7 @@ import { PlusIcon } from "@/components/icons";
 import { track } from "./analytics";
 import { api } from "./api";
 import { NewPanelSheet } from "./NewPanel";
+import { ICONS, PanelMenu } from "./PanelMenu";
 import { WATCHES_CHANGED } from "./Program";
 
 const STATUS: Record<Watch["status"], string> = {
@@ -130,6 +131,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
         track("panel_check_finished", { found: Boolean(newer(results)), waited: state !== "done" });
         if (!newer(results)) setError("A leitura ainda não terminou. O resultado aparece aqui quando chegar.");
         if (fresh) props.onChange({ watch: fresh, ...(results.length ? readingOf(results) : { latest }) });
+        window.dispatchEvent(new Event(WATCHES_CHANGED));
         return;
       }
       props.onChange({ watch: await api.watchAction(watch.id, action), latest });
@@ -144,23 +146,36 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
 
   return (
     <article
-      className={`flex flex-col gap-2 rounded-card bg-surface p-5 shadow-raised${props.fresh ? " rise" : ""}`}
+      className={`relative flex flex-col gap-2 rounded-card bg-surface p-5 shadow-raised${props.fresh ? " rise" : ""}`}
       aria-busy={busy !== null}
     >
       <span className="flex items-start justify-between gap-2">
         {watch.sessionId ? (
+          // The whole card opens the panel's conversation: the link's area covers it (after:inset-0).
           <Link
             href={`/conversas/${watch.sessionId}`}
-            className="text-ui text-ink underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            onClick={() => track("panel_opened", { status: watch.status })}
+            className="min-h-11 flex-1 content-center text-ui text-ink after:absolute after:inset-0 after:rounded-card hover:underline underline-offset-2 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ink"
           >
             {what}
           </Link>
         ) : (
-          <span className="text-ui text-ink">{what}</span>
+          <span className="min-h-11 flex-1 content-center text-ui text-ink">{what}</span>
         )}
-        <span className="shrink-0 rounded-tag bg-sunken px-2 py-0.5 text-label text-graphite">
+        <span className="mt-3 shrink-0 rounded-tag bg-sunken px-2 py-0.5 text-label text-graphite">
           {STATUS[watch.status]}
         </span>
+        <PanelMenu
+          label={`Ações do painel ${what}`}
+          disabled={busy !== null}
+          items={actionsOf(watch).map((action) => ({
+            id: action,
+            label: LABEL[action][0],
+            icon: ICONS[action],
+            danger: action === "delete",
+            onSelect: () => (action === "delete" ? setConfirmDelete(true) : void run(action)),
+          }))}
+        />
       </span>
       {condition ? <span className="text-caption text-graphite">{condition}</span> : null}
       {lowest ? (
@@ -178,15 +193,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
         <span className="text-caption text-graphite">{latest.summary.message}</span>
       ) : watch.status === "draft" ? (
         <span className="text-caption text-graphite">
-          Rascunho: nada roda antes de você confirmar.{" "}
-          {watch.sessionId ? (
-            <Link
-              href={`/conversas/${watch.sessionId}`}
-              className="font-medium text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-            >
-              Revisar e confirmar
-            </Link>
-          ) : null}
+          Rascunho: nada roda antes de você confirmar. Abra para revisar e confirmar.
         </span>
       ) : (
         <span className="text-caption text-graphite">
@@ -211,35 +218,25 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
           {facts.muted ? "E-mail silenciado: os avisos ficam só aqui." : "Avisos aqui e por e-mail."}
         </span>
       ) : null}
-      <div className="mt-1 flex flex-wrap gap-2">
-        {confirmDelete ? (
-          <>
-            <button
-              type="button"
-              className={`${BUTTON} text-alert`}
-              disabled={busy !== null}
-              onClick={() => run("delete")}
-            >
-              {busy === "delete" ? LABEL.delete[1] : "Confirmar exclusão"}
+      {busy && busy !== "check" && busy !== "delete" ? (
+        <span role="status" className="text-caption text-graphite">
+          {LABEL[busy][1]}
+        </span>
+      ) : null}
+      {confirmDelete ? (
+        // Above the card's link, so the buttons get the clicks.
+        <div role="group" aria-label="Excluir este painel?" className="relative z-[1] mt-1 flex flex-col gap-2 rounded-panel bg-sunken p-3">
+          <span className="text-small text-ink">Excluir este painel? As leituras param; a conversa continua.</span>
+          <span className="flex flex-wrap gap-2">
+            <button type="button" className={`${BUTTON} text-alert`} disabled={busy !== null} onClick={() => run("delete")}>
+              {busy === "delete" ? LABEL.delete[1] : "Excluir painel"}
             </button>
             <button type="button" className={BUTTON} disabled={busy !== null} onClick={() => setConfirmDelete(false)}>
               Cancelar
             </button>
-          </>
-        ) : (
-          actionsOf(watch).map((action) => (
-            <button
-              key={action}
-              type="button"
-              className={action === "delete" ? `${BUTTON} text-alert` : BUTTON}
-              disabled={busy !== null}
-              onClick={() => (action === "delete" ? setConfirmDelete(true) : run(action))}
-            >
-              {LABEL[action][busy === action ? 1 : 0]}
-            </button>
-          ))
-        )}
-      </div>
+          </span>
+        </div>
+      ) : null}
       {error ? (
         <p role="alert" className="text-small font-medium text-alert">
           {error}

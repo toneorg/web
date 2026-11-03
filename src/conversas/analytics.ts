@@ -49,6 +49,7 @@ export type WebEvent =
   | "watch_draft_confirmed"
   // Panels (watches) on the left
   | "panel_create_opened"
+  | "panel_opened"
   | "panel_planned"
   | "panel_plan_failed"
   | "panel_created"
