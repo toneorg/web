@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@43abe652d737 (packages/shared/src/tools.ts). Não edite aqui.
+// Gerado de toneorg/extension@63f84475b50f (packages/shared/src/tools.ts). Não edite aqui.
 // The tools the agent can call. Two kinds:
 //   browser  run in the extension, on the store's tab (RF2)
 //   server   run on the server (memory, RF3)
@@ -9,6 +9,7 @@
 import * as z from "zod";
 import { AgentDecisionOp } from "./decision";
 import { ResearchRequest } from "./research-execution";
+import { ReviewRequest } from "./reviews";
 import { SituationUpdate } from "./situation";
 import { WatchRule } from "./watch";
 
@@ -147,6 +148,11 @@ export const ServerTools = {
     description:
       "Pesquisa produtos no servidor pelo índice e, na web, pelas ferramentas remotas validadas. Escolha em remoteSelection até três lojas relevantes do catálogo; mantenha storeScope irrestrito salvo pedido explícito da pessoa. Lojas explícitas prevalecem sem corte silencioso. Campos sem prova ficam desconhecidos.",
     args: ResearchRequest,
+  },
+  review_videos: {
+    description:
+      "Lê reviews do YouTube (transcrições) e monta uma síntese de reviews: o que importa, consensos, divergências, cuidados e modelos citados. Roda em segundo plano e NÃO devolve a síntese agora: responda com o que já tem; ela aparece na conversa quando ficar pronta e chega a você no próximo turno. Use em compras consideradas (cadeira, notebook, colchão), não em compras de impulso. subject category uma vez por conversa; subject product só para até três candidatas da lista curta, com marca e modelo. Chame no mesmo passo de research_products.",
+    args: ReviewRequest,
   },
   update_decision: {
     description:

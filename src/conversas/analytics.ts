@@ -35,6 +35,7 @@ export type WebEvent =
   | "product_picked"
   | "product_unpicked"
   | "product_videos_requested"
+  | "review_link_opened"
   | "product_videos_failed"
   | "situation_outcome_recorded"
   // Research in the person's own Chrome (T14)

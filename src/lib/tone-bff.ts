@@ -21,7 +21,7 @@ const ALLOWED: RegExp[] = [
   /^situations$/,
   /^situations\/[^/]+\/outcome$/,
   /^sessions$/,
-  /^sessions\/[^/]+(\/(transcript|end|research-runs|decision))?$/,
+  /^sessions\/[^/]+(\/(transcript|end|research-runs|review-runs|decision))?$/,
   /^agent\/turn$/,
   /^research$/,
   /^watches$/,

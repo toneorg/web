@@ -3,7 +3,7 @@
 // agent researches through the server; store-tab actions stay in the extension.
 import Link from "next/link";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
-import { PickedProductBar, ProductVideos } from "@/tone/genui";
+import { PickedProductBar, ProductVideos, ReviewSynthesisCard } from "@/tone/genui";
 import {
   type AgentEvent,
   MEDIA_COMPONENT,
@@ -12,6 +12,7 @@ import {
   ProductMedia,
   type ResearchRunState,
   reduceResearchRuns,
+  type ReviewRunState,
   storeLabel,
   type TurnInput,
   type Watch,
@@ -33,7 +34,20 @@ type Item =
   | { id: string; kind: "notice"; text: string; error?: boolean }
   | { id: string; kind: "research"; run: ResearchRunState }
   /** TikToks of a product, asked for from the picked product above the composer. */
-  | { id: string; kind: "media"; media: ProductMedia };
+  | { id: string; kind: "media"; media: ProductMedia }
+  /** Síntese de reviews: a run that ends apart from the turn, so the research never waits for it. */
+  | { id: string; kind: "reviews"; run: ReviewRunState };
+
+/** Puts each review run in its place in the conversation, or at the end when it is new. */
+function placeReviews(list: Item[], runs: ReviewRunState[]): Item[] {
+  let next = list;
+  for (const run of runs) {
+    const id = `reviews-${run.runId}`;
+    const item: Item = { id, kind: "reviews", run };
+    next = next.some((entry) => entry.id === id) ? next.map((entry) => (entry.id === id ? item : entry)) : [...next, item];
+  }
+  return next;
+}
 
 let counter = 0;
 const uid = () => `w${Date.now().toString(36)}${(++counter).toString(36)}`;
@@ -56,8 +70,14 @@ export function Conversation(props: { sessionId: string; first?: string | null }
   const load = () => setRound((value) => value + 1);
   useEffect(() => {
     let live = true;
-    Promise.all([api.transcript(sessionId), api.researchRuns(sessionId), api.me(), round])
-      .then(([transcript, runs, person]) => {
+    Promise.all([
+      api.transcript(sessionId),
+      api.researchRuns(sessionId),
+      api.me(),
+      api.reviewRuns(sessionId).catch(() => []),
+      round,
+    ])
+      .then(([transcript, runs, person, reviews]) => {
         if (!live) return;
         setMe(person);
         setItems([
@@ -70,6 +90,7 @@ export function Conversation(props: { sessionId: string; first?: string | null }
             : { id: uid(), kind: "notice", text: "Um quadro desta conversa aparece completo na extensão." };
         }),
         ...runs.map((run): Item => ({ id: `run-${run.runId}`, kind: "research", run })),
+        ...reviews.map((run): Item => ({ id: `reviews-${run.runId}`, kind: "reviews", run })),
         ]);
         setState("ready");
       })
@@ -227,6 +248,7 @@ export function Conversation(props: { sessionId: string; first?: string | null }
         setItems((list) => list.map((item) => (item.kind === "assistant" && item.streaming ? { ...item, streaming: false } : item)));
         if (controller.current === abort) controller.current = null;
         setBusy(false);
+        setReviewsSince(Date.now());
       }
     },
     [fold, sessionId],
@@ -274,6 +296,36 @@ export function Conversation(props: { sessionId: string; first?: string | null }
       setBusy(false);
     }
   };
+  // Síntese de reviews: read after each turn, then every 3 s while one runs (at most 5 min).
+  const [reviewsSince, setReviewsSince] = useState<number | null>(null);
+  const reviewsRunning = items.some((item) => item.kind === "reviews" && item.run.status === "running");
+  useEffect(() => {
+    if (reviewsRunning) setReviewsSince((value) => value ?? Date.now());
+  }, [reviewsRunning]);
+  useEffect(() => {
+    if (reviewsSince === null) return;
+    let live = true;
+    const read = () =>
+      api
+        .reviewRuns(sessionId)
+        .then((runs) => {
+          if (!live) return;
+          setItems((list) => placeReviews(list, runs));
+          if (!runs.some((run) => run.status === "running") || Date.now() - reviewsSince > 5 * 60_000)
+            setReviewsSince(null);
+        })
+        // A server without the route, or offline: stop until the next turn instead of asking every 3 s.
+        .catch(() => {
+          if (live) setReviewsSince(null);
+        });
+    void read();
+    const timer = setInterval(read, 3000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [reviewsSince, sessionId]);
+
   // T14: a local run is followed by reading its saved state until it ends (about every 2 s, at most 12 min).
   const [following, setFollowing] = useState<string | null>(null);
   useEffect(() => {
@@ -397,6 +449,14 @@ export function Conversation(props: { sessionId: string; first?: string | null }
             );
           if (item.kind === "research") return <ResearchRun key={item.id} run={item.run} />;
           if (item.kind === "media") return <ProductVideos key={item.id} media={item.media} />;
+          if (item.kind === "reviews")
+            return (
+              <ReviewSynthesisCard
+                key={item.id}
+                run={item.run}
+                onOpen={(videoId) => track("review_link_opened", { video_id: videoId })}
+              />
+            );
           return (
             <div key={item.id} className="flex flex-col gap-3">
               {splitAnswer(item.text).map((part, index) =>

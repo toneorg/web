@@ -15,6 +15,7 @@ import {
   ProductMedia,
   PurchaseSituation,
   ResearchRunState,
+  ReviewRunState,
   SessionSummary,
   TranscriptItem,
   Watch,
@@ -175,6 +176,7 @@ export const api = {
   newSession: async () => (await send("sessions", "POST", { site: null })) as { sessionId: string; greeting: string },
   transcript: async (id: string) => TranscriptItem.array().parse(await call(`sessions/${id}/transcript`)),
   researchRuns: async (id: string) => ResearchRunState.array().parse(await call(`sessions/${id}/research-runs`)),
+  reviewRuns: async (id: string) => ReviewRunState.array().parse(await call(`sessions/${id}/review-runs`)),
   decision: async (id: string) => DecisionState.nullable().parse(await call(`sessions/${id}/decision`)),
   changeDecision: async (id: string, version: number, ops: DecisionOp[]) =>
     DecisionState.parse(await send(`sessions/${id}/decision`, "PATCH", { version, ops })),

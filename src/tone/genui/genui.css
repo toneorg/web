@@ -1,4 +1,4 @@
-/* Gerado de toneorg/extension@43abe652d737 (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/extension@63f84475b50f (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -1358,4 +1358,60 @@ fieldset.field legend {
 .path > p {
   margin: var(--tone-space-xs) 0 0;
   text-wrap: pretty;
+}
+
+/* Síntese de reviews (Reviews.tsx) */
+.reviews .review-group {
+  margin-top: var(--tone-space-lg);
+}
+.reviews h4 {
+  margin: 0 0 var(--tone-space-sm);
+  font: 600 14px / 20px var(--tone-font-sans);
+  color: var(--tone-graphite);
+}
+.reviews ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.reviews .review-group > ul > li + li {
+  margin-top: var(--tone-space-md);
+  padding-top: var(--tone-space-md);
+  border-top: 1px solid var(--tone-rule);
+}
+.review-sources {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--tone-space-md);
+}
+.review-sources a,
+.review-videos a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tone-space-xs);
+  min-height: 44px;
+  color: var(--tone-ink);
+  text-underline-offset: 3px;
+}
+.review-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--tone-space-md);
+  margin-top: var(--tone-space-sm);
+}
+.review-more {
+  margin-top: var(--tone-space-lg);
+  border-radius: var(--tone-radius-panel);
+  background: var(--tone-sunken);
+  padding: 0 var(--tone-space-lg) var(--tone-space-xs);
+}
+.review-more[open] {
+  padding-bottom: var(--tone-space-lg);
+}
+.review-more summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
 }
