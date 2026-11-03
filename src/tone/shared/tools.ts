@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2b0635e524d0 (packages/shared/src/tools.ts). Não edite aqui.
+// Gerado de toneorg/extension@43abe652d737 (packages/shared/src/tools.ts). Não edite aqui.
 // The tools the agent can call. Two kinds:
 //   browser  run in the extension, on the store's tab (RF2)
 //   server   run on the server (memory, RF3)
@@ -145,7 +145,7 @@ export function isUiTool(name: string): name is UiToolName {
 export const ServerTools = {
   research_products: {
     description:
-      "Pesquisa produtos remotamente no servidor, em índice de lojas suportadas, sem abrir navegador. Preserve o escopo e os requisitos da pessoa; campos sem prova ficam desconhecidos.",
+      "Pesquisa produtos no servidor pelo índice e, na web, pelas ferramentas remotas validadas. Escolha em remoteSelection até três lojas relevantes do catálogo; mantenha storeScope irrestrito salvo pedido explícito da pessoa. Lojas explícitas prevalecem sem corte silencioso. Campos sem prova ficam desconhecidos.",
     args: ResearchRequest,
   },
   update_decision: {
@@ -155,7 +155,7 @@ export const ServerTools = {
   },
   draft_watch: {
     description:
-      "Cria ou ajusta o rascunho de um acompanhamento (descoberta de novidades ou monitoramento de produtos identificados): objetivo, busca, marcas, categorias, variantes, produtos, lojas, condição de aviso (preço alvo, queda desde a primeira observação ou novidade) e avisos. Nada executa nem cobra antes de a pessoa confirmar na tela; você não confirma. Pedidos vagos como 'promoção' ficam pendentes de esclarecimento. Mostre com WatchDraft e o id devolvido.",
+      "Cria ou ajusta o rascunho de um acompanhamento: objetivo, busca, marcas, categorias, variantes, produtos, escopo explícito da pessoa, remoteSelection com até três lojas relevantes do catálogo, condição de aviso e avisos. Nenhuma pesquisa de produto nem aviso executa antes de a pessoa confirmar na tela; você não confirma. Pedidos vagos como 'promoção' ficam pendentes de esclarecimento. Mostre com WatchDraft e o id devolvido.",
     args: z.object({ watchId: z.string().min(1).max(60).optional(), rule: WatchRule }),
   },
   compare_photo: {

@@ -43,3 +43,7 @@ O protocolo compartilhado deve aceitar a fonte `remote_browser`, incluindo na we
 ## Limites desta aprovação
 
 Este desenho aprova a preparação da funcionalidade. O merge e a publicação dependem da revisão das alterações concretas e de CI válido. A chave enviada foi autorizada para o setup do MCP; sua instalação no Fly requer autorização específica para esse uso.
+
+## Autorização posterior
+
+Em 03/11/2026, após aprovar o desenho e este documento, a pessoa autorizou os merges dos PRs mesmo com CI indisponível e todas as configurações necessárias, inclusive por navegador. Essa autorização cobre a publicação coordenada e a configuração da integração no Fly.
