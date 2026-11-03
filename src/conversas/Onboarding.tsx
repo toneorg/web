@@ -179,7 +179,7 @@ const STEPS: Step[] = [
   {
     id: "ask",
     title: "Me diz o que você procura",
-    text: "Escreva como falaria com uma amiga: o que é, para quem, quanto quer gastar. Eu pesquiso nas lojas pelo servidor, sem abrir abas no seu computador.",
+    text: "Escreva como falaria com uma amiga: o que é, para quem, quanto quer gastar.",
     art: ArtAsk,
   },
   {

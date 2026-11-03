@@ -57,9 +57,17 @@ describe("moldura da web (T16)", () => {
     expect(html).toContain('aria-label="Seus painéis"');
     expect(html).toContain("Seus painéis");
     expect(html).toContain("conversa");
-    expect(html).toContain(">A<");
-    // The avatar opens the person's own page, where their data lives.
-    expect(html).toContain('href="/conversas/perfil"');
+    // The person's own page, where their data lives, is a section of the top bar.
+    expect(html).toMatch(/href="\/conversas\/perfil"[^>]*>Perfil</);
+  });
+
+  it("o perfil fica marcado na barra quando está aberto", () => {
+    const html = renderToStaticMarkup(
+      <Shell me={me()} current="perfil">
+        <p>perfil</p>
+      </Shell>,
+    );
+    expect(html).toMatch(/aria-current="page"[^>]*href="\/conversas\/perfil"/);
   });
 
   it("o uso da semana é uma porcentagem: US$ 1 por semana é o uso cheio", () => {
@@ -80,11 +88,9 @@ describe("moldura da web (T16)", () => {
     expect(lowestOf(null)).toBeNull();
   });
 
-  it("diz quando a pesquisa também usa navegador remoto, sem abrir abas", () => {
-    expect(researchNote(me())).toMatch(/ações na loja só pela extensão/);
-    expect(researchNote(me(["mercadolivre.com.br", "dior.com"]))).toBe(
-      "Pesquisa pelo servidor e em Mercado Livre, Dior por navegador remoto, sem abrir abas",
-    );
+  it("diz em quais lojas a pesquisa também lê direto", () => {
+    expect(researchNote(me())).toMatch(/só pela extensão/);
+    expect(researchNote(me(["mercadolivre.com.br", "dior.com"]))).toBe("Também pesquiso direto em Mercado Livre, Dior");
   });
 
   it("o cartão da pesquisa diz que os preços foram lidos por navegador remoto", () => {

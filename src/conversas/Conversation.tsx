@@ -19,7 +19,7 @@ import {
 } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { since, track } from "./analytics";
-import { ApiError, api, streamTurn } from "./api";
+import { ApiError, api, peek, streamTurn } from "./api";
 import { Program, type ProgramHost, STORE_HOSTS, WATCHES_CHANGED } from "./Program";
 import { WatchReadings } from "./WatchReadings";
 import { LocalResearch } from "./LocalResearch";
@@ -43,7 +43,8 @@ export function Conversation(props: { sessionId: string; first?: string | null }
   const [items, setItems] = useState<Item[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "expired" | "error">("loading");
   const [draft, setDraft] = useState("");
-  const [me, setMe] = useState<Me | null>(null);
+  // The frame (account and panels) draws at once from the last copy while the conversation loads.
+  const [me, setMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
   const [busy, setBusy] = useState(false);
   /** The product picked from a component: it goes with every message until the person lets it go. */
   const [picked, setPicked] = useState<PickedProduct | null>(null);
@@ -490,6 +491,6 @@ export function Conversation(props: { sessionId: string; first?: string | null }
 /** T16: what the research of this page can do, said in the header. */
 export function researchNote(me: Me | null): string {
   const remote = me?.remoteStores ?? [];
-  if (!remote.length) return "Pesquisa pelo servidor · ações na loja só pela extensão";
-  return `Pesquisa pelo servidor e em ${remote.map(storeLabel).join(", ")} por navegador remoto, sem abrir abas`;
+  if (!remote.length) return "Pôr no carrinho e escolher variação, só pela extensão";
+  return `Também pesquiso direto em ${remote.map(storeLabel).join(", ")}`;
 }

@@ -27,53 +27,40 @@ export function Shell(props: {
   sessionId?: string;
   children: ReactNode;
 }) {
-  const initial = props.me?.name.trim().charAt(0).toUpperCase() || "?";
   // On a phone the panels open above the work, on request; on a wide screen they are always on the left.
   const [panelsOpen, setPanelsOpen] = useState(false);
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-paper/90 px-4 py-3 backdrop-blur md:px-6">
-        <Link href="/" aria-label="Início da tone" className={`grid size-11 place-items-center rounded-full bg-surface text-ink shadow-raised ${ring}`}>
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-paper/90 px-4 py-3 backdrop-blur md:px-6">
+        <Link href="/" aria-label="Início da tone" className={`grid size-11 shrink-0 place-items-center rounded-full bg-surface text-ink shadow-raised max-sm:hidden ${ring}`}>
           <HomeIcon />
         </Link>
         <nav aria-label="Seções" className="flex gap-1 rounded-full bg-surface p-1 shadow-raised">
           <Link
             href="/conversas"
             aria-current={props.current === "conversas" ? "page" : undefined}
-            className={`min-h-11 content-center rounded-full px-5 text-ui ${props.current === "conversas" ? "bg-ink text-on-ink" : "text-ink"} ${ring}`}
+            className={`min-h-11 content-center rounded-full px-4 text-ui max-[22.5rem]:px-3 sm:px-5 ${props.current === "conversas" ? "bg-ink text-on-ink" : "text-ink"} ${ring}`}
           >
             Conversas
+          </Link>
+          <Link
+            href="/conversas/perfil"
+            aria-current={props.current === "perfil" ? "page" : undefined}
+            className={`min-h-11 content-center rounded-full px-4 text-ui max-[22.5rem]:px-3 sm:px-5 ${props.current === "perfil" ? "bg-ink text-on-ink" : "text-ink"} ${ring}`}
+          >
+            Perfil
           </Link>
           <button
             type="button"
             aria-expanded={panelsOpen}
             aria-controls="paineis"
             onClick={() => setPanelsOpen((open) => !open)}
-            className={`min-h-11 rounded-full px-5 text-ui md:hidden ${panelsOpen ? "bg-ink text-on-ink" : "text-ink"} ${ring}`}
+            className={`min-h-11 rounded-full px-4 text-ui max-[22.5rem]:px-3 sm:px-5 md:hidden ${panelsOpen ? "bg-ink text-on-ink" : "text-ink"} ${ring}`}
           >
             Painéis
           </button>
         </nav>
-        <div className="flex items-center gap-2">
         <FeedbackButton sessionId={props.sessionId ?? null} />
-        {props.me ? (
-          <Link
-            href="/conversas/perfil"
-            aria-label={`Perfil de ${props.me.name}: seus dados e o que a tone sabe`}
-            className={`grid size-11 place-items-center rounded-full bg-ink text-ui text-on-ink ${ring}`}
-          >
-            {initial}
-          </Link>
-        ) : (
-          <span
-            role="img"
-            aria-label="Conta"
-            className="grid size-11 place-items-center rounded-full bg-ink text-ui text-on-ink"
-          >
-            {initial}
-          </span>
-        )}
-        </div>
       </header>
       <div className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 pb-6 md:grid-cols-[minmax(16rem,22rem)_1fr] md:px-6">
         <aside

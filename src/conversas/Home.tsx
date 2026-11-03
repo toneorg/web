@@ -16,7 +16,7 @@ import {
   todayInBrazil,
 } from "@/tone/shared";
 import { track } from "./analytics";
-import { ApiError, api } from "./api";
+import { ApiError, api, peek } from "./api";
 import { Onboarding, onboardingSeen } from "./Onboarding";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
@@ -65,10 +65,13 @@ function SituationItem(props: { situation: PurchaseSituation; onChange: () => vo
 
 export function Home() {
   const router = useRouter();
-  const [me, setMe] = useState<Me | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "signed_out" | "expired" | "error">("loading");
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [situations, setSituations] = useState<PurchaseSituation[]>([]);
+  // Coming back from another screen, the last copy draws at once; the fresh one replaces it.
+  const [me, setMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
+  const [sessions, setSessions] = useState<SessionSummary[]>(() => peek<SessionSummary[]>("sessions") ?? []);
+  const [state, setState] = useState<"loading" | "ready" | "signed_out" | "expired" | "error">(() =>
+    peek("me") && peek("sessions") ? "ready" : "loading",
+  );
+  const [situations, setSituations] = useState<PurchaseSituation[]>(() => peek<PurchaseSituation[]>("situations") ?? []);
   const [starting, setStarting] = useState(false);
   const [ask, setAsk] = useState("");
   // Each change of `round` loads everything again (after signing in, deleting a memory, retrying).
@@ -153,11 +156,7 @@ export function Home() {
           placeholder="Ex.: um perfume amadeirado até R$ 600, ou o menor preço do fone que eu vi"
           className="min-h-13 resize-none rounded-input bg-paper px-4 py-3 text-body text-ink focus-visible:outline-2 focus-visible:outline-ink"
         />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-caption text-graphite">
-            Eu pesquiso pelo servidor{me.remoteStores?.length ? " e navego nas lojas por um navegador remoto" : ""}, sem abrir
-            abas no seu computador.
-          </p>
+        <div className="flex justify-end">
           <button type="submit" className={primary} disabled={starting || !ask.trim()}>
             {starting ? "Abrindo…" : "Pesquisar"}
           </button>
@@ -174,8 +173,7 @@ export function Home() {
         </div>
         {sessions.length === 0 ? (
           <p className="text-body text-graphite">
-            Nenhuma conversa ainda. Comece uma nova: eu pesquiso nas lojas pelo servidor, sem abrir abas, mesmo com a
-            extensão fechada.
+            Nenhuma conversa ainda. Escreva acima o que você procura.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -212,7 +210,7 @@ export function Home() {
               Ocasiões
             </h2>
             <p className="text-small text-graphite">
-              O que você estava tentando resolver em cada conversa. Contar como foi me ensina o que funciona para você.
+              Conte como foi cada uma: assim eu aprendo o que funciona para você.
             </p>
             <ul className="flex flex-col gap-2" data-ph-mask>
               {situations.map((situation) => (
@@ -226,8 +224,8 @@ export function Home() {
             Extensão no Chrome
           </h2>
           <p className="text-small text-graphite">
-            Aqui eu pesquiso pelo servidor, mesmo com o Chrome fechado. Ler a página de uma loja, escolher variação ou pôr no
-            carrinho continua na extensão, com o Chrome aberto. Nela, entre com o mesmo e-mail e a mesma senha.
+            Para ler a página de uma loja, escolher variação ou pôr no carrinho, use a extensão, com o mesmo e-mail e a
+            mesma senha.
           </p>
         </section>
       </div>

@@ -6,7 +6,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { type Me, type Memory, OWNED_CATEGORY } from "@/tone/shared";
 import { ToneWordmark } from "@/components/tone-logo";
 import { track } from "./analytics";
-import { ApiError, api } from "./api";
+import { ApiError, api, peek } from "./api";
 import { Sheet, useSheetClose } from "./Sheet";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
@@ -80,7 +80,7 @@ function Confirm(props: { pending: NonNullable<Pending> }) {
       await props.pending.run();
       close();
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Não deu certo agora.");
+      setError(failure instanceof Error ? failure.message : "Não deu certo. Tente de novo.");
       setBusy(false);
     }
   };
@@ -105,9 +105,12 @@ function Confirm(props: { pending: NonNullable<Pending> }) {
 }
 
 export function Profile() {
-  const [me, setMe] = useState<Me | null>(null);
-  const [memories, setMemories] = useState<Memory[]>([]);
-  const [state, setState] = useState<"loading" | "ready" | "signed_out" | "expired" | "error">("loading");
+  // Coming back from another screen, the last copy draws at once; the fresh one replaces it.
+  const [me, setMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
+  const [memories, setMemories] = useState<Memory[]>(() => peek<Memory[]>("memories") ?? []);
+  const [state, setState] = useState<"loading" | "ready" | "signed_out" | "expired" | "error">(() =>
+    peek("me") && peek("memories") ? "ready" : "loading",
+  );
   const [pending, setPending] = useState<Pending>(null);
   const [newFact, setNewFact] = useState("");
   const [adding, setAdding] = useState(false);
@@ -255,7 +258,7 @@ export function Profile() {
             Seus dados
           </h2>
           <p className="text-small text-graphite">
-            Você baixa tudo o que guardei ou apaga, quando quiser. O que for apagado não volta.
+            Baixe ou apague o que eu guardei, quando quiser. O que for apagado não volta.
           </p>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={quiet} onClick={() => void exportData()}>
@@ -282,14 +285,14 @@ export function Profile() {
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             <Link href="/conversas?tour=1" className={`${quiet} inline-flex items-center`}>
-              Rever o tour da tone
+              Rever o tour
             </Link>
             <button
               type="button"
               className={quiet}
               onClick={() => void api.logout().finally(() => setState("signed_out"))}
             >
-              Sair desta web
+              Sair
             </button>
             <button
               type="button"

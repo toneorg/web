@@ -122,16 +122,16 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
       }
       if (action === "check") {
         // Compared with the last reading the server had, not with this browser's clock.
-        const before = (await api.watchResults(watch.id))[0]?.observedAt ?? "";
+        const before = (await api.watchResults(watch.id, { fresh: true }))[0]?.observedAt ?? "";
         const { state } = await api.checkWatch(watch.id);
         // The reading runs on the server and may end after the answer: follow it for up to a minute.
         const newer = (list: WatchResult[]) => list.find((result) => result.observedAt > before) ?? null;
-        let results = await api.watchResults(watch.id);
+        let results = await api.watchResults(watch.id, { fresh: true });
         if (state !== "done" && !newer(results)) {
           setChecking(true);
           for (let tries = 0; tries < 20 && !newer(results); tries++) {
             await new Promise((resolve) => window.setTimeout(resolve, 3000));
-            results = await api.watchResults(watch.id);
+            results = await api.watchResults(watch.id, { fresh: true });
           }
           setChecking(false);
         }
@@ -145,7 +145,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
       props.onChange({ watch: await api.watchAction(watch.id, action), latest });
     } catch (failure) {
       track("panel_action_failed", { action });
-      setError(failure instanceof Error ? failure.message : "Não deu certo agora.");
+      setError(failure instanceof Error ? failure.message : "Não deu certo. Tente de novo.");
     } finally {
       setBusy(null);
       setConfirmDelete(false);
@@ -204,7 +204,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
         <span className="text-caption text-graphite">{latest.summary.message}</span>
       ) : watch.status === "draft" ? (
         <span className="text-caption text-graphite">
-          Rascunho: nada roda antes de você confirmar. Abra para revisar e confirmar.
+          Rascunho: abra para revisar e confirmar. Nada roda antes disso.
         </span>
       ) : (
         <span className="text-caption text-graphite">
@@ -281,8 +281,17 @@ function BuildingCard() {
   );
 }
 
+/** The panels as last shown, so another screen draws them at once while they are read again. */
+let lastPanels: { userId: string; panels: Panel[] } | null = null;
+
 export function Panels(props: { me: Me }) {
-  const [panels, setPanels] = useState<Panel[] | null>(null);
+  const userId = props.me.id;
+  const [panels, setPanels] = useState<Panel[] | null>(() =>
+    lastPanels?.userId === userId ? lastPanels.panels : null,
+  );
+  useEffect(() => {
+    if (panels) lastPanels = { userId, panels };
+  }, [panels, userId]);
   const [failed, setFailed] = useState(false);
   const [planning, setPlanning] = useState(false);
   /** The panel being built now, and the one that has just been built (it rises in). */
@@ -363,8 +372,7 @@ export function Panels(props: { me: Me }) {
           <p className="text-small text-graphite">Carregando…</p>
         ) : panels.length === 0 ? (
           <p className="rounded-card bg-surface p-5 text-small text-graphite shadow-raised">
-            Nada por aqui ainda. Toque no + e diga o que quer acompanhar, por exemplo “me avise quando o fone baixar
-            de R$ 300”.
+            Nenhum painel ainda. Use o + e diga o que quer acompanhar, como “me avise quando o fone baixar de R$ 300”.
           </p>
         ) : (
           // Goals and prices are the person's own: masked in session replay, like the conversation.
@@ -405,8 +413,7 @@ export function Panels(props: { me: Me }) {
             <span className="fill ink" style={{ width: `${leftPercent}%` }} />
           </span>
           <p className="text-caption text-graphite">
-            {usd(budget.availableUsd)} de {usd(budget.weeklyCapUsd)} · {usd(budget.weeklyCapUsd)} por semana é o uso
-            cheio.
+            {usd(budget.availableUsd)} de {usd(budget.weeklyCapUsd)} nesta semana
           </p>
         </section>
       ) : null}

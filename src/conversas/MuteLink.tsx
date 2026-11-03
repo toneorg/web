@@ -54,7 +54,7 @@ export function MuteLink(props: { token: string | null }) {
               setState("done");
             })
             .catch((failure: unknown) => {
-              setError(failure instanceof Error ? failure.message : "Não deu certo agora. Tente de novo.");
+              setError(failure instanceof Error ? failure.message : "Não deu certo. Tente de novo.");
               setState("failed");
             });
         }}

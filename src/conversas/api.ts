@@ -64,12 +64,54 @@ async function call(path: string, init: RequestInit = {}): Promise<unknown> {
   }
   return body;
 }
-const send = (path: string, method: string, body?: unknown) =>
-  call(path, { method, body: body === undefined ? undefined : JSON.stringify(body) });
+/**
+ * What the screens read often (the account, the lists, the panels), kept in memory for a short
+ * while. Going from one screen to another draws at once from here and asks the server only once
+ * the copy is old, so moving around the app costs no extra round trips through /api/tone.
+ * Two screens asking for the same thing at the same time share one request.
+ * Any change sent to the server forgets every copy, so nothing stale survives an action.
+ */
+const FRESH_MS = 30_000;
+const kept = new Map<string, { at: number; value: Promise<unknown>; settled?: unknown }>();
+
+function cached<T>(key: string, load: () => Promise<T>, options: { fresh?: boolean } = {}): Promise<T> {
+  const entry = kept.get(key);
+  if (!options.fresh && entry && Date.now() - entry.at < FRESH_MS) return entry.value as Promise<T>;
+  const value = load();
+  const next: { at: number; value: Promise<unknown>; settled?: unknown } = { at: Date.now(), value };
+  kept.set(key, next);
+  value.then(
+    (result) => {
+      next.settled = result;
+    },
+    () => {
+      if (kept.get(key) === next) kept.delete(key);
+    },
+  );
+  return value;
+}
+
+/** The last answer kept for `key`, even if old, to draw a screen before the fresh one arrives. */
+export function peek<T>(key: string): T | undefined {
+  return kept.get(key)?.settled as T | undefined;
+}
+
+/** Forgets every kept answer: after a change, signing in or out, or a new turn. */
+export function forgetCached() {
+  kept.clear();
+}
+
+/** A change: every kept copy is forgotten before it leaves and again once it lands. */
+const send = (path: string, method: string, body?: unknown) => {
+  forgetCached();
+  return call(path, { method, body: body === undefined ? undefined : JSON.stringify(body) }).finally(forgetCached);
+};
 
 let identifiedUserId: string | null = null;
 
-async function me() {
+const me = () => cached("me", loadMe);
+
+async function loadMe() {
   try {
     const person = Me.parse(await call("me"));
     if (identifiedUserId !== person.id) {
@@ -82,6 +124,7 @@ async function me() {
     return person;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
+      forgetCached();
       if (identifiedUserId || posthog.get_property("$user_id")) posthog.reset();
       identifiedUserId = null;
     }
@@ -94,6 +137,7 @@ async function logout() {
     track("signed_out");
     await send("auth/logout", "POST", {});
   } finally {
+    forgetCached();
     posthog.reset();
     identifiedUserId = null;
   }
@@ -110,7 +154,7 @@ export const api = {
     send("auth/web/redeem", "POST", { code, name, email, password, consent: true, consentVersion: CONSENT_VERSION }),
   logout,
   accessSessions: async () => AccessSession.array().parse(await call("auth/sessions")),
-  memories: async () => Memory.array().parse(await call("memories")),
+  memories: () => cached("memories", async () => Memory.array().parse(await call("memories"))),
   deleteMemory: (id: string) => send(`memories/${id}`, "DELETE"),
   /** A hypothesis of the tone, confirmed by the person from the list. */
   confirmMemory: async (id: string) => Memory.parse(await send(`memories/${id}/confirm`, "POST", {})),
@@ -123,18 +167,18 @@ export const api = {
   /** Everything of the account, gone. Not reversible. */
   deleteAccount: () => send("me", "DELETE"),
   /** What each conversation was trying to solve, newest first. */
-  situations: async () => PurchaseSituation.array().parse(await call("situations")),
+  situations: () => cached("situations", async () => PurchaseSituation.array().parse(await call("situations"))),
   /** After the occasion: how it went. */
   recordOutcome: async (id: string, verdict: SituationOutcomeVerdict) =>
     PurchaseSituation.parse(await send(`situations/${id}/outcome`, "POST", { verdict })),
-  sessions: async () => SessionSummary.array().parse(await call("sessions")),
+  sessions: () => cached("sessions", async () => SessionSummary.array().parse(await call("sessions"))),
   newSession: async () => (await send("sessions", "POST", { site: null })) as { sessionId: string; greeting: string },
   transcript: async (id: string) => TranscriptItem.array().parse(await call(`sessions/${id}/transcript`)),
   researchRuns: async (id: string) => ResearchRunState.array().parse(await call(`sessions/${id}/research-runs`)),
   decision: async (id: string) => DecisionState.nullable().parse(await call(`sessions/${id}/decision`)),
   changeDecision: async (id: string, version: number, ops: DecisionOp[]) =>
     DecisionState.parse(await send(`sessions/${id}/decision`, "PATCH", { version, ops })),
-  watches: async () => Watch.array().parse(await call("watches")),
+  watches: () => cached("watches", async () => Watch.array().parse(await call("watches"))),
   watch: async (id: string) => {
     try {
       return Watch.parse(await call(`watches/${id}`));
@@ -146,7 +190,8 @@ export const api = {
   saveWatch: async (id: string, version: number, draft: WatchRule) =>
     Watch.parse(await send(`watches/${id}`, "PATCH", { version, draft })),
   /** T16: the readings of a watch, newest first, for the panels. */
-  watchResults: async (id: string) => WatchResult.array().parse(await call(`watches/${id}/results`)),
+  watchResults: (id: string, options?: { fresh?: boolean }) =>
+    cached(`watches/${id}/results`, async () => WatchResult.array().parse(await call(`watches/${id}/results`)), options),
   confirmWatch: async (id: string, version: number) => Watch.parse(await send(`watches/${id}/confirm`, "POST", { version })),
   /** T11: the center's actions. Muting stops the e-mail only; the watch keeps running. */
   watchAction: async (id: string, action: "pause" | "resume" | "mute" | "unmute") =>
@@ -202,6 +247,8 @@ export async function streamTurn(
   onEvent: (event: AgentEvent) => void,
   signal: AbortSignal,
 ): Promise<void> {
+  // A turn changes the conversation list, the balance and maybe the panels.
+  forgetCached();
   const response = await fetch("/api/tone/agent/turn", {
     method: "POST",
     headers: { "content-type": "application/json", "x-tone-web": "1" },

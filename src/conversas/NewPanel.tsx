@@ -101,7 +101,7 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
       props.onBuilt(watch);
       close();
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Não deu certo agora.");
+      setError(failure instanceof Error ? failure.message : "Não deu certo. Tente de novo.");
       setApproving(false);
     }
   };
