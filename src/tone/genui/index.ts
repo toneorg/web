@@ -1,7 +1,8 @@
-// Gerado de toneorg/extension@3b0638cdcbef (packages/genui-react/src/index.ts). Não edite aqui.
+// Gerado de toneorg/extension@2aedc6450a3e (packages/genui-react/src/index.ts). Não edite aqui.
 // The generated components of the tone, drawn once for every surface: the
 // extension's side panel and the web. Each surface passes a GenUIHost that
 // decides what a button does; the drawings never reach a store or the server.
+export { AnswerRating, type AnswerRatingChange, type AnswerRatingDetail } from "./AnswerRating";
 export { AssistantMessage, GenUIBlock, library } from "./AssistantMessage";
 export { RENDERERS } from "./components";
 export { DecisionBoardLoader, DecisionBoardView } from "./DecisionBoard";

@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@3b0638cdcbef (packages/genui-react/src/Icon.tsx). Não edite aqui.
+// Gerado de toneorg/extension@2aedc6450a3e (packages/genui-react/src/Icon.tsx). Não edite aqui.
 // Hand-drawn line icons (components/icon.md): 24 grid, round caps, currentColor.
 const PATHS = {
   send: "M12 19V5M5 12l7-7 7 7",
@@ -19,20 +19,22 @@ const PATHS = {
   forward: "M9 5l7 7-7 7",
   history: "M12 7v5l3 2M3.5 12a8.5 8.5 0 102.5-6M3 4v4h4",
   thumbDown: "M10 15v4a2 2 0 002 2l4-8V4H7.5a2 2 0 00-2 1.6l-1.4 7A2 2 0 006 15h4zM16 4h3v9h-3",
+  thumbUp: "M10 9V5a2 2 0 012-2l4 8v9H7.5a2 2 0 01-2-1.6l-1.4-7A2 2 0 016 9h4zM16 20h3v-9h-3",
   memory:
     "M12 3a6 6 0 016 6c0 2.4-1.4 3.8-2.5 5-.7.8-1.5 1.6-1.5 3H10c0-1.4-.8-2.2-1.5-3C7.4 12.8 6 11.4 6 9a6 6 0 016-6zM10 20h4",
 } as const;
 
 export type IconName = keyof typeof PATHS;
 
-export function Icon(props: { name: IconName; size?: number; stroke?: number }) {
+/** `filled` is the active state (components/icon.md): the outline becomes a fill. */
+export function Icon(props: { name: IconName; size?: number; stroke?: number; filled?: boolean }) {
   const size = props.size ?? 20;
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={props.filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth={props.stroke ?? 2}
       strokeLinecap="round"

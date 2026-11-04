@@ -5,6 +5,7 @@ import posthog from "posthog-js";
 import {
   AccessSession,
   AgentEvent,
+  type AnswerRatedEvent,
   DecisionState,
   CONSENT_VERSION,
   InviteInfo,
@@ -212,6 +213,21 @@ export const api = {
   media: async (sessionId: string, productTitle: string) =>
     ProductMedia.parse(await send("media", "POST", { sessionId, productTitle })),
 };
+
+/**
+ * A thumb under an answer. Unlike the analytics, a failure reaches the screen, which puts the
+ * thumb back. On a thumb down the PostHog session goes along, so it links to the replay.
+ */
+export async function rateAnswer(sessionId: string, event: Omit<AnswerRatedEvent, "type" | "replaySessionId">) {
+  const replaySessionId = event.rating === "bad" ? posthog.get_session_id?.() || undefined : undefined;
+  await call("events", {
+    method: "POST",
+    body: JSON.stringify({
+      sessionId,
+      events: [{ type: "answer_rated", ...event, ...(replaySessionId ? { replaySessionId } : {}) }],
+    }),
+  });
+}
 
 /**
  * Records the click on a recommended product's link. Sent with keepalive, so it is not lost

@@ -1,4 +1,4 @@
-/* Gerado de toneorg/extension@3b0638cdcbef (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/extension@2aedc6450a3e (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -1432,5 +1432,188 @@ fieldset.field legend {
 @media (prefers-reduced-motion: reduce) {
   .review-more summary svg {
     transition: none;
+  }
+}
+
+/* "Esta resposta ajudou?" (AnswerRating.tsx): two thumbs under an answer, 44 px to
+   touch with an 18 px icon, pulled left so the icon lines up with the text above. */
+.answer-rating {
+  display: flex;
+  align-items: center;
+  margin-block-start: calc(var(--tone-space-sm) * -1);
+  margin-inline-start: calc((var(--tone-touch) - 18px) / -2);
+}
+.rating-thumb {
+  color: var(--tone-graphite);
+  transition-property: color, scale;
+  transition-duration: var(--tone-duration-fast);
+  transition-timing-function: var(--tone-ease-soft);
+}
+.rating-thumb svg {
+  transition-property: fill;
+  transition-duration: var(--tone-duration-fast);
+  transition-timing-function: var(--tone-ease-soft);
+}
+.rating-thumb:hover,
+.rating-thumb[aria-pressed="true"] {
+  color: var(--tone-ink);
+}
+.rating-thumb:active {
+  scale: var(--tone-press-scale);
+}
+.rating-thumb:focus-visible {
+  outline: 2px solid var(--tone-ink);
+  outline-offset: 2px;
+}
+.rating-status {
+  margin-inline-start: var(--tone-space-xs);
+}
+
+/* The folha of a thumb down (components/surface.md) on a native modal dialog that
+   covers the screen: a click outside the panel lands on the dialog, the scrim. */
+html:has(.rating-sheet[open]) {
+  overflow: hidden;
+}
+.rating-sheet {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tone-ink);
+}
+.rating-sheet[open] {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.rating-sheet::backdrop {
+  background: var(--tone-scrim);
+  animation: rating-fade-in var(--tone-duration-enter) var(--tone-ease-soft) both;
+}
+.rating-sheet.leaving::backdrop {
+  animation: rating-fade-out var(--tone-duration-exit) var(--tone-ease-soft) both;
+}
+.rating-panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tone-space-lg);
+  width: 100%;
+  max-width: 32rem;
+  max-height: 88dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--tone-space-md) var(--tone-gutter) var(--tone-gutter);
+  border-radius: var(--tone-radius-card) var(--tone-radius-card) 0 0;
+  background: var(--tone-paper);
+  box-shadow: var(--tone-shadow-floating);
+  animation: rating-in var(--tone-duration-enter) var(--tone-ease-soft) both;
+}
+.rating-sheet.leaving .rating-panel {
+  animation: rating-out var(--tone-duration-exit) var(--tone-ease-soft) both;
+}
+@media (min-width: 640px) {
+  .rating-sheet[open] {
+    align-items: center;
+  }
+  .rating-panel {
+    border-radius: var(--tone-radius-card);
+  }
+}
+.rating-handle {
+  flex: none;
+  align-self: center;
+  width: 36px;
+  height: 4px;
+  border-radius: var(--tone-radius-full);
+  background: var(--tone-edge);
+}
+.rating-title {
+  margin: 0;
+  font: 500 1.625rem / 1.15 var(--tone-font-display);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.rating-panel > p {
+  margin: calc(var(--tone-space-sm) * -1) 0 0;
+  text-wrap: pretty;
+}
+.rating-reasons {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.rating-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tone-space-md);
+}
+.rating-label {
+  font: 500 16px / 24px var(--tone-font-sans);
+}
+.rating-comment {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--tone-control-lg);
+  padding: var(--tone-space-md) var(--tone-space-lg);
+  border: 1px solid var(--tone-rule);
+  border-radius: var(--tone-radius-input);
+  background: var(--tone-surface);
+  color: var(--tone-ink);
+  font: 400 16px / 24px var(--tone-font-sans);
+  resize: none;
+}
+.rating-comment:focus-visible {
+  outline: 2px solid var(--tone-ink);
+  outline-offset: -1px;
+}
+.rating-error {
+  margin: 0;
+  font: 500 15px / 20px var(--tone-font-sans);
+  color: var(--tone-alert);
+}
+.rating-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--tone-space-sm);
+}
+@keyframes rating-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes rating-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes rating-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rating-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rating-panel,
+  .rating-sheet.leaving .rating-panel,
+  .rating-sheet::backdrop,
+  .rating-sheet.leaving::backdrop {
+    animation: none;
+  }
+  .rating-thumb:active {
+    scale: none;
   }
 }

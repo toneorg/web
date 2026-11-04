@@ -3,9 +3,10 @@
 // agent researches through the server; store-tab actions stay in the extension.
 import Link from "next/link";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
-import { PickedProductBar, ProductVideos, ReviewSynthesisCard } from "@/tone/genui";
+import { AnswerRating, type AnswerRatingChange, type AnswerRatingDetail, PickedProductBar, ProductVideos, ReviewSynthesisCard } from "@/tone/genui";
 import {
   type AgentEvent,
+  type AnswerRatingValue,
   MEDIA_COMPONENT,
   type Me,
   memoryLabel,
@@ -21,7 +22,7 @@ import {
 } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { since, track } from "./analytics";
-import { ApiError, api, peek, streamTurn } from "./api";
+import { ApiError, api, peek, rateAnswer, streamTurn } from "./api";
 import { Program, type ProgramHost, STORE_HOSTS, WATCHES_CHANGED } from "./Program";
 import { WatchReadings } from "./WatchReadings";
 import { LocalResearch } from "./LocalResearch";
@@ -31,7 +32,8 @@ import { SignIn } from "./SignIn";
 
 type Item =
   | { id: string; kind: "user"; text: string }
-  | { id: string; kind: "assistant"; text: string; streaming?: boolean }
+  /** `turn` is the turn it answers, for the thumbs under it; the greeting has none. */
+  | { id: string; kind: "assistant"; text: string; streaming?: boolean; turn?: number; rating?: AnswerRatingValue | null }
   | { id: string; kind: "notice"; text: string; error?: boolean }
   | { id: string; kind: "research"; run: ResearchRunState }
   /** TikToks of a product, asked for from the picked product above the composer. */
@@ -84,7 +86,8 @@ export function Conversation(props: { sessionId: string; first?: string | null }
         setItems([
         ...transcript.map((item): Item => {
           if (item.kind === "user") return { id: uid(), kind: "user", text: item.text };
-          if (item.kind === "assistant") return { id: uid(), kind: "assistant", text: item.text };
+          if (item.kind === "assistant")
+            return { id: uid(), kind: "assistant", text: item.text, turn: item.turn, rating: item.rating ?? null };
           const media = item.component.name === MEDIA_COMPONENT ? ProductMedia.safeParse(item.component.props) : null;
           return media?.success
             ? { id: uid(), kind: "media", media: media.data }
@@ -198,6 +201,13 @@ export function Conversation(props: { sessionId: string; first?: string | null }
                 shown.memories += 1;
                 setItems((list) => [...list, { id: uid(), kind: "notice", text: `Anotei: ${memoryLabel(event.key)} — ${event.value}` }]);
                 break;
+              case "done": {
+                const { turn } = event;
+                const id = assistant;
+                if (turn && id)
+                  setItems((list) => list.map((item) => (item.id === id && item.kind === "assistant" ? { ...item, turn } : item)));
+                break;
+              }
               case "error":
                 shown.errorCode = event.code ?? "error";
                 setItems((list) => [
@@ -401,6 +411,16 @@ export function Conversation(props: { sessionId: string; first?: string | null }
     );
 
   const lastAssistant = [...items].reverse().find((item) => item.kind === "assistant")?.id;
+  // The thumbs go under the last answer of each turn.
+  const lastOfTurn = new Map<number, string>();
+  for (const item of items) if (item.kind === "assistant" && item.turn) lastOfTurn.set(item.turn, item.id);
+  const closesTurn = new Set(lastOfTurn.values());
+  const rate = async (turn: number, rating: AnswerRatingChange, detail?: AnswerRatingDetail) => {
+    await rateAnswer(sessionId, { turn, rating, ...detail });
+    setItems((list) =>
+      list.map((item) => (item.kind === "assistant" && item.turn === turn ? { ...item, rating: rating === "none" ? null : rating } : item)),
+    );
+  };
   const hostFor = (id: string): ProgramHost => ({
     sessionId,
     interactive: id === lastAssistant && !busy,
@@ -469,6 +489,9 @@ export function Conversation(props: { sessionId: string; first?: string | null }
                   <Program key={index} code={part.code} streaming={Boolean(item.streaming) && !part.complete} host={hostFor(item.id)} />
                 ),
               )}
+              {item.turn && !item.streaming && closesTurn.has(item.id) ? (
+                <AnswerRating rating={item.rating ?? null} onRate={(rating, detail) => rate(item.turn ?? 0, rating, detail)} />
+              ) : null}
             </div>
           );
         })}

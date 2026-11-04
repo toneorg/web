@@ -1,7 +1,8 @@
-// Gerado de toneorg/extension@3b0638cdcbef (packages/shared/src/tracking.ts). Não edite aqui.
+// Gerado de toneorg/extension@2aedc6450a3e (packages/shared/src/tracking.ts). Não edite aqui.
 // The events the panel records for the test week (requisitos §4). Each one is
 // small and typed, so the dashboard can count them without guessing.
 import * as z from "zod";
+import { AnswerRatedEvent } from "./answer-rating";
 import { BROWSER_TOOL_NAMES } from "./tools";
 
 /** Where a recommended product's link was clicked. */
@@ -60,6 +61,8 @@ export const TrackEvent = z.discriminatedUnion("type", [
     title: z.string().nullable(),
   }),
   z.object({ type: z.literal("session_rated"), rating: z.number().int().min(1).max(5), comment: z.string().max(500) }),
+  /** A thumb under one answer, with the reasons of a thumb down. */
+  AnswerRatedEvent,
   /** Síntese de reviews: the person opened a review on YouTube, at the moment cited. */
   z.object({ type: z.literal("review_link_opened"), videoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/) }),
   z.object({ type: z.literal("action_interrupted") }),

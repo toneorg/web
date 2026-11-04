@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@3b0638cdcbef (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/extension@2aedc6450a3e (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the panel and the server.
 //
 // The panel posts a turn and reads a stream of server-sent events. When the
@@ -7,6 +7,7 @@
 // model carries on. The conversation lives on the server, so a turn only carries
 // what is new.
 import * as z from "zod";
+import { AnswerRatingValue } from "./answer-rating";
 import { PageContext, PageSnapshot } from "./page";
 import { ProgressEvent } from "./progress";
 import { ResearchResult } from "./research";
@@ -94,6 +95,8 @@ export const AgentEvent = z.discriminatedUnion("type", [
     type: z.literal("done"),
     costUsd: z.number(),
     spentTodayUsd: z.number(),
+    /** The turn that ended, so the screen can put the thumbs under its answer. */
+    turn: z.number().int().min(1).optional(),
   }),
   z.object({
     type: z.literal("error"),
@@ -106,7 +109,14 @@ export type AgentEvent = z.infer<typeof AgentEvent>;
 /** One line of the conversation as the panel shows it when a session is reopened. */
 export const TranscriptItem = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("user"), text: z.string() }),
-  z.object({ kind: z.literal("assistant"), text: z.string() }),
+  z.object({
+    kind: z.literal("assistant"),
+    text: z.string(),
+    /** The turn it answers (how many messages the person had sent); the greeting has none. */
+    turn: z.number().int().min(1).optional(),
+    /** The thumb the person gave this turn, if any. */
+    rating: AnswerRatingValue.optional(),
+  }),
   z.object({ kind: z.literal("ui"), component: UiComponent }),
 ]);
 export type TranscriptItem = z.infer<typeof TranscriptItem>;
