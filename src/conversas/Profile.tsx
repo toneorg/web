@@ -18,7 +18,7 @@ const quiet =
 const danger =
   "press min-h-11 rounded-full bg-surface px-4 text-ui text-alert shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 const small =
-  "min-h-11 rounded-full px-3 text-caption text-graphite focus-visible:outline-2 focus-visible:outline-ink";
+  "press min-h-11 rounded-full px-3 text-caption text-graphite focus-visible:outline-2 focus-visible:outline-ink";
 
 /** What a destructive button asks for before it runs. */
 type Pending = { title: string; text: string; confirm: string; run: () => Promise<void> } | null;

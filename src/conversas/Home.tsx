@@ -23,9 +23,9 @@ import { SignIn } from "./SignIn";
 import { dismissWelcome, startWelcomeChat, WELCOME_MEMORY_FLOOR, welcomeDismissed } from "./welcome";
 
 const primary =
-  "min-h-11 rounded-full bg-ink px-5 text-ui text-on-ink disabled:bg-rule disabled:text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+  "press min-h-11 rounded-full bg-ink px-5 text-ui text-on-ink disabled:bg-rule disabled:text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 const quiet =
-  "min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+  "press min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 const when = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 /** A purchase situation; once something was chosen or the day passed, "did it work?" in one tap. */
@@ -198,7 +198,7 @@ export function Home() {
           </p>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={primary} disabled={starting} onClick={() => void welcome()}>
-              Responder agora
+              {starting ? "Abrindo…" : "Responder agora"}
             </button>
             <button
               type="button"

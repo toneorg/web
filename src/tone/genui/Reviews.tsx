@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@3b8a458751e7 (packages/genui-react/src/Reviews.tsx). Não edite aqui.
+// Gerado de toneorg/extension@3b0638cdcbef (packages/genui-react/src/Reviews.tsx). Não edite aqui.
 // Síntese de reviews: what YouTube reviews say, as tone read them (spec
 // 2026-11-03). Every point names its videos and opens the moment it was said,
 // on YouTube, in a new tab, only when the person clicks. Titles, channels and
@@ -58,7 +58,7 @@ function Sources(props: {
               title={claim.quote ?? claim.summary}
             >
               {video?.channel ?? "YouTube"} aos {clock(claim.atSeconds)}
-              <Icon name="external" size={14} />
+              <Icon name="external" size={14} stroke={1.5} />
             </a>
             {marks.length ? <span className="small muted"> · {marks.join(", ")}</span> : null}
           </li>
@@ -160,7 +160,10 @@ export function ReviewSynthesisCard(props: { run: ReviewRunState; onOpen?: (vide
             </div>
           ) : null}
           <details className="review-more">
-            <summary className="small">Ver mais: {moreLabel(synthesis, run.videos.length)}</summary>
+            <summary className="small">
+              Ver mais: {moreLabel(synthesis, run.videos.length)}
+              <Icon name="down" size={16} />
+            </summary>
             {others.length ? (
               <div className="review-group">
                 <h4>Outros pontos</h4>

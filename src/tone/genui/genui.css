@@ -1,4 +1,4 @@
-/* Gerado de toneorg/extension@3b8a458751e7 (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/extension@3b0638cdcbef (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -1412,6 +1412,25 @@ fieldset.field legend {
   min-height: 44px;
   display: flex;
   align-items: center;
+  gap: var(--tone-space-xs);
+  list-style: none;
   cursor: pointer;
   font-weight: 600;
+}
+.review-more summary::-webkit-details-marker {
+  display: none;
+}
+/* The chevron says open or closed; turning it is only the transition between the two. */
+.review-more summary svg {
+  transition-property: rotate;
+  transition-duration: var(--tone-duration-fast);
+  transition-timing-function: var(--tone-ease-soft);
+}
+.review-more[open] summary svg {
+  rotate: 180deg;
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-more summary svg {
+    transition: none;
+  }
 }
