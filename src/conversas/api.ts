@@ -173,7 +173,8 @@ export const api = {
   recordOutcome: async (id: string, verdict: SituationOutcomeVerdict) =>
     PurchaseSituation.parse(await send(`situations/${id}/outcome`, "POST", { verdict })),
   sessions: () => cached("sessions", async () => SessionSummary.array().parse(await call("sessions"))),
-  newSession: async () => (await send("sessions", "POST", { site: null })) as { sessionId: string; greeting: string },
+  newSession: async (onboarding = false) =>
+    (await send("sessions", "POST", { site: null, onboarding })) as { sessionId: string; greeting: string },
   transcript: async (id: string) => TranscriptItem.array().parse(await call(`sessions/${id}/transcript`)),
   researchRuns: async (id: string) => ResearchRunState.array().parse(await call(`sessions/${id}/research-runs`)),
   reviewRuns: async (id: string) => ReviewRunState.array().parse(await call(`sessions/${id}/review-runs`)),

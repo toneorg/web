@@ -24,6 +24,8 @@ export type WebEvent =
   | "onboarding_completed"
   | "onboarding_skipped"
   | "onboarding_reopened"
+  | "welcome_chat_started"
+  | "welcome_chat_dismissed"
   // Conversations
   | "conversation_started"
   | "conversation_opened"

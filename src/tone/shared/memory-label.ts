@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@aac1a1679a89 (packages/shared/src/memory-label.ts). Não edite aqui.
+// Gerado de toneorg/extension@3b8a458751e7 (packages/shared/src/memory-label.ts). Não edite aqui.
 // A memory key ("calcado.marca_preferida") is for the agent; the person reads a name
 // ("Marca preferida (calçado)"). Keys are free text from the model, so this reads any of them:
 // the last part is what it is, the first is the category, what is in between is the situation.
@@ -34,6 +34,14 @@ const WORDS: Record<string, string> = {
   video: "vídeo",
   audio: "áudio",
   diametro: "diâmetro",
+  proxima: "próxima",
+  proximo: "próximo",
+  ultima: "última",
+  ultimo: "último",
+  medio: "médio",
+  media: "média",
+  rapido: "rápido",
+  agua: "água",
 };
 
 const UNIT = /_(cm|mm|kg|m|ml|g|pol)$/;

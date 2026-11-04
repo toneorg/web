@@ -2,6 +2,7 @@
 // The person's own page on the web: who they are, what the tone knows about
 // them, and the keys to their data. The same account as the extension.
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import { type Me, type Memory, memoryLabel, OWNED_CATEGORY } from "@/tone/shared";
 import { ToneWordmark } from "@/components/tone-logo";
@@ -10,6 +11,7 @@ import { ApiError, api, peek } from "./api";
 import { Sheet, useSheetClose } from "./Sheet";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
+import { startWelcomeChat } from "./welcome";
 
 const quiet =
   "press min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
@@ -21,6 +23,9 @@ const small =
 /** What a destructive button asks for before it runs. */
 type Pending = { title: string; text: string; confirm: string; run: () => Promise<void> } | null;
 
+/** What the person wrote as it is ("já tenho…", a loose note): no name to put before it. */
+const shownAsIs = (memory: Memory) => memory.category === OWNED_CATEGORY || memory.key.startsWith("nota.");
+
 /** What the tone remembers: a guess can be confirmed, everything can be deleted. */
 function MemoryList(props: { memories: Memory[]; onChange: () => void }) {
   return (
@@ -28,7 +33,7 @@ function MemoryList(props: { memories: Memory[]; onChange: () => void }) {
       {props.memories.map((memory) => (
         <li key={memory.id} className="flex items-center justify-between gap-2 text-small text-ink">
           <span>
-            {memory.category === OWNED_CATEGORY ? memory.value : `${memoryLabel(memory.key, memory.condition)}: ${memory.value}`}
+            {shownAsIs(memory) ? memory.value : `${memoryLabel(memory.key, memory.condition)}: ${memory.value}`}
             {memory.condition ? <span className="text-graphite"> · quando: {memory.condition}</span> : null}
             {memory.inferred ? <span className="text-graphite"> · palpite da tone</span> : null}
           </span>
@@ -115,6 +120,8 @@ export function Profile() {
   const [newFact, setNewFact] = useState("");
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const router = useRouter();
+  const [openingWelcome, setOpeningWelcome] = useState(false);
   // Each change of `round` loads everything again (after signing in, deleting a note, retrying).
   const [round, setRound] = useState(0);
   const load = () => setRound((value) => value + 1);
@@ -177,6 +184,19 @@ export function Profile() {
       setNotice(failure instanceof ApiError ? failure.message : "Não consegui anotar agora.");
     } finally {
       setAdding(false);
+    }
+  };
+
+  const welcome = async () => {
+    setOpeningWelcome(true);
+    setNotice(null);
+    try {
+      const href = await startWelcomeChat();
+      track("welcome_chat_started", { from: "profile", memories: memories.length });
+      router.push(href);
+    } catch (failure) {
+      setNotice(failure instanceof ApiError ? failure.message : "Não consegui abrir a conversa agora.");
+      setOpeningWelcome(false);
     }
   };
 
@@ -251,6 +271,14 @@ export function Profile() {
               </button>
             </div>
           </form>
+          <div className="flex flex-col gap-2">
+            <p className="text-small text-graphite">Ou responda cinco perguntas rápidas, uma por vez, e eu anoto.</p>
+            <div>
+              <button type="button" className={quiet} disabled={openingWelcome} onClick={() => void welcome()}>
+                {openingWelcome ? "Abrindo…" : "Responder perguntas rápidas"}
+              </button>
+            </div>
+          </div>
         </section>
 
         <section aria-labelledby="titulo-dados" className="flex flex-col gap-3">

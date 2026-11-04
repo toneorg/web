@@ -26,6 +26,7 @@ One PostHog project for the web and the extension. The person is the same `disti
 |---|---|
 | Entry | `sign_in_completed` (`method`), `sign_in_failed` (`step`, `status`, `reason`), `invite_checked`, `signed_out` |
 | Tour | `onboarding_started`, `onboarding_step_viewed` (`step`, `step_id`), `onboarding_completed` (`started_example`), `onboarding_skipped` (`step`), `onboarding_reopened` |
+| Conversa de boas-vindas | `welcome_chat_started` (`from`: `home` ou `profile`, `memories`), `welcome_chat_dismissed` |
 | Conversations | `conversation_started` (`source`, `has_initial_query`), `conversation_opened` (`position`, `started_on`), `conversation_message_sent` (`turn`, `length`, `with_product`), `conversation_turn_completed` / `_failed` / `_stopped` (`duration_ms`, `first_text_ms`, `research_results`, `reason`), `conversation_reply_selected`, `product_picked`, `product_unpicked`, `product_videos_requested`, `product_videos_failed`, `review_link_opened` (`video_id`), `situation_outcome_recorded` |
 | Research in the person's Chrome | `local_research_opened`, `local_research_started` (`stores`), `local_research_failed`, `local_research_stopped` |
 | Agent's components | `decision_changed`, `recommendation_rejected_clicked` (`reason`), `watch_draft_saved`, `watch_draft_confirmed` |

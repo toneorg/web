@@ -20,6 +20,7 @@ import { ApiError, api, peek } from "./api";
 import { Onboarding, onboardingSeen } from "./Onboarding";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
+import { dismissWelcome, startWelcomeChat, WELCOME_MEMORY_FLOOR, welcomeDismissed } from "./welcome";
 
 const primary =
   "min-h-11 rounded-full bg-ink px-5 text-ui text-on-ink disabled:bg-rule disabled:text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
@@ -74,6 +75,9 @@ export function Home() {
   const [situations, setSituations] = useState<PurchaseSituation[]>(() => peek<PurchaseSituation[]>("situations") ?? []);
   const [starting, setStarting] = useState(false);
   const [ask, setAsk] = useState("");
+  /** How many things the tone knows; null until read. Few of them, and the welcome is offered. */
+  const [memoryCount, setMemoryCount] = useState<number | null>(null);
+  const [welcomeHidden, setWelcomeHidden] = useState(true);
   // Each change of `round` loads everything again (after signing in, deleting a memory, retrying).
   const [round, setRound] = useState(0);
   const load = () => setRound((value) => value + 1);
@@ -81,12 +85,14 @@ export function Home() {
   const [tour, setTour] = useState<"first_visit" | "reopened" | null>(null);
   useEffect(() => {
     let live = true;
-    Promise.all([api.me(), api.sessions(), api.situations().catch(() => [])])
-      .then(([person, list, occasions]) => {
+    Promise.all([api.me(), api.sessions(), api.situations().catch(() => []), api.memories().catch(() => null)])
+      .then(([person, list, occasions, memories]) => {
         if (!live) return;
         setMe(person);
         setSessions(list);
         setSituations(occasions);
+        setMemoryCount(memories?.length ?? null);
+        setWelcomeHidden(welcomeDismissed(person.id));
         setState("ready");
         const asked = new URLSearchParams(window.location.search).has("tour");
         if (asked) window.history.replaceState(null, "", window.location.pathname);
@@ -134,6 +140,22 @@ export function Home() {
       setStarting(false);
     }
   };
+  const offerWelcome =
+    !welcomeHidden &&
+    memoryCount !== null &&
+    memoryCount < WELCOME_MEMORY_FLOOR &&
+    !sessions.some((session) => session.onboarding);
+  const welcome = async () => {
+    setStarting(true);
+    try {
+      const href = await startWelcomeChat();
+      track("welcome_chat_started", { from: "home", memories: memoryCount ?? 0 });
+      router.push(href);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) setState("expired");
+      setStarting(false);
+    }
+  };
   return (
     <Shell me={me} current="conversas">
     <main id="conteudo" className="flex flex-col gap-8 py-4">
@@ -162,6 +184,37 @@ export function Home() {
           </button>
         </div>
       </form>
+      {offerWelcome ? (
+        <section
+          aria-labelledby="titulo-boas-vindas"
+          className="flex flex-col gap-3 rounded-card bg-surface p-5 shadow-raised"
+        >
+          <h2 id="titulo-boas-vindas" className="text-subheading text-ink">
+            Quer que eu te conheça primeiro?
+          </h2>
+          <p className="text-small text-graphite">
+            São cinco perguntas rápidas, uma por vez: o que você costuma comprar, onde e quanto quer gastar. Leva menos
+            de três minutos e é opcional; o que você responder fica no seu perfil, para apagar quando quiser.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={primary} disabled={starting} onClick={() => void welcome()}>
+              Responder agora
+            </button>
+            <button
+              type="button"
+              className={quiet}
+              disabled={starting}
+              onClick={() => {
+                dismissWelcome(me.id);
+                setWelcomeHidden(true);
+                track("welcome_chat_dismissed");
+              }}
+            >
+              Agora não
+            </button>
+          </div>
+        </section>
+      ) : null}
       <section className="flex flex-col gap-4" aria-labelledby="titulo-conversas">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 id="titulo-conversas" className="text-subheading text-ink">
