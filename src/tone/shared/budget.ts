@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@62bd2817cbca (packages/shared/src/budget.ts). Não edite aqui.
+// Gerado de toneorg/extension@440b05322b9f (packages/shared/src/budget.ts). Não edite aqui.
 import * as z from "zod";
 
 const Money = z.number().nonnegative();

@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@62bd2817cbca (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/extension@440b05322b9f (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";
@@ -93,6 +93,8 @@ export type Me = z.infer<typeof Me>;
 export const SessionCreate = z.object({
   site: z.string().nullable(),
   onboarding: z.boolean().default(false),
+  /** A conversation opened from a panel: it belongs to the panel and stays out of the conversation list. */
+  watchId: z.string().min(1).max(60).optional(),
 });
 export const SessionCreated = z.object({ sessionId: z.string(), greeting: z.string() });
 export type SessionCreated = z.infer<typeof SessionCreated>;
@@ -113,6 +115,19 @@ export const SessionSummary = z.object({
   surface: z.enum(["extension", "web"]).default("extension"),
 });
 export type SessionSummary = z.infer<typeof SessionSummary>;
+
+/**
+ * A conversation kept in a panel: one opened from it, or (for panels made before 10/11/2026) the one
+ * that drafted it, when the person wrote more than the request there.
+ */
+export const PanelSession = z.object({
+  id: z.string(),
+  title: z.string(),
+  lastAt: z.string(),
+  messages: z.number().int(),
+  origin: z.enum(["panel", "creation"]),
+});
+export type PanelSession = z.infer<typeof PanelSession>;
 
 export const Purchase = z.object({
   id: z.string(),

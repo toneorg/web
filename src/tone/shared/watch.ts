@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@62bd2817cbca (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/extension@440b05322b9f (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -366,6 +366,8 @@ export function withProductFromQuery(rule: WatchRule): WatchRule {
 /** A short name for a watch, never empty: the product, the search, or the person's goal. */
 export function watchTitle(rule: WatchRule): string {
   const title = (watchedOf(rule) || rule.query || rule.goal || "Novo acompanhamento").slice(0, 120);
+  // "iPhone 18" stays as the brand writes it (10/11/2026: the card said "IPhone 18").
+  if (/^\p{Ll}+\p{Lu}/u.test(title)) return title;
   return title.charAt(0).toLocaleUpperCase("pt-BR") + title.slice(1);
 }
 

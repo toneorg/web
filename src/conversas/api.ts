@@ -18,6 +18,7 @@ import {
   ResearchRunState,
   ReviewRunState,
   WatchPrices,
+  PanelSession,
   SessionSummary,
   TranscriptItem,
   Watch,
@@ -175,8 +176,14 @@ export const api = {
   recordOutcome: async (id: string, verdict: SituationOutcomeVerdict) =>
     PurchaseSituation.parse(await send(`situations/${id}/outcome`, "POST", { verdict })),
   sessions: () => cached("sessions", async () => SessionSummary.array().parse(await call("sessions"))),
-  newSession: async (onboarding = false) =>
-    (await send("sessions", "POST", { site: null, onboarding })) as { sessionId: string; greeting: string },
+  /** With `watchId`, a conversation of that panel: it stays in the panel, out of the conversation list. */
+  newSession: async (onboarding = false, watchId?: string) =>
+    (await send("sessions", "POST", { site: null, onboarding, ...(watchId ? { watchId } : {}) })) as {
+      sessionId: string;
+      greeting: string;
+    },
+  /** The conversations kept in a panel; read fresh, they change as the person talks there. */
+  panelSessions: async (watchId: string) => PanelSession.array().parse(await call(`watches/${watchId}/sessions`)),
   transcript: async (id: string) => TranscriptItem.array().parse(await call(`sessions/${id}/transcript`)),
   researchRuns: async (id: string) => ResearchRunState.array().parse(await call(`sessions/${id}/research-runs`)),
   reviewRuns: async (id: string) => ReviewRunState.array().parse(await call(`sessions/${id}/review-runs`)),
