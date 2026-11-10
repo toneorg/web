@@ -15,7 +15,6 @@ import {
   type ResearchRunState,
   reduceResearchRuns,
   type ReviewRunState,
-  storeLabel,
   type TurnInput,
   type Watch,
   type WatchResult,
@@ -470,7 +469,7 @@ export function Conversation(props: { sessionId: string; first?: string | null }
         <Link href="/conversas" className="min-h-11 content-center text-ui text-ink underline-offset-4 hover:underline">
           ← Conversas
         </Link>
-        <p className="text-caption text-graphite">{researchNote(me)}</p>
+        {researchNote(me) ? <p className="text-caption text-graphite">{researchNote(me)}</p> : null}
       </header>
       <div
         role="log"
@@ -600,9 +599,10 @@ export function Conversation(props: { sessionId: string; first?: string | null }
   );
 }
 
-/** T16: what the research of this page can do, said in the header. */
-export function researchNote(me: Me | null): string {
-  const remote = me?.remoteStores ?? [];
-  if (!remote.length) return "Pôr no carrinho e escolher variação, só pela extensão";
-  return `Também pesquiso direto em ${remote.map(storeLabel).join(", ")}`;
+/**
+ * T16: what the research of this page cannot do, said in the header. The list of stores read
+ * directly ("Também pesquiso direto em…") left the header on 10/11/2026: noise above every conversation.
+ */
+export function researchNote(me: Me | null): string | null {
+  return me?.remoteStores?.length ? null : "Pôr no carrinho e escolher variação, só pela extensão";
 }

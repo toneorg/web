@@ -90,7 +90,7 @@ describe("moldura da web (T16)", () => {
 
   it("diz em quais lojas a pesquisa também lê direto", () => {
     expect(researchNote(me())).toMatch(/só pela extensão/);
-    expect(researchNote(me(["mercadolivre.com.br", "dior.com"]))).toBe("Também pesquiso direto em Mercado Livre, Dior");
+    expect(researchNote(me(["mercadolivre.com.br", "dior.com"]))).toBeNull();
   });
 
   it("o cartão da pesquisa diz que os preços foram lidos por navegador remoto", () => {
