@@ -220,6 +220,9 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
       ) : null}
       {prices && prices.points.length >= 2 ? (
         <PriceChart prices={prices} />
+      ) : prices && watch.status === "active" ? (
+        // A new panel has no line yet; say when it comes instead of leaving the card silent.
+        <span className="text-caption text-graphite">O gráfico do preço aparece a partir do segundo dia de leitura.</span>
       ) : null}
       {lowest ? null : latest ? (
         <span className="text-caption text-graphite">{latest.summary.message}</span>
@@ -245,10 +248,9 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
       {facts.checked || facts.next ? (
         <span className="text-caption text-graphite">{[facts.checked, facts.next].filter(Boolean).join(" · ")}</span>
       ) : null}
-      {facts.email ? (
-        <span className="text-caption text-graphite">
-          {facts.muted ? "E-mail silenciado: os avisos ficam só aqui." : "Avisos aqui e por e-mail."}
-        </span>
+      {/* Only the exception: "Avisos aqui e por e-mail" on every card was noise (10/11/2026). */}
+      {facts.email && facts.muted ? (
+        <span className="text-caption text-graphite">E-mail silenciado: os avisos ficam só aqui.</span>
       ) : null}
       {busy && busy !== "check" && busy !== "delete" ? (
         <span role="status" className="text-caption text-graphite">
