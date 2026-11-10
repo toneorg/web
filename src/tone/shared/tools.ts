@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@73f02e8b0a03 (packages/shared/src/tools.ts). Não edite aqui.
+// Gerado de toneorg/extension@56dbeebb5b19 (packages/shared/src/tools.ts). Não edite aqui.
 // The tools the agent can call. Two kinds:
 //   browser  run in the extension, on the store's tab (RF2)
 //   server   run on the server (memory, RF3)
@@ -151,7 +151,7 @@ export const ServerTools = {
   },
   review_videos: {
     description:
-      "Lê reviews do YouTube (transcrições) e monta uma síntese de reviews: o que importa, consensos, divergências, cuidados e modelos citados. Roda em segundo plano e NÃO devolve a síntese agora: responda com o que já tem; ela aparece na conversa quando ficar pronta e chega a você no próximo turno. Use em compras consideradas (cadeira, notebook, colchão), não em compras de impulso. subject category uma vez por conversa; subject product só para até três candidatas da lista curta, com marca e modelo. Chame no mesmo passo de research_products.",
+      'Lê reviews do YouTube (transcrições) e monta uma síntese de reviews: o que importa, consensos, divergências, cuidados e modelos citados. Roda em segundo plano e NÃO devolve a síntese agora: responda com o que já tem; ela aparece na conversa quando ficar pronta e chega a você no próximo turno. Use só quando a pessoa pedir o que os reviews dizem (ela também tem o botão "O que dizem os reviews" no produto selecionado); não chame por conta própria. subject category uma vez por conversa; subject product só para até três candidatas da lista curta, com marca e modelo.',
     args: ReviewRequest,
   },
   update_decision: {

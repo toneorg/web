@@ -212,6 +212,9 @@ export const api = {
   /** TikToks of a product, searched by its name and saved in the conversation. */
   media: async (sessionId: string, productTitle: string) =>
     ProductMedia.parse(await send("media", "POST", { sessionId, productTitle })),
+  /** "O que dizem os reviews": starts the synthesis of the picked product; it is then read with reviewRuns. */
+  reviews: async (sessionId: string, productTitle: string) =>
+    ReviewRunState.parse(await send("reviews", "POST", { sessionId, productTitle })),
 };
 
 /**

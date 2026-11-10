@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@73f02e8b0a03 (packages/genui-react/src/Picked.tsx). Não edite aqui.
+// Gerado de toneorg/extension@56dbeebb5b19 (packages/genui-react/src/Picked.tsx). Não edite aqui.
 // The product the person picked in the conversation, above the composer: a
 // thumbnail, its name, its videos and a way to let it go. The next message
 // carries it, so "is this one good for running?" needs no name.
@@ -12,6 +12,8 @@ export function PickedProductBar(props: {
   storeHosts: readonly string[];
   busy: boolean;
   onVideos: () => void;
+  /** "O que dizem os reviews": optional, so the extension can leave it out. */
+  onReviews?: () => void;
   onRemove: () => void;
 }) {
   const { product } = props;
@@ -33,6 +35,11 @@ export function PickedProductBar(props: {
       <button type="button" className="btn outline sm" onClick={props.onVideos} disabled={props.busy}>
         <Icon name="play" size={16} /> Ver vídeos
       </button>
+      {props.onReviews ? (
+        <button type="button" className="btn outline sm" onClick={props.onReviews} disabled={props.busy}>
+          O que dizem os reviews
+        </button>
+      ) : null}
       <button type="button" className="icon-btn" aria-label="Tirar o produto da conversa" onClick={props.onRemove}>
         <Icon name="close" size={18} />
       </button>

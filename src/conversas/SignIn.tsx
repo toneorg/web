@@ -2,7 +2,7 @@
 // T05/T06: entering the web with the account's e-mail and password. The first
 // time, the invite code (made for one e-mail) opens the onboarding: name,
 // password and the consent, the same steps as in the extension.
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { type InviteInfo, PASSWORD_MIN } from "@/tone/shared";
 import { track } from "./analytics";
 import { ApiError, api } from "./api";
@@ -28,14 +28,24 @@ const CONSENT = [
 
 type Step = "signin" | "invite" | "onboarding";
 
+/** The invite code in the address (?convite=CODE), from the invite e-mail's link; empty when there is none. */
+function linkedInvite(): string {
+  if (typeof window === "undefined") return "";
+  const code = new URLSearchParams(window.location.search).get("convite")?.trim().toUpperCase() ?? "";
+  return /^[A-Z0-9]{4,16}$/.test(code) ? code : "";
+}
+
 export function SignIn(props: {
   onDone: () => void;
   expired?: boolean;
   /** Inside another page (the home page): a section with a smaller title, not the page's main. */
   embedded?: boolean;
 }) {
-  const [step, setStep] = useState<Step>("signin");
-  const [code, setCode] = useState("");
+  // The invite e-mail links here with ?convite=CODE. SignIn renders only after the client checked the
+  // session, never on the server, so reading the address while starting the state is safe.
+  const [linked] = useState(linkedInvite);
+  const [step, setStep] = useState<Step>(linked ? "invite" : "signin");
+  const [code, setCode] = useState(linked);
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,6 +54,10 @@ export function SignIn(props: {
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (linked) track("invite_link_opened");
+  }, [linked]);
 
   const go = (next: Step) => {
     setStep(next);
@@ -166,7 +180,22 @@ export function SignIn(props: {
           <label htmlFor="email-convite" className={label}>
             Seu e-mail
           </label>
-          <input id="email-convite" type="email" className={field} autoComplete="email" value={email} readOnly={Boolean(invite?.email)} onChange={(event) => setEmail(event.target.value)} />
+          <input
+            id="email-convite"
+            type="email"
+            className={field}
+            autoComplete="email"
+            value={email}
+            readOnly={Boolean(invite?.email)}
+            aria-describedby={invite?.email ? "email-convite-dica" : undefined}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          {invite?.email ? (
+            // On 04/11/2026 a tester clicked the locked field several times trying to edit it.
+            <p id="email-convite-dica" className="text-small text-graphite">
+              É o e-mail do convite e não muda. Se estiver errado, peça um novo convite.
+            </p>
+          ) : null}
           <label htmlFor="nova-senha" className={label}>
             Crie uma senha
           </label>

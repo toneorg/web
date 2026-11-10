@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@73f02e8b0a03 (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
+// Gerado de toneorg/extension@56dbeebb5b19 (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
 // T09: the draft of a watch, for the person to review and confirm. The model
 // writes only the id; the rule comes from the server and every button is the
 // panel's: it saves the person's edits and confirms the version on screen.
@@ -52,11 +52,14 @@ export function WatchDraftView(props: {
   const [condition, setCondition] = useState<WatchCondition>(watch.draft.condition);
   const [amount, setAmount] = useState(amountOf(watch.draft.condition));
   const [email, setEmail] = useState(watch.draft.notify.email);
+  // Back to the saved rule only when another version arrives: a refetch of the same version
+  // (a new object) used to undo what the person had just ticked, and the tick "did not stick".
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed by id and version on purpose.
   useEffect(() => {
     setCondition(watch.draft.condition);
     setAmount(amountOf(watch.draft.condition));
     setEmail(watch.draft.notify.email);
-  }, [watch]);
+  }, [watch.id, watch.version]);
 
   const chosen = complete(condition, amount);
   const draft: WatchRule = {
