@@ -5,9 +5,15 @@ export default async function ConversaPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ primeira?: string | string[] }>;
+  searchParams: Promise<{ primeira?: string | string[]; painel?: string | string[] }>;
 }) {
   const { id } = await params;
-  const { primeira } = await searchParams;
-  return <Conversation sessionId={id} first={typeof primeira === "string" ? primeira.slice(0, 4000) : null} />;
+  const { primeira, painel } = await searchParams;
+  return (
+    <Conversation
+      sessionId={id}
+      first={typeof primeira === "string" ? primeira.slice(0, 4000) : null}
+      panelId={typeof painel === "string" ? painel.slice(0, 60) : null}
+    />
+  );
 }

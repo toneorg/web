@@ -1,8 +1,8 @@
 "use client";
-// The panel inside its conversation: what the watch found, with the product
-// photos the index listed, the newest reading first and the earlier ones behind
-// a disclosure. A panel is a conversation; this is where its results live.
-import { isAllowedImage, type Watch, type WatchResult, watchFacts, watchTitle } from "@/tone/shared";
+// What a panel found: the offers of a reading, with the product photos the index listed. The
+// panel's own page draws them (10/11/2026: panels and conversations apart); conversations
+// opened before that still show the readings at their end.
+import { isAllowedImage, NEAR_PRICE_TOLERANCE, type Watch, type WatchResult, watchFacts, watchTitle } from "@/tone/shared";
 import { lowestOf, readingOf } from "./Panels";
 import { STORE_HOSTS, StoreLink } from "./Program";
 
@@ -16,7 +16,7 @@ const when = (iso: string) =>
   new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
 const storeName = (store: string) => (store === "google.com" ? "Google Shopping" : store.replace(/^www\./, ""));
 
-type Match = WatchResult["summary"]["matches"][number];
+export type Match = WatchResult["summary"]["matches"][number];
 
 /** Why this price does not count for the alert (a variant the index did not confirm, an installment…). */
 const limitationOf = (match: Match) => {
@@ -27,14 +27,23 @@ const limitationOf = (match: Match) => {
 /** Whether an offer is inside the person's price, when the condition is a price. */
 function withinTarget(watch: Watch, match: Match): boolean {
   const condition = (watch.confirmed ?? watch.draft).condition;
-  return condition.kind === "target_price" && match.amount !== null && match.amount <= condition.amount;
+  if (match.amount === null) return false;
+  if (condition.kind === "near_price") return match.amount <= condition.amount * (1 + NEAR_PRICE_TOLERANCE);
+  return condition.kind === "target_price" && match.amount <= condition.amount;
 }
 
-function Offer(props: { watch: Watch; match: Match; position: number; sessionId: string }) {
+function Offer(props: {
+  watch: Watch;
+  match: Match;
+  position: number;
+  sessionId: string | null;
+  onAsk?: (match: Match) => void;
+  surface: "paper" | "surface";
+}) {
   const { match } = props;
   const photo = isAllowedImage(match.imageUrl, STORE_HOSTS) ? match.imageUrl : null;
   return (
-    <li className="flex items-center gap-3 rounded-panel bg-paper p-3">
+    <li className={`flex items-center gap-3 rounded-panel p-3 ${props.surface === "surface" ? "bg-surface" : "bg-paper"}`}>
       <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-thumb bg-sunken">
         {photo ? (
           // Store photos come from a fixed list of hosts (isAllowedImage); next/image would proxy them.
@@ -57,21 +66,64 @@ function Offer(props: { watch: Watch; match: Match; position: number; sessionId:
         <span className="flex flex-wrap items-center gap-2">
           <span className="text-ui text-ink tabular-nums">{match.priceText}</span>
           {withinTarget(props.watch, match) ? (
-            <span className="rounded-tag bg-ink px-1.5 py-0.5 text-label text-on-ink">Dentro do seu preço</span>
+            <span className="rounded-tag bg-ink px-1.5 py-0.5 text-label text-on-ink">
+              {(props.watch.confirmed ?? props.watch.draft).condition.kind === "near_price" ? "Perto do seu valor" : "Dentro do seu preço"}
+            </span>
           ) : null}
         </span>
       </span>
-      <StoreLink
-        url={match.url}
-        store={match.store}
-        label="Ver"
-        click={{
-          sessionId: props.sessionId,
-          title: match.title,
-          where: { source: "product_card", position: props.position },
-        }}
-      />
+      <span className="flex shrink-0 flex-col items-stretch gap-2">
+        <StoreLink
+          url={match.url}
+          store={match.store}
+          label="Ver"
+          click={{
+            sessionId: props.sessionId,
+            title: match.title,
+            where: { source: "product_card", position: props.position },
+          }}
+        />
+        {props.onAsk ? (
+          <button
+            type="button"
+            onClick={() => props.onAsk?.(match)}
+            aria-label={`Perguntar sobre ${match.title}`}
+            className="press min-h-11 rounded-full px-4 text-ui text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink hover:bg-sunken"
+          >
+            Perguntar
+          </button>
+        ) : null}
+      </span>
     </li>
+  );
+}
+
+/** The offers of a reading, cheapest first, as many as `limit`. */
+export function OfferList(props: {
+  watch: Watch;
+  matches: Match[];
+  sessionId: string | null;
+  onAsk?: (match: Match) => void;
+  surface?: "paper" | "surface";
+  limit?: number;
+}) {
+  const offers = [...props.matches]
+    .sort((a, b) => (a.amount ?? Number.POSITIVE_INFINITY) - (b.amount ?? Number.POSITIVE_INFINITY))
+    .slice(0, props.limit ?? 5);
+  return (
+    <ul className="flex flex-col gap-2">
+      {offers.map((match, position) => (
+        <Offer
+          key={`${match.url}-${position}`}
+          watch={props.watch}
+          match={match}
+          position={position}
+          sessionId={props.sessionId}
+          onAsk={props.onAsk}
+          surface={props.surface ?? "paper"}
+        />
+      ))}
+    </ul>
   );
 }
 
@@ -114,11 +166,7 @@ export function WatchReadings(props: { watch: Watch; results: WatchResult[]; ses
             </p>
           ) : null}
           {offers.length ? (
-            <ul className="flex flex-col gap-2">
-              {offers.map((match, position) => (
-                <Offer key={`${match.url}-${position}`} watch={watch} match={match} position={position} sessionId={props.sessionId} />
-              ))}
-            </ul>
+            <OfferList watch={watch} matches={latest?.summary.matches ?? []} sessionId={props.sessionId} />
           ) : null}
           <p className="text-caption text-graphite">
             Preços observados no índice do Google Shopping; o preço final, o frete e o estoque se confirmam na loja.

@@ -30,7 +30,7 @@ One PostHog project for the web and the extension. The person is the same `disti
 | Conversations | `conversation_started` (`source`, `has_initial_query`), `conversation_opened` (`position`, `started_on`), `conversation_message_sent` (`turn`, `length`, `with_product`), `conversation_turn_completed` / `_failed` / `_stopped` (`duration_ms`, `first_text_ms`, `research_results`, `reason`), `conversation_reply_selected`, `product_picked`, `product_unpicked`, `product_videos_requested`, `product_videos_failed`, `review_link_opened` (`video_id`), `situation_outcome_recorded` |
 | Research in the person's Chrome | `local_research_opened`, `local_research_started` (`stores`), `local_research_failed`, `local_research_stopped` |
 | Agent's components | `decision_changed`, `recommendation_rejected_clicked` (`reason`), `watch_draft_saved`, `watch_draft_confirmed` |
-| Panels | `panel_create_opened`, `panel_planned` (`planned`, `duration_ms`), `panel_plan_failed`, `panel_created` (`kind`, `condition`, `email`), `panel_action` (`action`), `panel_action_failed` |
+| Panels | `panel_create_opened`, `panel_planned` (`planned`, `duration_ms`), `panel_plan_failed`, `panel_created` (`kind`, `condition`, `email`), `panel_answered` (`questions`, `left`), `panel_action` (`action`), `panel_action_failed`, `panel_page_opened` (`status`, `readings`, `conversations`), `panel_conversation_started` (`from`: `product` ou `panel`) |
 | Profile and data | `memory_added` (`kind`), `memory_confirmed`, `memory_deleted`, `memories_cleared`, `data_exported`, `account_deleted`, `watch_muted_by_link` |
 | Feedback | `feedback_opened`, `feedback_submitted` (from the browser only when the server could not take it, `delivered: "posthog_only"`), `feedback_failed` |
 

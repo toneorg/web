@@ -18,6 +18,7 @@ import {
   type TurnInput,
   type Watch,
   type WatchResult,
+  watchTitle,
 } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { since, track } from "./analytics";
@@ -25,6 +26,7 @@ import { ApiError, api, peek, rateAnswer, streamTurn } from "./api";
 import { Program, type ProgramHost, STORE_HOSTS, WATCHES_CHANGED } from "./Program";
 import { WatchReadings } from "./WatchReadings";
 import { LocalResearch } from "./LocalResearch";
+import { takePicked } from "./picked-handoff";
 import { ResearchRun } from "./ResearchRun";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
@@ -54,8 +56,30 @@ function placeReviews(list: Item[], runs: ReviewRunState[]): Item[] {
 let counter = 0;
 const uid = () => `w${Date.now().toString(36)}${(++counter).toString(36)}`;
 
-export function Conversation(props: { sessionId: string; first?: string | null }) {
+/** Where "←" goes: a panel's conversation goes back to its panel, any other to the list. */
+export function backLink(panelId: string | null, panelTitle: string | null): { href: string; label: string } {
+  return panelId
+    ? { href: `/paineis/${panelId}`, label: `← ${panelTitle ?? "Painel"}` }
+    : { href: "/conversas", label: "← Conversas" };
+}
+
+export function Conversation(props: { sessionId: string; first?: string | null; panelId?: string | null }) {
   const { sessionId } = props;
+  const panelId = props.panelId ?? null;
+  // A panel's conversation names its panel in the way back.
+  const [panelTitle, setPanelTitle] = useState<string | null>(null);
+  useEffect(() => {
+    if (!panelId) return;
+    let live = true;
+    api.watch(panelId).then(
+      (watch) => live && watch && setPanelTitle(watchTitle(watch.confirmed ?? watch.draft)),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [panelId]);
+  const back = backLink(panelId, panelTitle);
   const [items, setItems] = useState<Item[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "expired" | "error">("loading");
   const [draft, setDraft] = useState("");
@@ -64,6 +88,11 @@ export function Conversation(props: { sessionId: string; first?: string | null }
   const [busy, setBusy] = useState(false);
   /** The product picked from a component: it goes with every message until the person lets it go. */
   const [picked, setPicked] = useState<PickedProduct | null>(null);
+  // "Perguntar" on a panel's page brings the product along, once.
+  useEffect(() => {
+    const brought = takePicked(sessionId);
+    if (brought) setPicked(brought);
+  }, [sessionId]);
   const controller = useRef<AbortController | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
@@ -109,6 +138,8 @@ export function Conversation(props: { sessionId: string; first?: string | null }
   // A panel is a conversation: the watches made here, with their readings, close the log.
   const [panels, setPanels] = useState<{ watch: Watch; results: WatchResult[] }[]>([]);
   useEffect(() => {
+    // Opened from a panel: its page already shows the readings.
+    if (panelId) return;
     let live = true;
     const fetchPanels = () =>
       api
@@ -128,7 +159,7 @@ export function Conversation(props: { sessionId: string; first?: string | null }
       live = false;
       window.removeEventListener(WATCHES_CHANGED, fetchPanels);
     };
-  }, [sessionId, round]);
+  }, [sessionId, round, panelId]);
 
   // Follows the conversation as it grows, also while an answer streams in, unless the
   // person scrolled up to read something: then it leaves the page where it is.
@@ -466,8 +497,8 @@ export function Conversation(props: { sessionId: string; first?: string | null }
     <main id="conteudo" className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
       {/* Sticky under the app bar: "← Conversas" stays in reach in a long conversation. */}
       <header className="sticky top-17 z-[5] flex flex-wrap items-center justify-between gap-3 bg-paper/90 py-2 backdrop-blur">
-        <Link href="/conversas" className="min-h-11 content-center text-ui text-ink underline-offset-4 hover:underline">
-          ← Conversas
+        <Link href={back.href} className="min-h-11 content-center text-ui text-ink underline-offset-4 hover:underline">
+          {back.label}
         </Link>
         {researchNote(me) ? <p className="text-caption text-graphite">{researchNote(me)}</p> : null}
       </header>

@@ -12,7 +12,7 @@ import { track } from "./analytics";
 import { api } from "./api";
 import { NewPanelSheet } from "./NewPanel";
 import { PriceChart } from "./PriceChart";
-import { ICONS, PanelMenu } from "./PanelMenu";
+import { readingOf, usePanelActions } from "./panel-actions";
 import { WATCHES_CHANGED } from "./Program";
 
 const STATUS: Record<Watch["status"], string> = {
@@ -27,13 +27,12 @@ const usd = (value: number) =>
 const when = (iso: string) =>
   new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
 
-interface Panel {
+export interface Panel {
   watch: Watch;
   latest: WatchResult | null;
   /** The newest round found no offer, so `latest` is an older reading with a price. */
   emptyRound?: boolean;
 }
-type Action = "pause" | "resume" | "mute" | "unmute" | "check" | "delete";
 
 /** The lowest comparable price of a reading, as the store showed it. */
 export function lowestOf(result: WatchResult | null): string | null {
@@ -48,15 +47,6 @@ export function lowestMatch(result: WatchResult | null) {
   if (!match) return null;
   const limitation = (match as { limitation?: unknown }).limitation;
   return { priceText: match.priceText, limitation: typeof limitation === "string" && limitation ? limitation : null };
-}
-
-/**
- * The reading the card shows: the newest one with a price. The index sometimes comes back empty
- * for a round; a price seen minutes before is still the useful thing to show.
- */
-export function readingOf(results: WatchResult[]): Pick<Panel, "latest" | "emptyRound"> {
-  const latest = results.find((result) => lowestOf(result) !== null) ?? results[0] ?? null;
-  return { latest, emptyRound: Boolean(latest && results[0] && latest.id !== results[0].id) };
 }
 
 /** What the center says about a watch's runs, besides its latest reading. */
@@ -77,33 +67,10 @@ export function panelFacts(watch: Watch, now = new Date()) {
   };
 }
 
-/** The actions a watch allows in its state. */
-export function actionsOf(watch: Watch): Action[] {
-  if (watch.status === "active") {
-    const mute: Action[] = watch.confirmed?.notify.email ? [watch.mutedAt ? "unmute" : "mute"] : [];
-    return ["check", "pause", ...mute, "delete"];
-  }
-  if (watch.status === "paused") return ["resume", "delete"];
-  return ["delete"];
-}
-
-const LABEL: Record<Action, [idle: string, busy: string]> = {
-  check: ["Verificar agora", "Verificando…"],
-  pause: ["Pausar", "Pausando…"],
-  resume: ["Retomar", "Retomando…"],
-  mute: ["Silenciar e-mail", "Silenciando…"],
-  unmute: ["Voltar a avisar", "Ativando…"],
-  delete: ["Excluir", "Excluindo…"],
-};
-const BUTTON =
-  "press min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+export { actionsOf, readingOf } from "./panel-actions";
 
 function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Panel | null) => void }) {
   const { watch, latest } = props.panel;
-  const [busy, setBusy] = useState<Action | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const rule = watch.confirmed ?? watch.draft;
   const lines = describeWatch(rule);
   const what = watchTitle(rule);
@@ -127,47 +94,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
     };
   }, [watch.id, watch.confirmed, latest?.id]);
 
-  const run = async (action: Action) => {
-    setBusy(action);
-    setError(null);
-    track("panel_action", { action, status: watch.status });
-    try {
-      if (action === "delete") {
-        await api.deleteWatch(watch.id);
-        props.onChange(null);
-        return;
-      }
-      if (action === "check") {
-        // Compared with the last reading the server had, not with this browser's clock.
-        const before = (await api.watchResults(watch.id, { fresh: true }))[0]?.observedAt ?? "";
-        const { state } = await api.checkWatch(watch.id);
-        // The reading runs on the server and may end after the answer: follow it for up to a minute.
-        const newer = (list: WatchResult[]) => list.find((result) => result.observedAt > before) ?? null;
-        let results = await api.watchResults(watch.id, { fresh: true });
-        if (state !== "done" && !newer(results)) {
-          setChecking(true);
-          for (let tries = 0; tries < 20 && !newer(results); tries++) {
-            await new Promise((resolve) => window.setTimeout(resolve, 3000));
-            results = await api.watchResults(watch.id, { fresh: true });
-          }
-          setChecking(false);
-        }
-        const fresh = await api.watch(watch.id);
-        track("panel_check_finished", { found: Boolean(newer(results)), waited: state !== "done" });
-        if (!newer(results)) setError("A leitura ainda não terminou. O resultado aparece aqui quando chegar.");
-        if (fresh) props.onChange({ watch: fresh, ...(results.length ? readingOf(results) : { latest }) });
-        window.dispatchEvent(new Event(WATCHES_CHANGED));
-        return;
-      }
-      props.onChange({ watch: await api.watchAction(watch.id, action), latest });
-    } catch (failure) {
-      track("panel_action_failed", { action });
-      setError(failure instanceof Error ? failure.message : "Não deu certo. Tente de novo.");
-    } finally {
-      setBusy(null);
-      setConfirmDelete(false);
-    }
-  };
+  const { busy, menu, footer } = usePanelActions(props.panel, props.onChange, what);
 
   return (
     <article
@@ -190,17 +117,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
         <span className="mt-3 shrink-0 rounded-tag bg-sunken px-2 py-0.5 text-label text-graphite">
           {STATUS[watch.status]}
         </span>
-        <PanelMenu
-          label={`Ações do painel ${what}`}
-          disabled={busy !== null}
-          items={actionsOf(watch).map((action) => ({
-            id: action,
-            label: LABEL[action][0],
-            icon: ICONS[action],
-            danger: action === "delete",
-            onSelect: () => (action === "delete" ? setConfirmDelete(true) : void run(action)),
-          }))}
-        />
+        {menu}
       </span>
       {condition ? <span className="text-caption text-graphite">{condition}</span> : null}
       {lowest ? (
@@ -235,11 +152,6 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
           Primeira leitura{watch.nextCheckAt ? ` em ${when(watch.nextCheckAt)}` : " em breve"}.
         </span>
       )}
-      {checking ? (
-        <span role="status" className="text-caption text-ink">
-          Verificando agora; o resultado aparece aqui em instantes.
-        </span>
-      ) : null}
       {latest?.conditionMet ? <span className="text-ui text-ink">Condição atingida</span> : null}
       {facts.problem ? <span className="text-caption text-ink">{facts.problem}</span> : null}
       {facts.stale ? (
@@ -252,30 +164,7 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
       {facts.email && facts.muted ? (
         <span className="text-caption text-graphite">E-mail silenciado: os avisos ficam só aqui.</span>
       ) : null}
-      {busy && busy !== "check" && busy !== "delete" ? (
-        <span role="status" className="text-caption text-graphite">
-          {LABEL[busy][1]}
-        </span>
-      ) : null}
-      {confirmDelete ? (
-        // Above the card's link, so the buttons get the clicks.
-        <div role="group" aria-label="Excluir este painel?" className="relative z-[1] mt-1 flex flex-col gap-2 rounded-panel bg-sunken p-3">
-          <span className="text-small text-ink">Excluir este painel? As leituras param; a conversa continua.</span>
-          <span className="flex flex-wrap gap-2">
-            <button type="button" className={`${BUTTON} text-alert`} disabled={busy !== null} onClick={() => run("delete")}>
-              {busy === "delete" ? LABEL.delete[1] : "Excluir painel"}
-            </button>
-            <button type="button" className={BUTTON} disabled={busy !== null} onClick={() => setConfirmDelete(false)}>
-              Cancelar
-            </button>
-          </span>
-        </div>
-      ) : null}
-      {error ? (
-        <p role="alert" className="text-small font-medium text-alert">
-          {error}
-        </p>
-      ) : null}
+      {footer}
     </article>
   );
 }
