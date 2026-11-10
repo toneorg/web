@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@c2d608705745 (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/extension@62bd2817cbca (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -42,15 +42,36 @@ export const INDEX_STORES = [
   "apple.com",
 ] as const;
 
+/**
+ * How close to the price the person has in mind counts as "near" (10/11/2026: "olha tanto pra cima
+ * quanto pra baixo"): up to 5% above it, or anything below.
+ */
+export const NEAR_PRICE_TOLERANCE = 0.05;
+/**
+ * What counts as a significant drop when the person only wants to follow the price (10/11/2026:
+ * "não deixa o usuário escolher essa porcentagem, pq ele não vai saber"): 10% below the typical
+ * price of the product's history, or below the first price observed while there is no history.
+ */
+export const SIGNIFICANT_DROP = 0.1;
+
 export const WatchCondition = z.discriminatedUnion("kind", [
   /** Not chosen yet: a draft in this state cannot be confirmed when the goal asks for a deal. */
   z.object({ kind: z.literal("none") }),
+  /** Follows the price like a price tracker; notifies a significant drop against the history. */
+  z.object({ kind: z.literal("price_drop") }),
+  /** The price the person has in mind: notifies when the price gets near it, from above or below. */
+  z.object({
+    kind: z.literal("near_price"),
+    amount: z.number().positive(),
+    currency: z.string().regex(/^[A-Z]{3}$/),
+  }),
+  /** Legacy (before 10/11/2026): at or below a price. Confirmed watches keep it. */
   z.object({
     kind: z.literal("target_price"),
     amount: z.number().positive(),
     currency: z.string().regex(/^[A-Z]{3}$/),
   }),
-  /** A drop against the first price observed by the watch, never against an invented history. */
+  /** Legacy (before 10/11/2026): a drop the person chose against the first price observed. */
   z.object({ kind: z.literal("drop_percent"), percent: z.number().min(1).max(90) }),
   /** Discovery: tell when an alternative that fits shows up. */
   z.object({ kind: z.literal("new_match") }),
@@ -64,6 +85,19 @@ export const WatchProduct = z.object({
   /** The research offer it came from, when there is one. */
   offerId: z.string().nullable(),
 });
+
+/**
+ * A question the agent asks before the plan is final, with short options the person taps (10/11/2026:
+ * "iPhone 18" should first ask whether it is the 18, the 18 Pro or both, and which variant).
+ */
+export const WatchQuestion = z.object({
+  id: Text(40),
+  question: Text(160),
+  options: z.array(Text(60)).min(2).max(6),
+  /** More than one option can be chosen ("os dois"). */
+  multiple: z.boolean().default(false),
+});
+export type WatchQuestion = z.infer<typeof WatchQuestion>;
 
 export const WatchRule = z
   .object({
@@ -83,6 +117,14 @@ export const WatchRule = z
         "Domínios escolhidos do catálogo para leitura direta; até três na pesquisa livre. [] mantém somente o índice. O escopo explícito da pessoa prevalece.",
       ),
     condition: WatchCondition,
+    /** Open questions of the draft; a rule with any of them cannot be confirmed. */
+    questions: z
+      .array(WatchQuestion)
+      .max(3)
+      .optional()
+      .describe(
+        "Perguntas que mudam o plano (modelo, versão, capacidade, cor), com opções curtas para a pessoa tocar. Quando ela responder, ajuste products e variants e mande [].",
+      ),
     /** Daily is the only frequency of the beta; "check now" is separate and needs balance. */
     frequency: z.literal("daily").default("daily"),
     notify: z.object({
@@ -102,8 +144,12 @@ export const WatchStatus = z.enum(["draft", "active", "paused", "deleted"]);
 export type WatchStatus = z.infer<typeof WatchStatus>;
 
 export const WatchClarification = z.object({
-  field: z.enum(["condition", "products", "storeScope", "query"]),
+  field: z.enum(["condition", "products", "storeScope", "query", "choice"]),
   question: z.string(),
+  /** A "choice" names the question it answers and the options to tap. */
+  id: z.string().optional(),
+  options: z.array(z.string()).optional(),
+  multiple: z.boolean().optional(),
 });
 export const WatchSource = z.object({
   id: z.enum(["google_shopping_index", "remote_browser", "local_extension"]),
@@ -172,6 +218,11 @@ export type WatchResult = z.infer<typeof WatchResult>;
 export const WatchEdit = z.object({ version: z.number().int().positive(), draft: WatchRule });
 export const WatchConfirm = z.object({ version: z.number().int().positive() });
 
+const money = (amount: number, currency: string) =>
+  currency === "BRL"
+    ? `R$ ${amount.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+    : `${amount.toLocaleString("pt-BR")} ${currency}`;
+
 const DEAL = /promo|desconto|oferta|barat|baixar|queda|liquida|black friday/i;
 const isIndexStore = (store: string) => INDEX_STORES.some((domain) => store === domain || store.endsWith(`.${domain}`));
 
@@ -182,15 +233,20 @@ const isIndexStore = (store: string) => INDEX_STORES.some((domain) => store === 
  * extension and the open browser.
  */
 export function reviewWatch(rule: WatchRule, remoteStores: readonly string[] = []): WatchReview {
-  const clarifications: z.infer<typeof WatchClarification>[] = [];
+  const clarifications: z.infer<typeof WatchClarification>[] = (rule.questions ?? []).map((q) => ({
+    field: "choice",
+    id: q.id,
+    question: q.question,
+    options: q.options,
+    multiple: q.multiple,
+  }));
   const notes: string[] = [];
   if (rule.condition.kind === "none" && (DEAL.test(rule.goal) || rule.kind === "monitoring"))
     clarifications.push({
       field: "condition",
-      question:
-        "O que conta como promoção para você? Diga um preço máximo (por exemplo, até R$ 200) ou uma queda em relação ao primeiro preço que eu observar (por exemplo, 15%).",
+      question: "Quer só acompanhar a variação do preço, ou tem um valor em mente (por exemplo, perto de R$ 200)?",
     });
-  if (rule.kind === "monitoring" && rule.products.length === 0)
+  if (rule.kind === "monitoring" && rule.products.length === 0 && rule.query.length < 3)
     clarifications.push({
       field: "products",
       question: "Qual produto e qual variante (cor, tamanho, volume) devo acompanhar?",
@@ -222,6 +278,14 @@ export function reviewWatch(rule: WatchRule, remoteStores: readonly string[] = [
     );
   if (rule.condition.kind === "drop_percent")
     notes.push("A queda é medida contra o primeiro preço que eu observar; não existe histórico anterior.");
+  if (rule.condition.kind === "price_drop")
+    notes.push(
+      `Comparo cada preço com o histórico deste produto e aviso quando ele fica ${SIGNIFICANT_DROP * 100}% ou mais abaixo do normal. Sem histórico ainda, a referência é o primeiro preço que eu observar.`,
+    );
+  if (rule.condition.kind === "near_price")
+    notes.push(
+      `Perto quer dizer até ${NEAR_PRICE_TOLERANCE * 100}% acima de ${money(rule.condition.amount, rule.condition.currency)}; abaixo dele também conta.`,
+    );
   return {
     canConfirm: clarifications.length === 0,
     clarifications,
@@ -256,18 +320,52 @@ export function reviewWatch(rule: WatchRule, remoteStores: readonly string[] = [
   };
 }
 
-const money = (amount: number, currency: string) =>
-  currency === "BRL"
-    ? `R$ ${amount.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
-    : `${amount.toLocaleString("pt-BR")} ${currency}`;
-
 /** The rule in a few lines the person can check: what, where, how often, when it notifies. */
 const productsOf = (rule: WatchRule) =>
   rule.products.map((p) => `${p.title}${p.variantLabel ? ` (${p.variantLabel})` : ""}`).join("; ");
 
+/**
+ * What the watch is about. A monitoring draft without products follows its search: "iPhone 18"
+ * showed "Produto ainda não escolhido" on 10/11/2026 although the person had named it.
+ */
+const watchedOf = (rule: WatchRule) =>
+  productsOf(rule) || (rule.kind === "monitoring" && rule.query.trim().length >= 3 ? rule.query.trim() : "");
+
+/** The condition in one line, as the card and the agent say it. */
+export function conditionText(condition: WatchCondition): string {
+  switch (condition.kind) {
+    case "price_drop":
+      return "Acompanhar a variação e avisar quando o preço cair bem abaixo do normal";
+    case "near_price":
+      return `Quando o preço estiver perto de ${money(condition.amount, condition.currency)}`;
+    case "target_price":
+      return `Preço em até ${money(condition.amount, condition.currency)}`;
+    case "drop_percent":
+      return `Queda de ${condition.percent}% ou mais desde a primeira leitura`;
+    case "new_match":
+      return "Quando aparecer uma opção nova";
+    default:
+      return "Ainda não definido";
+  }
+}
+
+/**
+ * A monitoring draft that names what to follow only in its search gets it as its product, so the
+ * runner has something to match (a monitoring rule without products matches nothing).
+ */
+export function withProductFromQuery(rule: WatchRule): WatchRule {
+  if (rule.kind !== "monitoring" || rule.products.length || rule.query.trim().length < 3) return rule;
+  return {
+    ...rule,
+    products: [
+      { title: rule.query.trim().slice(0, 160), variantLabel: rule.variants[0] ?? null, url: null, offerId: null },
+    ],
+  };
+}
+
 /** A short name for a watch, never empty: the product, the search, or the person's goal. */
 export function watchTitle(rule: WatchRule): string {
-  const title = (productsOf(rule) || rule.query || rule.goal || "Novo acompanhamento").slice(0, 120);
+  const title = (watchedOf(rule) || rule.query || rule.goal || "Novo acompanhamento").slice(0, 120);
   return title.charAt(0).toLocaleUpperCase("pt-BR") + title.slice(1);
 }
 
@@ -275,7 +373,7 @@ export function watchTitle(rule: WatchRule): string {
 export function watchFacts(rule: WatchRule): [label: string, value: string][] {
   const what =
     rule.kind === "monitoring"
-      ? productsOf(rule) || "Produto ainda não escolhido"
+      ? watchedOf(rule) || "Produto ainda não escolhido"
       : [
           rule.query,
           rule.brands.length ? `marcas ${rule.brands.join(", ")}` : "",
@@ -283,14 +381,7 @@ export function watchFacts(rule: WatchRule): [label: string, value: string][] {
         ]
           .filter(Boolean)
           .join(", ") || "Ainda não definido";
-  const when =
-    rule.condition.kind === "target_price"
-      ? `Preço em até ${money(rule.condition.amount, rule.condition.currency)}`
-      : rule.condition.kind === "drop_percent"
-        ? `Queda de ${rule.condition.percent}% ou mais desde a primeira leitura`
-        : rule.condition.kind === "new_match"
-          ? "Quando aparecer uma opção nova"
-          : "Ainda não definido";
+  const when = conditionText(rule.condition);
   return [
     [rule.kind === "monitoring" ? "Acompanhar" : "Procurar", what],
     ...(rule.variants.length ? [["Variantes", rule.variants.join(", ")] as [string, string]] : []),
@@ -307,20 +398,24 @@ export function watchFacts(rule: WatchRule): [label: string, value: string][] {
 export function describeWatch(rule: WatchRule): string[] {
   const what =
     rule.kind === "monitoring"
-      ? `Acompanhar: ${productsOf(rule) || "produto ainda não escolhido"}`
+      ? `Acompanhar: ${watchedOf(rule) || "produto ainda não escolhido"}`
       : `Procurar novidades: ${rule.query}${rule.brands.length ? `, marcas ${rule.brands.join(", ")}` : ""}${rule.categories.length ? `, em ${rule.categories.join(", ")}` : ""}`;
   const where =
     rule.storeScope.kind === "explicit"
       ? `Onde: ${rule.storeScope.stores.join(", ")}`
       : "Onde: lojas que o índice observa";
   const condition =
-    rule.condition.kind === "target_price"
-      ? `Avisar quando o preço observado ficar em até ${money(rule.condition.amount, rule.condition.currency)}`
-      : rule.condition.kind === "drop_percent"
-        ? `Avisar quando o preço cair ${rule.condition.percent}% ou mais desde a primeira observação`
-        : rule.condition.kind === "new_match"
-          ? "Avisar quando aparecer uma alternativa nova que atenda ao pedido"
-          : "Condição de aviso ainda não definida";
+    rule.condition.kind === "price_drop"
+      ? `Acompanhar a variação do preço e avisar numa queda de ${SIGNIFICANT_DROP * 100}% ou mais em relação ao preço normal do histórico`
+      : rule.condition.kind === "near_price"
+        ? `Avisar quando o preço observado estiver perto de ${money(rule.condition.amount, rule.condition.currency)} (até ${NEAR_PRICE_TOLERANCE * 100}% acima, ou abaixo)`
+        : rule.condition.kind === "target_price"
+          ? `Avisar quando o preço observado ficar em até ${money(rule.condition.amount, rule.condition.currency)}`
+          : rule.condition.kind === "drop_percent"
+            ? `Avisar quando o preço cair ${rule.condition.percent}% ou mais desde a primeira observação`
+            : rule.condition.kind === "new_match"
+              ? "Avisar quando aparecer uma alternativa nova que atenda ao pedido"
+              : "Condição de aviso ainda não definida";
   const channels = `Avisos: central na web${rule.notify.email ? " e e-mail" : ""}${rule.notify.digest ? ", com resumo de novidades" : ""}`;
   return [
     what,
@@ -345,7 +440,7 @@ export const WatchPricePoint = z.object({
 export type WatchPricePoint = z.infer<typeof WatchPricePoint>;
 export const WatchPrices = z.object({
   points: z.array(WatchPricePoint),
-  /** The panel's target price in BRL, drawn as a line; null for other conditions. */
+  /** The panel's price in mind (near or at most) in BRL, drawn as a line; null for other conditions. */
   target: z.number().positive().nullable(),
 });
 export type WatchPrices = z.infer<typeof WatchPrices>;

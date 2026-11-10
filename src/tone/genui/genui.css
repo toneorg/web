@@ -1,4 +1,4 @@
-/* Gerado de toneorg/extension@c2d608705745 (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/extension@62bd2817cbca (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -1253,6 +1253,36 @@ fieldset.field legend {
   width: 7rem;
   min-height: var(--tone-touch);
   font-variant-numeric: tabular-nums;
+}
+/* What an option does, under its label: the person never picks a percentage. */
+.watch-option-hint {
+  flex-basis: 100%;
+  margin: calc(-1 * var(--tone-space-sm)) 0 var(--tone-space-sm) calc(20px + var(--tone-space-md));
+  font: 400 14px / 20px var(--tone-font-sans);
+  color: var(--tone-graphite);
+  text-wrap: pretty;
+}
+.watch-question {
+  margin: 0;
+  border: 0;
+  min-width: 0;
+  padding: var(--tone-space-md) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tone-space-sm);
+  font: 400 14px / 20px var(--tone-font-sans);
+}
+.watch-question legend {
+  padding: 0;
+  margin-bottom: var(--tone-space-sm);
+  font: 500 14px / 20px var(--tone-font-sans);
+  color: var(--tone-ink);
+}
+.watch-question .hint {
+  color: var(--tone-graphite);
+}
+.watch-questions .watch-actions {
+  padding-top: var(--tone-space-sm);
 }
 .watch-email {
   margin-top: var(--tone-space-xs);

@@ -57,6 +57,7 @@ export type WebEvent =
   | "panel_create_opened"
   | "panel_opened"
   | "panel_planned"
+  | "panel_answered"
   | "panel_plan_failed"
   | "panel_created"
   | "panel_action"

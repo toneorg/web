@@ -61,11 +61,17 @@ export function Sheet(props: { title: string; onClose: () => void; children: Rea
         role="dialog"
         aria-modal="true"
         aria-label={props.title}
-        className={`relative flex max-h-[88dvh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-card bg-paper px-5 pb-5 pt-3 shadow-floating sm:rounded-card ${leaving ? "sheet-out" : "sheet-in"}`}
+        className={`relative flex max-h-[88dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-card bg-paper shadow-floating sm:rounded-card ${leaving ? "sheet-out" : "sheet-in"}`}
       >
-        <div aria-hidden="true" className="h-1 w-9 shrink-0 self-center rounded-full bg-edge" />
-        <h2 className="display-sm text-ink">{props.title}</h2>
-        <Close.Provider value={close}>{props.children}</Close.Provider>
+        {/* The handle and the title stay put; only the body scrolls, inside the rounded corners
+            (10/11/2026: the whole folha scrolled, with the bar outside its edge). */}
+        <div className="flex shrink-0 flex-col gap-4 px-5 pb-3 pt-3">
+          <div aria-hidden="true" className="h-1 w-9 self-center rounded-full bg-edge" />
+          <h2 className="display-sm text-ink">{props.title}</h2>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pb-5 [scrollbar-width:thin]">
+          <Close.Provider value={close}>{props.children}</Close.Provider>
+        </div>
       </div>
     </div>,
     document.body,
