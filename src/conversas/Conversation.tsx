@@ -307,6 +307,30 @@ export function Conversation(props: { sessionId: string; first?: string | null }
       setBusy(false);
     }
   };
+  /** "O que dizem os reviews": a button, not a default (04/11/2026), to see how many people want it. */
+  const showReviews = async () => {
+    if (!picked || busy) return;
+    setItems((list) => [...list, { id: uid(), kind: "user", text: "O que dizem os reviews deste produto" }]);
+    track("product_reviews_requested");
+    try {
+      const run = await api.reviews(sessionId, picked.title);
+      setItems((list) => placeReviews(list, [run]));
+      setReviewsSince(Date.now());
+    } catch (error) {
+      track("product_reviews_failed", { status: error instanceof ApiError ? error.status : null });
+      if (error instanceof ApiError && error.status === 401) setState("expired");
+      else
+        setItems((list) => [
+          ...list,
+          {
+            id: uid(),
+            kind: "notice",
+            error: true,
+            text: error instanceof ApiError ? error.message : "Perdi a conexão com a tone. Tente de novo.",
+          },
+        ]);
+    }
+  };
   // Síntese de reviews: read after each turn, then every 3 s while one runs (at most 5 min).
   const [reviewsSince, setReviewsSince] = useState<number | null>(null);
   const reviewsRunning = items.some((item) => item.kind === "reviews" && item.run.status === "running");
@@ -441,7 +465,8 @@ export function Conversation(props: { sessionId: string; first?: string | null }
   return (
     <Shell me={me} current="conversas" sessionId={sessionId}>
     <main id="conteudo" className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 py-2">
+      {/* Sticky under the app bar: "← Conversas" stays in reach in a long conversation. */}
+      <header className="sticky top-17 z-[5] flex flex-wrap items-center justify-between gap-3 bg-paper/90 py-2 backdrop-blur">
         <Link href="/conversas" className="min-h-11 content-center text-ui text-ink underline-offset-4 hover:underline">
           ← Conversas
         </Link>
@@ -536,6 +561,7 @@ export function Conversation(props: { sessionId: string; first?: string | null }
             storeHosts={STORE_HOSTS}
             busy={busy}
             onVideos={() => void showMedia()}
+            onReviews={() => void showReviews()}
             onRemove={() => {
               track("product_unpicked");
               setPicked(null);
@@ -551,10 +577,12 @@ export function Conversation(props: { sessionId: string; first?: string | null }
             rows={2}
             maxLength={4000}
             value={draft}
-            placeholder="O que você procura?"
+            placeholder={state === "loading" ? "Carregando a conversa… já dá para escrever" : "O que você procura?"}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
-            disabled={state !== "ready"}
+            // Writing while the conversation loads: on 04/11/2026 a slow load left this box locked
+            // and the tester clicked it again and again. Only sending waits for "ready".
+            disabled={state !== "ready" && state !== "loading"}
             className="min-h-13 flex-1 resize-none rounded-input bg-surface px-4 py-3 text-body text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-ink"
           />
           <button

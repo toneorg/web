@@ -17,6 +17,7 @@ export type WebEvent =
   | "sign_in_completed"
   | "sign_in_failed"
   | "invite_checked"
+  | "invite_link_opened"
   | "signed_out"
   // Onboarding
   | "onboarding_started"
@@ -39,6 +40,8 @@ export type WebEvent =
   | "product_videos_requested"
   | "review_link_opened"
   | "product_videos_failed"
+  | "product_reviews_requested"
+  | "product_reviews_failed"
   | "situation_outcome_recorded"
   // Research in the person's own Chrome (T14)
   | "local_research_opened"

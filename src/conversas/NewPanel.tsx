@@ -45,7 +45,7 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
       setSessionId(created.sessionId);
       await streamTurn(
         created.sessionId,
-        { type: "message", text, page: null },
+        { type: "message", text, page: null, intent: "watch" },
         (event_) => {
           if (event_.type === "error") outcome.failed = event_.message;
         },

@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@73f02e8b0a03 (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/extension@c2d608705745 (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -331,3 +331,21 @@ export function describeWatch(rule: WatchRule): string[] {
     channels,
   ];
 }
+
+/**
+ * The price chart of a panel: the lowest price per day, from the panel's own checks and from the
+ * readings tone kept of the same offers (price_observations). Days without a reading are absent.
+ */
+export const WatchPricePoint = z.object({
+  /** YYYY-MM-DD, in UTC. */
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  amount: z.number().positive(),
+  store: z.string().nullable(),
+});
+export type WatchPricePoint = z.infer<typeof WatchPricePoint>;
+export const WatchPrices = z.object({
+  points: z.array(WatchPricePoint),
+  /** The panel's target price in BRL, drawn as a line; null for other conditions. */
+  target: z.number().positive().nullable(),
+});
+export type WatchPrices = z.infer<typeof WatchPrices>;

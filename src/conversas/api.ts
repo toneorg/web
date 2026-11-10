@@ -17,6 +17,7 @@ import {
   PurchaseSituation,
   ResearchRunState,
   ReviewRunState,
+  WatchPrices,
   SessionSummary,
   TranscriptItem,
   Watch,
@@ -194,6 +195,8 @@ export const api = {
   saveWatch: async (id: string, version: number, draft: WatchRule) =>
     Watch.parse(await send(`watches/${id}`, "PATCH", { version, draft })),
   /** T16: the readings of a watch, newest first, for the panels. */
+  /** The panel's price chart: lowest price per day and the target. */
+  watchPrices: async (id: string) => WatchPrices.parse(await call(`watches/${id}/prices`)),
   watchResults: (id: string, options?: { fresh?: boolean }) =>
     cached(`watches/${id}/results`, async () => WatchResult.array().parse(await call(`watches/${id}/results`)), options),
   confirmWatch: async (id: string, version: number) => Watch.parse(await send(`watches/${id}/confirm`, "POST", { version })),
@@ -212,6 +215,9 @@ export const api = {
   /** TikToks of a product, searched by its name and saved in the conversation. */
   media: async (sessionId: string, productTitle: string) =>
     ProductMedia.parse(await send("media", "POST", { sessionId, productTitle })),
+  /** "O que dizem os reviews": starts the synthesis of the picked product; it is then read with reviewRuns. */
+  reviews: async (sessionId: string, productTitle: string) =>
+    ReviewRunState.parse(await send("reviews", "POST", { sessionId, productTitle })),
 };
 
 /**

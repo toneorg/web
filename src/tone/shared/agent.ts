@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@73f02e8b0a03 (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/extension@c2d608705745 (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the panel and the server.
 //
 // The panel posts a turn and reads a stream of server-sent events. When the
@@ -52,6 +52,8 @@ export const TurnInput = z.discriminatedUnion("type", [
     photoId: z.string().min(1).max(60).optional(),
     /** The product the person picked in the conversation, shown above the composer. */
     product: PickedProduct.optional(),
+    /** Where the message came from: "watch" is the "Novo painel" sheet, a request to draft a watch now. */
+    intent: z.enum(["watch"]).optional(),
   }),
   z.object({
     type: z.literal("browser_results"),
