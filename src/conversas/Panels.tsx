@@ -1,17 +1,16 @@
 "use client";
 // T16/T11: the person's own panels, on the left of the web app: the center of
-// watches. Each one is something the person created in a conversation, with its
-// latest reading, when it was checked and when it runs again. From here the
-// person pauses, resumes, mutes the e-mail, checks now or deletes; changing the
-// rule itself happens in the conversation that made it, with a new confirmation.
+// watches. Each card shows what the panel follows and its lowest price, and leads
+// to the panel's own page (10/11/2026: panels and conversations apart). From the
+// "⋯" the person pauses, resumes, mutes the e-mail, checks now or deletes.
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { type BudgetStatement, describeWatch, type Me, type Watch, type WatchPrices, type WatchResult, watchTitle } from "@/tone/shared";
+import { type BudgetStatement, type Me, type Watch, type WatchPrices, type WatchResult, watchFacts, watchTitle } from "@/tone/shared";
 import { PlusIcon } from "@/components/icons";
 import { track } from "./analytics";
 import { api } from "./api";
 import { NewPanelSheet } from "./NewPanel";
-import { PriceChart } from "./PriceChart";
+import { Sparkline } from "./Sparkline";
 import { readingOf, usePanelActions } from "./panel-actions";
 import { WATCHES_CHANGED } from "./Program";
 
@@ -69,15 +68,24 @@ export function panelFacts(watch: Watch, now = new Date()) {
 
 export { actionsOf, readingOf } from "./panel-actions";
 
-function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Panel | null) => void }) {
+/**
+ * A panel in the column: what it follows, the lowest price with its small line, and when it runs.
+ * The card leads to the panel's page; a draft reopens the "Novo painel" folha instead.
+ */
+function PanelCard(props: {
+  panel: Panel;
+  fresh?: boolean;
+  onChange: (panel: Panel | null) => void;
+  onReview: (watch: Watch) => void;
+}) {
   const { watch, latest } = props.panel;
   const rule = watch.confirmed ?? watch.draft;
-  const lines = describeWatch(rule);
   const what = watchTitle(rule);
-  const condition = lines.find((line) => line.startsWith("Avisar"));
+  const condition = watchFacts(rule).find(([label]) => label === "Quando avisar")?.[1];
   const lowest = lowestOf(latest);
+  const limitation = lowestMatch(latest)?.limitation;
   const facts = panelFacts(watch);
-  // The chart reads again whenever a new reading arrives.
+  // The line reads again whenever a new reading arrives.
   const [prices, setPrices] = useState<WatchPrices | null>(null);
   useEffect(() => {
     if (!watch.confirmed) return;
@@ -95,70 +103,72 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
   }, [watch.id, watch.confirmed, latest?.id]);
 
   const { busy, menu, footer } = usePanelActions(props.panel, props.onChange, what);
+  // The whole card is the way in: the control's area covers it (after:inset-0).
+  const cover =
+    "min-h-11 flex-1 content-center text-start text-ui text-ink after:absolute after:inset-0 after:rounded-card hover:underline underline-offset-2 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ink";
 
   return (
     <article
-      className={`relative flex flex-col gap-2 rounded-card bg-surface p-5 shadow-raised${props.fresh ? " rise" : ""}`}
+      className={`relative flex flex-col gap-3 rounded-card bg-surface p-5 shadow-raised${props.fresh ? " rise" : ""}`}
       aria-busy={busy !== null}
     >
-      <span className="flex items-start justify-between gap-2">
-        {watch.sessionId ? (
-          // The whole card opens the panel's conversation: the link's area covers it (after:inset-0).
-          <Link
-            href={`/conversas/${watch.sessionId}`}
-            onClick={() => track("panel_opened", { status: watch.status })}
-            className="min-h-11 flex-1 content-center text-ui text-ink after:absolute after:inset-0 after:rounded-card hover:underline underline-offset-2 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ink"
+      <div className="flex items-start gap-2">
+        {watch.status === "draft" ? (
+          <button
+            type="button"
+            className={cover}
+            onClick={() => {
+              track("panel_opened", { status: watch.status });
+              props.onReview(watch);
+            }}
           >
             {what}
-          </Link>
+          </button>
         ) : (
-          <span className="min-h-11 flex-1 content-center text-ui text-ink">{what}</span>
+          <Link href={`/paineis/${watch.id}`} onClick={() => track("panel_opened", { status: watch.status })} className={cover}>
+            {what}
+          </Link>
         )}
-        <span className="mt-3 shrink-0 rounded-tag bg-sunken px-2 py-0.5 text-label text-graphite">
-          {STATUS[watch.status]}
-        </span>
+        {/* "Ativo" is the normal state; only the others need saying. */}
+        {watch.status !== "active" ? (
+          <span className="mt-3 shrink-0 rounded-tag bg-sunken px-2 py-0.5 text-label text-graphite">
+            {STATUS[watch.status]}
+          </span>
+        ) : null}
         {menu}
-      </span>
-      {condition ? <span className="text-caption text-graphite">{condition}</span> : null}
+      </div>
       {lowest ? (
-        <span className="rounded-panel bg-sunken p-4">
-          <span className="block text-caption text-graphite">Menor preço observado no índice</span>
-          <span className="display-sm block font-display text-ink tabular-nums">{lowest}</span>
-          {lowestMatch(latest)?.limitation ? (
-            <span className="block text-caption text-graphite">{lowestMatch(latest)?.limitation}</span>
+        <div className="flex flex-col gap-1">
+          <span className="display-sm font-display text-ink tabular-nums">{lowest}</span>
+          <span className="text-caption text-graphite">
+            Menor preço{latest ? ` em ${when(latest.observedAt)}` : ""}
+            {limitation ? ` · ${limitation}` : ""}
+          </span>
+          {prices && prices.points.length >= 2 ? (
+            <span className="mt-1 block">
+              <Sparkline points={prices.points} />
+            </span>
           ) : null}
-          {latest ? <span className="block text-caption text-graphite">em {when(latest.observedAt)}</span> : null}
           {props.panel.emptyRound ? (
-            <span className="mt-1 block text-caption text-graphite">
+            <span className="text-caption text-graphite">
               A leitura mais recente não achou ofertas no índice; este é o último preço visto.
             </span>
           ) : null}
-        </span>
-      ) : null}
-      {prices && prices.points.length >= 2 ? (
-        <PriceChart prices={prices} />
-      ) : prices && watch.status === "active" ? (
-        // A new panel has no line yet; say when it comes instead of leaving the card silent.
-        <span className="text-caption text-graphite">O gráfico do preço aparece a partir do segundo dia de leitura.</span>
-      ) : null}
-      {lowest ? null : latest ? (
+        </div>
+      ) : latest ? (
         <span className="text-caption text-graphite">{latest.summary.message}</span>
       ) : watch.status === "draft" ? (
-        <span className="text-caption text-graphite">
-          Rascunho: abra para revisar e confirmar. Nada roda antes disso.
-        </span>
+        <span className="text-caption text-graphite">Rascunho: toque para revisar e confirmar. Nada roda antes disso.</span>
       ) : (
         <span className="text-caption text-graphite">
           Primeira leitura{watch.nextCheckAt ? ` em ${when(watch.nextCheckAt)}` : " em breve"}.
         </span>
       )}
+      {condition && watch.status !== "draft" ? <span className="text-caption text-graphite">{condition}</span> : null}
       {latest?.conditionMet ? <span className="text-ui text-ink">Condição atingida</span> : null}
       {facts.problem ? <span className="text-caption text-ink">{facts.problem}</span> : null}
       {facts.stale ? (
         <span className="text-caption text-ink">Leitura com mais de 48 h: o preço pode ter mudado.</span>
-      ) : null}
-      {facts.checked || facts.next ? (
-        <span className="text-caption text-graphite">{[facts.checked, facts.next].filter(Boolean).join(" · ")}</span>
       ) : null}
       {/* Only the exception: "Avisos aqui e por e-mail" on every card was noise (10/11/2026). */}
       {facts.email && facts.muted ? (
@@ -206,6 +216,8 @@ export function Panels(props: { me: Me }) {
   }, [panels, userId]);
   const [failed, setFailed] = useState(false);
   const [planning, setPlanning] = useState(false);
+  /** A draft panel reopened in the "Novo painel" folha, at its review. */
+  const [reviewing, setReviewing] = useState<Watch | null>(null);
   /** The panel being built now, and the one that has just been built (it rises in). */
   const [building, setBuilding] = useState<string | null>(null);
   const [fresh, setFresh] = useState<string | null>(null);
@@ -247,7 +259,8 @@ export function Panels(props: { me: Me }) {
     );
   /** A confirmed watch from the "+" folha: it appears first, as a panel being built. */
   const onBuilt = (watch: Watch) => {
-    setPanels((current) => [{ watch, latest: null }, ...(current ?? [])]);
+    // A reviewed draft is the same panel: it moves to the top instead of showing twice.
+    setPanels((current) => [{ watch, latest: null }, ...(current ?? []).filter((panel) => panel.watch.id !== watch.id)]);
     setFresh(null);
     setBuilding(watch.id);
     if (buildTimer.current) window.clearTimeout(buildTimer.current);
@@ -298,6 +311,7 @@ export function Panels(props: { me: Me }) {
                     panel={panel}
                     fresh={fresh === panel.watch.id}
                     onChange={(next) => replace(panel.watch.id, next)}
+                    onReview={setReviewing}
                   />
                 )}
               </li>
@@ -330,6 +344,7 @@ export function Panels(props: { me: Me }) {
         </section>
       ) : null}
       {planning ? <NewPanelSheet onClose={() => setPlanning(false)} onBuilt={onBuilt} /> : null}
+      {reviewing ? <NewPanelSheet draft={reviewing} onClose={() => setReviewing(null)} onBuilt={onBuilt} /> : null}
     </>
   );
 }

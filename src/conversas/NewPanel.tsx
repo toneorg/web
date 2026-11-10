@@ -19,13 +19,14 @@ const field =
 
 type Step = "writing" | "planning" | "review" | "unplanned";
 
-export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
+export function NewPanel(props: { onBuilt: (watch: Watch) => void; draft?: Watch }) {
   const close = useSheetClose();
-  const [step, setStep] = useState<Step>("writing");
+  // A draft reopened from its card starts at its review, on the session that drafted it.
+  const [step, setStep] = useState<Step>(props.draft ? "review" : "writing");
   const [pedido, setPedido] = useState("");
   const [more, setMore] = useState("");
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Watch | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(props.draft?.sessionId ?? null);
+  const [draft, setDraft] = useState<Watch | null>(props.draft ?? null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const abort = useRef<AbortController | null>(null);
@@ -247,10 +248,10 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void }) {
 }
 
 /** The folha that holds the plan, so the panels column only mounts it on demand. */
-export function NewPanelSheet(props: { onClose: () => void; onBuilt: (watch: Watch) => void }) {
+export function NewPanelSheet(props: { onClose: () => void; onBuilt: (watch: Watch) => void; draft?: Watch }) {
   return (
-    <Sheet title="Novo painel" onClose={props.onClose}>
-      <NewPanel onBuilt={props.onBuilt} />
+    <Sheet title={props.draft ? "Revisar painel" : "Novo painel"} onClose={props.onClose}>
+      <NewPanel onBuilt={props.onBuilt} draft={props.draft} />
     </Sheet>
   );
 }

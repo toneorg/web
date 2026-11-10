@@ -62,7 +62,8 @@ export function Shell(props: {
         </nav>
         <FeedbackButton sessionId={props.sessionId ?? null} />
       </header>
-      <div className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 pb-6 md:grid-cols-[minmax(16rem,22rem)_1fr] md:px-6">
+      {/* Wider than before, with a wider panels column (10/11/2026: less empty margin on the sides). */}
+      <div className="mx-auto grid w-full max-w-[96rem] flex-1 gap-6 px-4 pb-6 md:grid-cols-[minmax(18rem,26rem)_1fr] md:px-6 lg:gap-10">
         <aside
           id="paineis"
           aria-label="Seus painéis"

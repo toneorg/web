@@ -28,6 +28,9 @@ describe("BFF da web (T06)", () => {
     // T11: the center's actions and the mute link of an e-mail.
     expect(upstreamPath(["watches", "w1", "mute"])).toBe("/api/watches/w1/mute");
     expect(upstreamPath(["watches", "w1", "unmute"])).toBe("/api/watches/w1/unmute");
+    // The panel's price line and the conversations kept in it (both were missing on 10/11/2026).
+    expect(upstreamPath(["watches", "w1", "prices"])).toBe("/api/watches/w1/prices");
+    expect(upstreamPath(["watches", "w1", "sessions"])).toBe("/api/watches/w1/sessions");
     expect(upstreamPath(["watch-mute"])).toBe("/api/watch-mute");
     expect(upstreamPath(["watch-mute", "x"])).toBeNull();
     expect(upstreamPath(["situations"])).toBe("/api/situations");

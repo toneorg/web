@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@440b05322b9f (packages/shared/src/situation.ts). Não edite aqui.
+// Gerado de toneorg/extension@e9049c56bece (packages/shared/src/situation.ts). Não edite aqui.
 // The purchase situation of a conversation: what the person is trying to
 // solve, not the product. "27 °C" is context; "a wedding at 4 pm, outdoors, on
 // grass, I already have golden sandals" is a situation. One per conversation,
