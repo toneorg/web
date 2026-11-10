@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@ff619d5ce1a6 (packages/shared/src/safety.ts). Não edite aqui.
+// Gerado de toneorg/extension@c2d608705745 (packages/shared/src/safety.ts). Não edite aqui.
 // RNF11: the agent never pays. This is enforced in code, on both sides, and not
 // left to the model: the extension refuses to click anything that looks like a
 // payment step or to load a checkout page, whatever the model asked.
