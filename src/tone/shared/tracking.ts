@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2aedc6450a3e (packages/shared/src/tracking.ts). Não edite aqui.
+// Gerado de toneorg/extension@73f02e8b0a03 (packages/shared/src/tracking.ts). Não edite aqui.
 // The events the panel records for the test week (requisitos §4). Each one is
 // small and typed, so the dashboard can count them without guessing.
 import * as z from "zod";

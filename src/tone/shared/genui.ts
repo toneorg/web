@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2aedc6450a3e (packages/shared/src/genui.ts). Não edite aqui.
+// Gerado de toneorg/extension@73f02e8b0a03 (packages/shared/src/genui.ts). Não edite aqui.
 // The components the agent draws in the panel, in OpenUI Lang (openui.com).
 // One definition, two consumers: the server turns it into the instructions the
 // model reads and checks what the model wrote; the panel gives each component

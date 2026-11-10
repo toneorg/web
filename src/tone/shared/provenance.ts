@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2aedc6450a3e (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/extension@73f02e8b0a03 (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
 // in the panel and on the web: observed in the index (T04), read in the store
 // by the extension in the person's Chrome (T14), or read in the store's search
@@ -25,19 +25,33 @@ const STORE_NAMES: Record<string, string> = {
   "americanas.com.br": "Americanas",
   "casasbahia.com.br": "Casas Bahia",
   "kabum.com.br": "KaBuM!",
+  "iplace.com.br": "iPlace",
+  "carrefour.com.br": "Carrefour",
+  "fastshop.com.br": "Fast Shop",
+  "pontofrio.com.br": "Ponto",
+  "extra.com.br": "Extra",
+  "apple.com": "Apple",
   "google.com": "Google Shopping",
   "dior.com": "Dior",
 };
 /** A store's name as people say it, from its domain. */
 export const storeLabel = (store: string) => STORE_NAMES[store] ?? store;
 
-export type PriceProvenance = "index" | "extension" | "remote";
+export type PriceProvenance = "index" | "extension" | "remote" | "direct";
 
 /** The kinds of reading behind the offers of a run, from its evidence. */
 export function provenanceOf(run: Pick<ResearchRunState, "result">): Set<PriceProvenance> {
   const kinds = new Set<PriceProvenance>();
   for (const entry of run.result?.evidence ?? [])
-    kinds.add(entry.level === "index" ? "index" : entry.source.startsWith("remote:") ? "remote" : "extension");
+    kinds.add(
+      entry.level === "index"
+        ? "index"
+        : entry.source.startsWith("remote:")
+          ? "remote"
+          : entry.source.startsWith("direct:")
+            ? "direct"
+            : "extension",
+    );
   return kinds;
 }
 
@@ -48,6 +62,8 @@ export function provenanceNote(run: Pick<ResearchRunState, "result">): string {
     : "";
   if (kinds.size > 1)
     return "Os preços vêm de leituras diferentes: na página da loja e no índice do Google Shopping; a loja pode ter outro valor, frete ou estoque.";
+  if (kinds.has("direct"))
+    return `Preços lidos na busca da própria loja pela tone, sem login${when}; frete e estoque do seu endereço podem mudar.`;
   if (kinds.has("remote"))
     return `Preços lidos na busca da loja por um navegador remoto da tone, sem login${when}; frete e estoque do seu endereço podem mudar.`;
   if (kinds.has("extension"))

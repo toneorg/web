@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2aedc6450a3e (packages/shared/src/safety.ts). Não edite aqui.
+// Gerado de toneorg/extension@73f02e8b0a03 (packages/shared/src/safety.ts). Não edite aqui.
 // RNF11: the agent never pays. This is enforced in code, on both sides, and not
 // left to the model: the extension refuses to click anything that looks like a
 // payment step or to load a checkout page, whatever the model asked.
@@ -65,6 +65,10 @@ export const IMAGE_HOSTS = [
   "ssl-images-amazon.com",
   "images-amazon.com",
   "mlstatic.com",
+  // Store CDNs of the stores read from their own search (VTEX stores, KaBuM).
+  "vtexassets.com",
+  "vteximg.com.br",
+  "images.kabum.com.br",
   "encrypted-tbn0.gstatic.com",
   "encrypted-tbn1.gstatic.com",
   "encrypted-tbn2.gstatic.com",
