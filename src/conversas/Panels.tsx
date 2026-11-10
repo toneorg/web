@@ -6,11 +6,12 @@
 // rule itself happens in the conversation that made it, with a new confirmation.
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { type BudgetStatement, describeWatch, type Me, type Watch, type WatchResult, watchTitle } from "@/tone/shared";
+import { type BudgetStatement, describeWatch, type Me, type Watch, type WatchPrices, type WatchResult, watchTitle } from "@/tone/shared";
 import { PlusIcon } from "@/components/icons";
 import { track } from "./analytics";
 import { api } from "./api";
 import { NewPanelSheet } from "./NewPanel";
+import { PriceChart } from "./PriceChart";
 import { ICONS, PanelMenu } from "./PanelMenu";
 import { WATCHES_CHANGED } from "./Program";
 
@@ -109,6 +110,22 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
   const condition = lines.find((line) => line.startsWith("Avisar"));
   const lowest = lowestOf(latest);
   const facts = panelFacts(watch);
+  // The chart reads again whenever a new reading arrives.
+  const [prices, setPrices] = useState<WatchPrices | null>(null);
+  useEffect(() => {
+    if (!watch.confirmed) return;
+    let live = true;
+    api
+      .watchPrices(watch.id)
+      .then((value) => {
+        if (live) setPrices(value);
+      })
+      // A server without the route yet: the card stays as it was.
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [watch.id, watch.confirmed, latest?.id]);
 
   const run = async (action: Action) => {
     setBusy(action);
@@ -200,7 +217,11 @@ function PanelCard(props: { panel: Panel; fresh?: boolean; onChange: (panel: Pan
             </span>
           ) : null}
         </span>
-      ) : latest ? (
+      ) : null}
+      {prices && prices.points.length >= 2 ? (
+        <PriceChart prices={prices} />
+      ) : null}
+      {lowest ? null : latest ? (
         <span className="text-caption text-graphite">{latest.summary.message}</span>
       ) : watch.status === "draft" ? (
         <span className="text-caption text-graphite">

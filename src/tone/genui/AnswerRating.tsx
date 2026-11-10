@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@56dbeebb5b19 (packages/genui-react/src/AnswerRating.tsx). Não edite aqui.
+// Gerado de toneorg/extension@ff619d5ce1a6 (packages/genui-react/src/AnswerRating.tsx). Não edite aqui.
 // "Esta resposta ajudou?": two thumbs under an answer. A thumb up is one tap; a thumb
 // down is kept at once and opens an optional folha with ready reasons and a line of
 // the person's own, which can be sent or skipped. Tapping the marked thumb takes it
