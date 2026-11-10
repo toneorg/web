@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2aedc6450a3e (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/extension@73f02e8b0a03 (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the panel and the server.
 //
 // The panel posts a turn and reads a stream of server-sent events. When the

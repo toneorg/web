@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@2aedc6450a3e (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/extension@73f02e8b0a03 (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -11,7 +11,9 @@ const Text = (max: number) => z.string().trim().min(1).max(max);
 /**
  * Stores the server index (T04) can observe without the person's browser, and the only
  * stores whose offers it keeps, links to and shows photos of (29/10/2026: beauty,
- * pharmacies and department stores joined the first five).
+ * pharmacies and department stores joined the first five; 10/11/2026: the electronics
+ * stores the index returned for iPhone and tone discarded). Apple only on its Brazilian
+ * store (`/br/`, see `STORE_PATHS` in the server).
  */
 export const INDEX_STORES = [
   "amazon.com.br",
@@ -32,6 +34,12 @@ export const INDEX_STORES = [
   "americanas.com.br",
   "casasbahia.com.br",
   "kabum.com.br",
+  "iplace.com.br",
+  "carrefour.com.br",
+  "fastshop.com.br",
+  "pontofrio.com.br",
+  "extra.com.br",
+  "apple.com",
 ] as const;
 
 export const WatchCondition = z.discriminatedUnion("kind", [
