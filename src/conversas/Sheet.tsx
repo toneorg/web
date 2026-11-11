@@ -13,7 +13,13 @@ export function useSheetClose() {
   return useContext(Close);
 }
 
-export function Sheet(props: { title: string; onClose: () => void; children: ReactNode }) {
+export function Sheet(props: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  /** A wider folha on large screens, for content with rows of choices (the "Novo painel"). */
+  wide?: boolean;
+}) {
   const panel = useRef<HTMLDivElement>(null);
   const [leaving, setLeaving] = useState(false);
   const closing = useRef(false);
@@ -61,7 +67,7 @@ export function Sheet(props: { title: string; onClose: () => void; children: Rea
         role="dialog"
         aria-modal="true"
         aria-label={props.title}
-        className={`relative flex max-h-[88dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-card bg-paper shadow-floating sm:rounded-card ${leaving ? "sheet-out" : "sheet-in"}`}
+        className={`relative flex max-h-[88dvh] w-full ${props.wide ? "max-w-lg sm:max-w-2xl" : "max-w-lg"} flex-col overflow-hidden rounded-t-card bg-paper shadow-floating sm:rounded-card ${leaving ? "sheet-out" : "sheet-in"}`}
       >
         {/* The handle and the title stay put; only the body scrolls, inside the rounded corners
             (10/11/2026: the whole folha scrolled, with the bar outside its edge). */}

@@ -71,7 +71,7 @@ describe("página do painel", () => {
   it("panel page without readings shows the first-reading note", () => {
     const html = draw([]);
     expect(html).toContain("iPhone 18");
-    expect(html).toContain("Primeira leitura");
+    expect(html).toContain("Fazendo a primeira leitura");
     expect(html).not.toContain("<figure");
   });
 

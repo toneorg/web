@@ -104,7 +104,9 @@ export function PanelView(props: {
           <p className="text-small text-graphite">
             {watch.status === "draft"
               ? "Este painel ainda é um rascunho: confirme para eu começar a acompanhar."
-              : `Primeira leitura${watch.nextCheckAt ? ` em ${when(watch.nextCheckAt)}` : " em breve"}.`}
+              : watch.status === "active" && !watch.lastCheckAt
+                ? "Fazendo a primeira leitura; os preços aparecem aqui em instantes."
+                : `Primeira leitura${watch.nextCheckAt ? ` em ${when(watch.nextCheckAt)}` : " em breve"}.`}
           </p>
         )}
       </section>

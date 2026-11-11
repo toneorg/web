@@ -250,7 +250,7 @@ export function NewPanel(props: { onBuilt: (watch: Watch) => void; draft?: Watch
 /** The folha that holds the plan, so the panels column only mounts it on demand. */
 export function NewPanelSheet(props: { onClose: () => void; onBuilt: (watch: Watch) => void; draft?: Watch }) {
   return (
-    <Sheet title={props.draft ? "Revisar painel" : "Novo painel"} onClose={props.onClose}>
+    <Sheet title={props.draft ? "Revisar painel" : "Novo painel"} onClose={props.onClose} wide>
       <NewPanel onBuilt={props.onBuilt} draft={props.draft} />
     </Sheet>
   );

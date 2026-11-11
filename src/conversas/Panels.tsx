@@ -159,6 +159,10 @@ function PanelCard(props: {
         <span className="text-caption text-graphite">{latest.summary.message}</span>
       ) : watch.status === "draft" ? (
         <span className="text-caption text-graphite">Rascunho: toque para revisar e confirmar. Nada roda antes disso.</span>
+      ) : watch.status === "active" && !watch.lastCheckAt ? (
+        <span role="status" className="text-caption text-graphite">
+          Fazendo a primeira leitura; os preços aparecem aqui em instantes.
+        </span>
       ) : (
         <span className="text-caption text-graphite">
           Primeira leitura{watch.nextCheckAt ? ` em ${when(watch.nextCheckAt)}` : " em breve"}.
@@ -268,6 +272,22 @@ export function Panels(props: { me: Me }) {
       setBuilding(null);
       setFresh(watch.id);
     }, 1400);
+    void followFirstReading(watch.id);
+  };
+  /**
+   * The server reads a new panel right away: follow it for up to two minutes, so the card shows
+   * the first prices without a reload.
+   */
+  const followFirstReading = async (id: string) => {
+    for (let tries = 0; tries < 30; tries++) {
+      await new Promise((resolve) => window.setTimeout(resolve, 4000));
+      const results = await api.watchResults(id, { fresh: true }).catch(() => []);
+      if (!results.length) continue;
+      const watch = await api.watch(id).catch(() => null);
+      if (watch) replace(id, { watch, ...readingOf(results) });
+      track("panel_first_reading", { found: results.some((r) => r.summary.matches.length > 0), waited_s: (tries + 1) * 4 });
+      return;
+    }
   };
   const budget = props.me.budget;
   const leftPercent = budget ? weekLeftPercent(budget) : 0;
