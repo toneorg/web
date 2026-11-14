@@ -22,7 +22,7 @@ const small =
   "press min-h-11 rounded-full px-3 text-caption text-graphite focus-visible:outline-2 focus-visible:outline-ink";
 
 /** What a destructive button asks for before it runs. */
-type Pending = { title: string; text: string; confirm: string; run: () => Promise<void> } | null;
+type Pending = { title: string; text: string; confirm: string; busy?: string; run: () => Promise<void> } | null;
 
 /** What the person wrote as it is ("já tenho…", a loose note): no name to put before it. */
 const shownAsIs = (memory: Memory) => memory.category === OWNED_CATEGORY || memory.key.startsWith("nota.");
@@ -98,7 +98,7 @@ function Confirm(props: { pending: NonNullable<Pending> }) {
           Cancelar
         </button>
         <button type="button" className={danger} disabled={busy} onClick={() => void confirm()}>
-          {busy ? "Um instante…" : props.pending.confirm}
+          {busy ? (props.pending.busy ?? "Apagando…") : props.pending.confirm}
         </button>
       </div>
       {error ? (

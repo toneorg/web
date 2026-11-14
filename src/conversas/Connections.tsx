@@ -2,7 +2,7 @@
 // Gmail and Agenda on the profile: what is connected, what was read, and the purchases found in
 // the person's order e-mails. Connecting leaves for Google in the same tab; the callback comes
 // back to the profile with ?conexao=…&estado=… and this screen says how it went.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ConnectionProvider,
   ConnectionStatus,
@@ -75,6 +75,19 @@ export async function connect(provider: ConnectionProvider) {
   }
 }
 
+/** What a failed call says: the server's own words, or a plain line when it only gave a code. */
+export function failureText(failure: unknown) {
+  if (
+    failure instanceof ApiError &&
+    failure.status >= 500 &&
+    /^Erro \d+$/.test(failure.message)
+  )
+    return "Não consegui agora. Tente de novo em instantes.";
+  return failure instanceof Error
+    ? failure.message
+    : "Não deu certo. Tente de novo.";
+}
+
 const day = (iso: string) =>
   new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 const brl = (amount: number) =>
@@ -97,14 +110,13 @@ export function ConnectionsView(props: {
 }) {
   return (
     <>
-      {props.outcome ? (
-        <p
-          role="status"
-          className={`text-small font-medium ${props.outcome.tone === "ok" ? "text-ink" : "text-alert"}`}
-        >
-          {props.outcome.text}
-        </p>
-      ) : null}
+      {/* Always in the page, so the readers announce the text put in it. */}
+      <p
+        role="status"
+        className={`text-small font-medium ${props.outcome?.tone === "ok" ? "text-ink" : "text-alert"}`}
+      >
+        {props.outcome?.text}
+      </p>
       <ul className="flex flex-col gap-3">
         {props.connections.map((connection) => {
           const info = PROVIDER[connection.provider];
@@ -195,6 +207,7 @@ type Ask = {
   title: string;
   text: string;
   confirm: string;
+  busy?: string;
   run: () => Promise<void>;
 };
 
@@ -211,6 +224,7 @@ export function Connections(props: { ask: (pending: Ask) => void }) {
   const [busy, setBusy] = useState<ConnectionProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const loaded = useRef(false);
 
   // Each change of `round` reads everything again (after syncing or disconnecting).
   const [round, setRound] = useState(0);
@@ -223,16 +237,27 @@ export function Connections(props: { ask: (pending: Ask) => void }) {
   }, []);
 
   useEffect(() => {
+    // Coming back from Google with the back button, the page may return as it was left.
+    const back = (event: PageTransitionEvent) => {
+      if (event.persisted) setBusy(null);
+    };
+    window.addEventListener("pageshow", back);
+    return () => window.removeEventListener("pageshow", back);
+  }, []);
+
+  useEffect(() => {
     let live = true;
     Promise.all([api.connections(), api.purchases().catch(() => [])])
       .then(([list, bought]) => {
         if (!live) return;
+        loaded.current = true;
         setConnections(list);
         setPurchases(bought);
         setFailed(false);
       })
       .catch(() => {
-        if (live) setFailed(true);
+        // A later reload that fails keeps what is already on screen.
+        if (live && !loaded.current) setFailed(true);
       });
     return () => {
       live = false;
@@ -249,11 +274,7 @@ export function Connections(props: { ask: (pending: Ask) => void }) {
     try {
       await action();
     } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : "Não deu certo. Tente de novo.",
-      );
+      setError(failureText(failure));
     } finally {
       setBusy(null);
     }
@@ -297,8 +318,12 @@ export function Connections(props: { ask: (pending: Ask) => void }) {
           connections.find((entry) => entry.provider === provider)?.items ?? 0;
         props.ask({
           title: `Desconectar o ${info.name}?`,
-          text: `Eu paro de ler e apago tudo o que veio do ${info.name} (${items} ${items === 1 ? "item" : "itens"}).`,
+          text:
+            items > 0
+              ? `Eu paro de ler e apago o que veio do ${info.name} (${items} ${items === 1 ? "item" : "itens"}).`
+              : `Eu paro de ler o ${info.name}.`,
           confirm: `Desconectar ${info.name}`,
+          busy: "Desconectando…",
           run: async () => {
             await api.disconnect(provider);
             await load();

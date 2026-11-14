@@ -18,7 +18,7 @@ vi.mock("../src/conversas/api", () => ({
   },
   api: { startConnection: (...args: unknown[]) => startConnection(...args) },
 }));
-const { ConnectionsView, connect, outcomeOf } =
+const { ConnectionsView, connect, failureText, outcomeOf } =
   await import("../src/conversas/Connections");
 const { ApiError } = await import("../src/conversas/api");
 
@@ -136,5 +136,24 @@ describe("conexões Google no perfil", () => {
     const html = draw({ purchases });
     expect(html).toContain("Fone Bluetooth");
     expect(html).toContain("Sauvage Elixir");
+  });
+
+  it("mantém o aviso de status sempre na página, vazio quando não há mensagem", () => {
+    expect(draw()).toMatch(/<p role="status"[^>]*><\/p>/);
+  });
+
+  it("troca o código de erro 5xx por uma frase, e mantém a mensagem do servidor", () => {
+    expect(failureText(new ApiError("Erro 502", 502))).toBe(
+      "Não consegui agora. Tente de novo em instantes.",
+    );
+    expect(failureText(new ApiError("O Gmail não respondeu.", 502))).toBe(
+      "O Gmail não respondeu.",
+    );
+  });
+
+  it("desconectar sem itens não fala de contagem", () => {
+    expect(
+      draw({ connections: [status({ connected: true, items: 0 })] }),
+    ).toContain("Desconectar Gmail");
   });
 });
