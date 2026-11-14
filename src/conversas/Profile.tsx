@@ -8,6 +8,7 @@ import { type Me, type Memory, memoryLabel, OWNED_CATEGORY } from "@/tone/shared
 import { ToneWordmark } from "@/components/tone-logo";
 import { track } from "./analytics";
 import { ApiError, api, peek } from "./api";
+import { Connections } from "./Connections";
 import { Sheet, useSheetClose } from "./Sheet";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
@@ -97,7 +98,7 @@ function Confirm(props: { pending: NonNullable<Pending> }) {
           Cancelar
         </button>
         <button type="button" className={danger} disabled={busy} onClick={() => void confirm()}>
-          {busy ? "Apagando…" : props.pending.confirm}
+          {busy ? "Um instante…" : props.pending.confirm}
         </button>
       </div>
       {error ? (
@@ -279,6 +280,16 @@ export function Profile() {
               </button>
             </div>
           </div>
+        </section>
+
+        <section aria-labelledby="titulo-conexoes" className="flex flex-col gap-3">
+          <h2 id="titulo-conexoes" className="text-subheading text-ink">
+            Conexões
+          </h2>
+          <p className="text-small text-graphite">
+            Opcional. Conecte para eu conhecer melhor o que você compra e quando precisa. Você desconecta quando quiser.
+          </p>
+          <Connections ask={setPending} />
         </section>
 
         <section aria-labelledby="titulo-dados" className="flex flex-col gap-3">

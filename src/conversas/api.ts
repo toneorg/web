@@ -5,6 +5,8 @@ import posthog from "posthog-js";
 import {
   AccessSession,
   AgentEvent,
+  ConnectionStatus,
+  type ConnectionProvider,
   type AnswerRatedEvent,
   DecisionState,
   CONSENT_VERSION,
@@ -12,6 +14,7 @@ import {
   Me,
   Memory,
   ProductMedia,
+  Purchase,
   PurchaseSituation,
   ResearchRunState,
   ReviewRunState,
@@ -155,6 +158,17 @@ export const api = {
   redeem: (code: string, name: string, email: string, password: string) =>
     send("auth/web/redeem", "POST", { code, name, email, password, consent: true, consentVersion: CONSENT_VERSION }),
   logout,
+  /** Gmail and Agenda: whether each is connected and what was read from it. Read fresh, it changes on sync. */
+  connections: async () => ConnectionStatus.array().parse(await call("connections")),
+  /** The Google consent address; the page goes there and the callback comes back to the profile. */
+  startConnection: async (provider: ConnectionProvider) =>
+    (await send(`connections/${provider}/start`, "POST", {})) as { url: string },
+  syncConnection: async (provider: ConnectionProvider) =>
+    (await send(`connections/${provider}/sync`, "POST", {})) as { added: number },
+  /** Stops reading and erases what came from the provider. */
+  disconnect: (provider: ConnectionProvider) => send(`connections/${provider}`, "DELETE"),
+  /** What was read from the person's order e-mails. */
+  purchases: async () => Purchase.array().parse(await call("purchases")),
   accessSessions: async () => AccessSession.array().parse(await call("auth/sessions")),
   memories: () => cached("memories", async () => Memory.array().parse(await call("memories"))),
   deleteMemory: (id: string) => send(`memories/${id}`, "DELETE"),
