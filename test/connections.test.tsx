@@ -18,7 +18,7 @@ vi.mock("../src/conversas/api", () => ({
   },
   api: { startConnection: (...args: unknown[]) => startConnection(...args) },
 }));
-const { ConnectionsView, connect, failureText, outcomeOf } =
+const { ConnectionsView, StatusLine, connect, failureText, outcomeOf } =
   await import("../src/conversas/Connections");
 const { ApiError } = await import("../src/conversas/api");
 
@@ -44,7 +44,6 @@ const draw = (props: Partial<Parameters<typeof ConnectionsView>[0]> = {}) =>
     <ConnectionsView
       connections={[status(), status({ provider: "calendar" })]}
       purchases={[]}
-      outcome={null}
       busy={null}
       onConnect={noop}
       onSync={noop}
@@ -78,7 +77,7 @@ describe("conexões Google no perfil", () => {
 
   it("estado=ok shows a confirmation", () => {
     const outcome = outcomeOf("?conexao=gmail&estado=ok");
-    const html = draw({ outcome });
+    const html = renderToStaticMarkup(<StatusLine outcome={outcome} />);
     expect(html).toContain('role="status"');
     expect(html).toContain("Gmail conectado");
   });
@@ -86,7 +85,9 @@ describe("conexões Google no perfil", () => {
   it("estado=cancelada shows nothing connected", () => {
     const outcome = outcomeOf("?conexao=calendar&estado=cancelada");
     expect(outcome?.text).toContain("Nada foi conectado");
-    expect(draw({ outcome })).toContain("Nada foi conectado");
+    expect(renderToStaticMarkup(<StatusLine outcome={outcome} />)).toContain(
+      "Nada foi conectado",
+    );
   });
 
   it("estado=erro e estado=expirado explicam o que fazer", () => {
@@ -139,7 +140,9 @@ describe("conexões Google no perfil", () => {
   });
 
   it("mantém o aviso de status sempre na página, vazio quando não há mensagem", () => {
-    expect(draw()).toMatch(/<p role="status"[^>]*><\/p>/);
+    expect(renderToStaticMarkup(<StatusLine outcome={null} />)).toMatch(
+      /<p role="status"[^>]*><\/p>/,
+    );
   });
 
   it("troca o código de erro 5xx por uma frase, e mantém a mensagem do servidor", () => {

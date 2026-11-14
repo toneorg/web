@@ -97,10 +97,25 @@ const brl = (amount: number) =>
     maximumFractionDigits: amount >= 100 ? 0 : 2,
   });
 
+/**
+ * The message region. It is mounted before anything loads and its text comes after, because
+ * readers announce text put into a region that already exists, not one that appears with it.
+ * Empty, it takes no room: the negative margin cancels the gap above it.
+ */
+export function StatusLine(props: { outcome: Outcome }) {
+  return (
+    <p
+      role="status"
+      className={`text-small font-medium empty:-mt-3 ${props.outcome?.tone === "ok" ? "text-ink" : "text-alert"}`}
+    >
+      {props.outcome?.text}
+    </p>
+  );
+}
+
 export function ConnectionsView(props: {
   connections: ConnectionStatus[];
   purchases: Purchase[];
-  outcome: Outcome;
   /** The provider with a call in flight. */
   busy: ConnectionProvider | null;
   onConnect: (provider: ConnectionProvider) => void;
@@ -110,13 +125,6 @@ export function ConnectionsView(props: {
 }) {
   return (
     <>
-      {/* Always in the page, so the readers announce the text put in it. */}
-      <p
-        role="status"
-        className={`text-small font-medium ${props.outcome?.tone === "ok" ? "text-ink" : "text-alert"}`}
-      >
-        {props.outcome?.text}
-      </p>
       <ul className="flex flex-col gap-3">
         {props.connections.map((connection) => {
           const info = PROVIDER[connection.provider];
@@ -217,10 +225,7 @@ export function Connections(props: { ask: (pending: Ask) => void }) {
     null,
   );
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  // The callback's address, read once; this only renders after the profile has loaded in the browser.
-  const [outcome, setOutcome] = useState<Outcome>(() =>
-    typeof window === "undefined" ? null : outcomeOf(window.location.search),
-  );
+  const [outcome, setOutcome] = useState<Outcome>(null);
   const [busy, setBusy] = useState<ConnectionProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -232,8 +237,12 @@ export function Connections(props: { ask: (pending: Ask) => void }) {
 
   useEffect(() => {
     // Cleaned from the address, so a reload does not repeat the message.
-    if (outcomeOf(window.location.search))
-      window.history.replaceState(null, "", window.location.pathname);
+    const found = outcomeOf(window.location.search);
+    if (!found) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    // After the region is on the page, so the readers announce it.
+    const timer = window.setTimeout(() => setOutcome(found), 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -280,19 +289,16 @@ export function Connections(props: { ask: (pending: Ask) => void }) {
     }
   };
 
-  if (failed)
-    return (
-      <p className="text-small text-graphite">
-        Não consegui ver as conexões agora. Abra o perfil de novo mais tarde.
-      </p>
-    );
-  if (!connections)
-    return <p className="text-small text-graphite">Carregando…</p>;
-  return (
+  const body = failed ? (
+    <p className="text-small text-graphite">
+      Não consegui ver as conexões agora. Abra o perfil de novo mais tarde.
+    </p>
+  ) : !connections ? (
+    <p className="text-small text-graphite">Carregando…</p>
+  ) : (
     <ConnectionsView
       connections={connections}
       purchases={purchases}
-      outcome={outcome}
       busy={busy}
       error={error}
       onConnect={(provider) =>
@@ -326,10 +332,31 @@ export function Connections(props: { ask: (pending: Ask) => void }) {
           busy: "Desconectando…",
           run: async () => {
             await api.disconnect(provider);
+            // Shown as disconnected even if reading the list again fails.
+            setConnections((list) =>
+              (list ?? []).map((entry) =>
+                entry.provider === provider
+                  ? {
+                      ...entry,
+                      connected: false,
+                      connectedAt: null,
+                      lastSyncAt: null,
+                      items: 0,
+                    }
+                  : entry,
+              ),
+            );
+            if (provider === "gmail") setPurchases([]);
             await load();
           },
         });
       }}
     />
+  );
+  return (
+    <>
+      <StatusLine outcome={outcome} />
+      {body}
+    </>
   );
 }
