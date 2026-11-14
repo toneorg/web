@@ -79,7 +79,12 @@ export type WebEvent =
   | "feedback_submitted"
   | "feedback_failed"
   // Health
-  | "api_request_failed";
+  | "api_request_failed"
+  // Public pages (src/landing): the forms, never what was typed in them
+  | "waitlist_joined"
+  | "waitlist_failed"
+  | "pilot_requested"
+  | "pilot_failed";
 
 type Value = string | number | boolean | null | undefined;
 

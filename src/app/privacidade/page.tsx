@@ -13,11 +13,10 @@ const sections: { title: string; body: React.ReactNode }[] = [
     title: "Se você entrou na lista de espera",
     body: (
       <>
-        Guardamos o seu e-mail e de onde veio a visita (por exemplo, o link de um convite). A
-        lista também perguntava a sua faixa de tom, como um número de 1 a 10, a
-        base que você usava, quantas vezes já tinha errado o tom e o seu WhatsApp. Quem respondeu
-        continua com essas respostas guardadas até pedir para apagar. Não pedimos nem guardamos
-        foto.
+        Guardamos o seu e-mail e de que ponto da página você entrou na lista. A lista antiga
+        também perguntava a sua faixa de tom, como um número de 1 a 10, a base que você usava,
+        quantas vezes já tinha errado o tom e o seu WhatsApp. Quem respondeu continua com essas
+        respostas guardadas até pedir para apagar. Não pedimos nem guardamos foto.
       </>
     ),
   },
@@ -42,11 +41,11 @@ const sections: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
-    title: "Se você escreveu em nome de uma marca",
+    title: "Se você pediu um piloto para a sua loja",
     body: (
       <>
-        Guardamos seu nome, e-mail, a marca, o site e a plataforma da loja, só para responder ao
-        pedido de conversa.
+        Guardamos seu nome, e-mail, o site e a plataforma da loja, a faixa de visitas por mês e,
+        se você informou, o seu WhatsApp, só para responder ao pedido.
       </>
     ),
   },

@@ -22,11 +22,11 @@ const hostGrotesk = Host_Grotesk({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: "tone: me diz o que você procura, eu pesquiso",
+    default: "tone: compre sem dúvida",
     template: "%s | tone",
   },
   description:
-    "A tone é uma assistente de compras: lembra do que você gosta, pesquisa nas lojas por você e mostra poucas opções boas, com o porquê. Nunca paga nada. Em teste fechado, só com convite.",
+    "A tone pesquisa nas lojas por você e volta com poucas opções, com o porquê de cada uma. Ela não recebe de nenhuma marca para recomendar. Em teste fechado, com lista de espera.",
   openGraph: {
     type: "website",
     locale: "pt_BR",

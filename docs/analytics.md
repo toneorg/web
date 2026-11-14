@@ -33,6 +33,7 @@ One PostHog project for the web and the extension. The person is the same `disti
 | Panels | `panel_create_opened`, `panel_planned` (`planned`, `duration_ms`), `panel_plan_failed`, `panel_created` (`kind`, `condition`, `email`), `panel_answered` (`questions`, `left`), `panel_action` (`action`), `panel_action_failed`, `panel_page_opened` (`status`, `readings`, `conversations`), `panel_conversation_started` (`from`: `product` ou `panel`), `panel_first_reading` (`found`, `waited_s`) |
 | Profile and data | `memory_added` (`kind`), `memory_confirmed`, `memory_deleted`, `memories_cleared`, `data_exported`, `account_deleted`, `watch_muted_by_link` |
 | Feedback | `feedback_opened`, `feedback_submitted` (from the browser only when the server could not take it, `delivered: "posthog_only"`), `feedback_failed` |
+| Public pages | `waitlist_joined` / `waitlist_failed` (`source`: the form's place on the page), `pilot_requested` (`platform`, `traffic`), `pilot_failed` (`status`). Never the e-mail or the name |
 
 ## In the PostHog project, check once
 

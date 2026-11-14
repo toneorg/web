@@ -1,15 +1,22 @@
 # tone: home page and web app
 
-Next.js 16 + Tailwind 4, in Portuguese. While the product is in a closed test, the home page is only the logo, one paragraph on what tone is and the way in: sign in, or create the account with an invite (the same steps as `/conversas`). Everything is black and white, the neutral bench of the design system, like the extension.
+Next.js 16 + Tailwind 4, in Portuguese. Two public pages: the home page speaks to the person who buys and takes the waiting list; `/lojas` sells tone to stores and takes pilot requests. Everything is black and white, the neutral bench of the design system, like the extension. What tone is, for whom and the words to use: [`CONTEXT.md`](CONTEXT.md). The copy of both pages: [`docs/copy/landing.md`](docs/copy/landing.md).
 
 | Route | What it is |
 |---|---|
-| `/` | Logo, one paragraph, sign in. Someone already signed in gets a button to the app |
+| `/` | The page for the person: what tone does, the why behind every recommendation, neutrality, the waiting list. "Entrar" leads to `/conversas` |
+| `/lojas` | The page for stores: tone for stores, the report of doubts, the pilot with a control group, the pilot request |
 | `/conversas` | The app (below). The first visit of an account shows a five-step tour (`src/conversas/Onboarding.tsx`); "Rever o tour da tone" in the profile shows it again |
-| `/marcas` | Redirects to `/`, so old links and QR codes still land somewhere |
+| `/marcas` | Redirects to `/lojas`, so old links and QR codes still land somewhere |
 | `/privacidade` | Plain-language data note |
 
 What is measured (product analytics, cost, errors, session replay, feedback) and how to read it: [`docs/analytics.md`](docs/analytics.md).
+
+## Public pages (`src/landing`)
+
+- The demos (`ConsumerDemo`, `StoreDemo`) play the product's steps when they scroll into view and stop off screen; the server renders the last step, so without script or with reduced motion they are simply complete. Blocks rise in with a scroll-driven animation (`reveal` in `globals.css`), with no script.
+- The forms post to `/api/lista` and `/api/piloto` (`src/lib/leads.ts`), which validate and forward each entry from the server to `LEADS_WEBHOOK_URL`. This site keeps no copy. Without the variable they answer 503 and the forms show the contact e-mail.
+- Analytics: `waitlist_joined`, `waitlist_failed`, `pilot_requested` (platform and traffic band only), `pilot_failed`. Never the e-mail or the name.
 
 ## Conversations (`/conversas`)
 
@@ -35,7 +42,7 @@ npm test                     # vitest: the BFF, the conversation components, ana
 
 ## Deploy
 
-Vercel works out of the box. Set `TONE_API_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` (see `.env.example` and `docs/analytics.md`).
+Vercel works out of the box. Set `TONE_API_URL`, `LEADS_WEBHOOK_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` (see `.env.example` and `docs/analytics.md`).
 
 ## Before publishing, check
 
