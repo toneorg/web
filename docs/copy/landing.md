@@ -51,7 +51,7 @@ tone · Como funciona · Para lojas · **Entrar**
 ### O que mais ela faz
 - **Lembra do que importa para você.** Seu tamanho, o que você evita, as marcas que já te decepcionaram. Você vê tudo o que ela lembra e apaga quando quiser.
 - **Acompanha o preço e avisa quando vale.** Escolheu, mas não é a hora? Ela fica de olho e te avisa.
-- **Funciona onde você compra.** No navegador e na extensão do Chrome, ao lado da loja que você está olhando.
+- **Funciona onde você compra.** No navegador, no celular ou no computador. Você abre a loja quando quiser.
 
 ### Neutralidade
 - Título: **A tone não recebe para recomendar.**

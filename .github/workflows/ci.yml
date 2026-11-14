@@ -31,6 +31,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Types
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npm test
+
       # Colors come from @toneorg/design; a hand-written one fails here.
       - name: Design system
         run: npm run check:design

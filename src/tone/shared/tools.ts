@@ -1,8 +1,8 @@
-// Gerado de toneorg/extension@9e0a42adc746 (packages/shared/src/tools.ts). Não edite aqui.
-// The tools the agent can call. Two kinds:
-//   browser  run in the extension, on the store's tab (RF2)
-//   server   run on the server (memory, RF3)
-// One zod schema per tool is both the validation and the JSON schema the model sees.
+// Gerado de toneorg/extension@e7df4b741fe1 (packages/shared/src/tools.ts). Não edite aqui.
+// The tools the agent can call. They all run on the server: tone researches the
+// stores from there and never drives a store page; a store opens only when the
+// person clicks its link. One zod schema per tool is both the validation and the
+// JSON schema the model sees.
 // Components in the panel (RF5) are not tools: the agent writes them in OpenUI
 // Lang (genui.ts). The old UI tools below stay only to draw conversations saved
 // before that change.
@@ -12,64 +12,6 @@ import { ResearchRequest } from "./research-execution";
 import { ReviewRequest } from "./reviews";
 import { SituationUpdate } from "./situation";
 import { WatchRule } from "./watch";
-
-const Ref = z.string().describe("O `ref` de um elemento, como veio em read_page ou no resultado da última ação.");
-
-export const BrowserTools = {
-  read_page: {
-    description:
-      "Lê a página aberta na aba da loja: tipo de página, produtos listados, detalhe do produto, filtros. Use antes de agir se não tiver um retrato recente.",
-    args: z.object({}),
-    mutates: false,
-  },
-  search: {
-    description: "Busca na loja usando o campo de busca da própria loja.",
-    args: z.object({ query: z.string().min(1).max(120) }),
-    mutates: false,
-  },
-  set_price_range: {
-    description: "Filtra os resultados atuais por faixa de preço, em reais.",
-    args: z.object({ min: z.number().min(0).nullable(), max: z.number().min(0).nullable() }),
-    mutates: false,
-  },
-  sort: {
-    description: "Ordena os resultados atuais.",
-    args: z.object({ by: z.enum(["relevance", "price_asc", "price_desc"]) }),
-    mutates: false,
-  },
-  apply_filter: {
-    description: "Aplica um dos filtros da página de resultados (marca, tamanho, cor, condição...).",
-    args: z.object({ ref: Ref }),
-    mutates: false,
-  },
-  open_product: {
-    description: "Abre a página de um produto. Passe o `ref` de um produto listado ou a URL dele.",
-    args: z.object({ ref: Ref.nullable(), url: z.string().nullable() }),
-    mutates: false,
-  },
-  go_back: {
-    description: "Volta para a página anterior.",
-    args: z.object({}),
-    mutates: false,
-  },
-  select_variant: {
-    description: "Escolhe uma variação do produto aberto (tamanho, cor). A pessoa confirma antes.",
-    args: z.object({ ref: Ref, reason: z.string().max(200) }),
-    mutates: true,
-  },
-  add_to_cart: {
-    description:
-      "Adiciona o produto aberto ao carrinho. A pessoa confirma antes. Nunca existe ferramenta para pagar ou finalizar a compra.",
-    args: z.object({ ref: Ref, reason: z.string().max(200) }),
-    mutates: true,
-  },
-} as const;
-export type BrowserToolName = keyof typeof BrowserTools;
-export const BROWSER_TOOL_NAMES = Object.keys(BrowserTools) as BrowserToolName[];
-
-export function isBrowserTool(name: string): name is BrowserToolName {
-  return Object.hasOwn(BrowserTools, name);
-}
 
 /** A product as the agent presents it: what it read on the page plus why it fits the person. */
 export const ShownProduct = z.object({
@@ -220,7 +162,7 @@ export function isServerTool(name: string): name is ServerToolName {
   return Object.hasOwn(ServerTools, name);
 }
 
-export type ToolName = BrowserToolName | UiToolName | ServerToolName;
+export type ToolName = UiToolName | ServerToolName;
 
 export interface ToolSpec {
   name: string;
@@ -230,10 +172,7 @@ export interface ToolSpec {
 
 /** Every tool the model can call, in the shape of the Chat Completions `tools` list. */
 export function toolSpecs(): ToolSpec[] {
-  const all: [string, { description: string; args: z.ZodType }][] = [
-    ...Object.entries(BrowserTools),
-    ...Object.entries(ServerTools),
-  ];
+  const all: [string, { description: string; args: z.ZodType }][] = Object.entries(ServerTools);
   return all.map(([name, tool]) => ({
     name,
     description: tool.description,
@@ -242,12 +181,6 @@ export function toolSpecs(): ToolSpec[] {
 }
 
 export function argsSchema(name: string): z.ZodType | null {
-  if (isBrowserTool(name)) return BrowserTools[name].args;
   if (isServerTool(name)) return ServerTools[name].args;
   return null;
-}
-
-/** Whether a browser tool changes something for the person and so needs their yes first (RF2.4). */
-export function needsConfirmation(name: string): boolean {
-  return isBrowserTool(name) && BrowserTools[name].mutates;
 }

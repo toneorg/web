@@ -1,5 +1,5 @@
 // The neutral bench of the design system, for the screens that show product photos (conversations
-// and panels). The components shared with the extension (src/tone/genui) read the design system's
+// and panels). The components copied from the server (src/tone/genui) read the design system's
 // font tokens; here they point at the faces next/font loaded, whose family names are generated.
 import type { ReactNode } from "react";
 

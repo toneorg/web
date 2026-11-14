@@ -23,7 +23,7 @@ O nome da empresa e da marca, sempre em minúsculo.
 _Avoid_: Tony, Tone Dragão
 
 **App da tone**:
-O produto da pessoa (web e extensão). É nele que ela conversa, compara e decide qualquer compra, em qualquer loja.
+O produto da pessoa (web). É nele que ela conversa, compara e decide qualquer compra, em qualquer loja.
 _Avoid_: Dragão, app B2C
 
 **tone para lojas**:

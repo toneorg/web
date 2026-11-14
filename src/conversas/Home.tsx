@@ -1,7 +1,6 @@
 "use client";
-// T06: the person's start page on the web: conversations of the same account
-// (from the web or the extension), what the tone remembers, the balance and
-// what the extension adds.
+// T06: the person's start page on the web: their conversations, what the tone
+// remembers and the balance.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -235,11 +234,7 @@ export function Home() {
                 <Link
                   href={`/conversas/${session.id}`}
                   onClick={() =>
-                    track("conversation_opened", {
-                      position,
-                      started_on: session.surface,
-                      messages: session.messages,
-                    })
+                    track("conversation_opened", { position, messages: session.messages })
                   }
                   className="flex flex-col gap-1 rounded-panel bg-surface p-4 shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                 >
@@ -247,8 +242,7 @@ export function Home() {
                     {session.onboarding ? "Primeira conversa" : session.title}
                   </span>
                   <span className="text-caption text-graphite">
-                    {when(session.lastAt)} · {session.messages} {session.messages === 1 ? "mensagem" : "mensagens"} ·{" "}
-                    {session.surface === "web" ? "começou na web" : "começou na extensão"}
+                    {when(session.lastAt)} · {session.messages} {session.messages === 1 ? "mensagem" : "mensagens"}
                   </span>
                 </Link>
               </li>
@@ -256,32 +250,21 @@ export function Home() {
           </ul>
         )}
       </section>
-      <div className="grid gap-6 md:grid-cols-2">
-        {situations.length > 0 ? (
-          <section aria-labelledby="titulo-ocasioes" className="flex flex-col gap-2">
-            <h2 id="titulo-ocasioes" className="text-subheading text-ink">
-              Ocasiões
-            </h2>
-            <p className="text-small text-graphite">
-              Conte como foi cada uma: assim eu aprendo o que funciona para você.
-            </p>
-            <ul className="flex flex-col gap-2" data-ph-mask>
-              {situations.map((situation) => (
-                <SituationItem key={situation.id} situation={situation} onChange={load} />
-              ))}
-            </ul>
-          </section>
-        ) : null}
-        <section aria-labelledby="titulo-extensao" className="flex flex-col gap-2">
-          <h2 id="titulo-extensao" className="text-subheading text-ink">
-            Extensão no Chrome
+      {situations.length > 0 ? (
+        <section aria-labelledby="titulo-ocasioes" className="flex flex-col gap-2">
+          <h2 id="titulo-ocasioes" className="text-subheading text-ink">
+            Ocasiões
           </h2>
           <p className="text-small text-graphite">
-            Para ler a página de uma loja, escolher variação ou pôr no carrinho, use a extensão, com o mesmo e-mail e a
-            mesma senha.
+            Conte como foi cada uma: assim eu aprendo o que funciona para você.
           </p>
+          <ul className="flex flex-col gap-2" data-ph-mask>
+            {situations.map((situation) => (
+              <SituationItem key={situation.id} situation={situation} onChange={load} />
+            ))}
+          </ul>
         </section>
-      </div>
+      ) : null}
     </main>
     {tour ? (
       <Onboarding

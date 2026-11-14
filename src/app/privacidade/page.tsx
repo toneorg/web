@@ -80,11 +80,11 @@ const sections: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
-    title: "E a extensão?",
+    title: "Seus dados dentro da tone",
     body: (
       <>
-        A extensão e a tone na web mostram o próprio termo antes de você entrar, com o que guardam
-        e para quê. Você vê, corrige, exporta e apaga seus dados em “Você”, dentro da tone.
+        A tone mostra o termo antes de você entrar, com o que guarda e para quê. Você vê, corrige,
+        exporta e apaga seus dados em “Você”, dentro da tone.
       </>
     ),
   },

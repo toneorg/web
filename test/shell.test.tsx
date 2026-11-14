@@ -8,6 +8,8 @@ const { researchNote } = await import("../src/conversas/Conversation");
 const { lowestOf, weekLeftPercent } = await import("../src/conversas/Panels");
 const { ResearchRun } = await import("../src/conversas/ResearchRun");
 const { Shell } = await import("../src/conversas/Shell");
+const { Home } = await import("../src/conversas/Home");
+const { api, forgetCached } = await import("../src/conversas/api");
 
 const me = (remoteStores?: string[]): Me => ({
   id: "u1",
@@ -89,8 +91,31 @@ describe("moldura da web (T16)", () => {
   });
 
   it("diz em quais lojas a pesquisa também lê direto", () => {
-    expect(researchNote(me())).toMatch(/só pela extensão/);
+    expect(researchNote(me())).not.toMatch(/extensão/i);
     expect(researchNote(me(["mercadolivre.com.br", "dior.com"]))).toBeNull();
+  });
+
+  it("a Home não fala de extensão", async () => {
+    forgetCached();
+    const session = {
+      id: "s1",
+      title: "Fone para correr",
+      site: null,
+      category: null,
+      onboarding: false,
+      startedAt: "2026-11-10T12:00:00.000Z",
+      lastAt: "2026-11-10T12:00:00.000Z",
+      messages: 2,
+    };
+    vi.stubGlobal("fetch", async (url: string) =>
+      Response.json(String(url).endsWith("/me") ? me() : String(url).endsWith("/sessions") ? [session] : []),
+    );
+    await Promise.all([api.me(), api.sessions()]);
+    const html = renderToStaticMarkup(<Home />);
+    vi.unstubAllGlobals();
+    forgetCached();
+    expect(html).toContain("Fone para correr");
+    expect(html).not.toMatch(/extensão/i);
   });
 
   it("o cartão da pesquisa diz que os preços foram lidos por navegador remoto", () => {

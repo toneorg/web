@@ -1,9 +1,8 @@
 "use client";
-// The agent's OpenUI Lang blocks on the web, drawn by the same components as the
-// extension's panel (src/tone/genui, copied from toneorg/extension). Only the
-// actions are the web's: open a store page in a new tab when the person clicks,
-// answer a question, pick a product to talk about, or change a decision or a
-// watch as the person.
+// The agent's OpenUI Lang blocks on the web, drawn by the components copied from
+// the server repository (src/tone/genui). Only the actions are the web's: open a
+// store page in a new tab when the person clicks, answer a question, pick a
+// product to talk about, or change a decision or a watch as the person.
 import { useMemo } from "react";
 import {
   type Answer,
@@ -154,7 +153,7 @@ function useWebHost(host: ProgramHost): GenUIHost {
   return { storeHosts: STORE_HOSTS, interactive, actionable: true, act, picked, decisions, watches };
 }
 
-/** One block of an answer, drawn while it streams, exactly as the extension draws it. */
+/** One block of an answer, drawn while it streams. */
 export function Program(props: { code: string; streaming: boolean; host: ProgramHost }) {
   const host = useWebHost(props.host);
   return (

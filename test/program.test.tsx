@@ -1,7 +1,8 @@
-// T06: the agent's components on the web are the extension's own (src/tone/genui). Links open
+// T06: the agent's components on the web come from src/tone/genui. Links open
 // only store pages that do not pay, in a new tab; images come only from store CDNs.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { savedFrameCode } from "../src/conversas/frames";
 import { openStore, Program, type ProgramHost, storeLink } from "../src/conversas/Program";
 
 const host: ProgramHost = {
@@ -32,7 +33,7 @@ p = Product("Perfume A", "https://www.amazon.com.br/dp/B0A", 199, "https://encry
     expect(draw(code, { ...host, picked: "https://www.amazon.com.br/dp/B0A" })).toContain("Selecionado");
   });
 
-  it("mostra os produtos como na extensão: foto da loja, preço e o porquê", () => {
+  it("mostra os produtos com foto da loja, preço e o porquê", () => {
     const html = draw(`root = View([c])
 c = ProductCarousel("Fones", [p1, p2])
 p1 = Product("Fone A", "https://www.amazon.com.br/dp/B0A", 99.9, "https://m.media-amazon.com/images/I/a.jpg", 4.5, 10, ["Bateria longa"], "Estojo grande", "Melhor escolha")
@@ -45,12 +46,12 @@ p2 = Product("Fone B", "https://www.amazon.com.br/dp/B0B", 80, "https://tracker.
     expect(html).toContain("Ver na loja");
   });
 
-  it("desenha também o que antes só a extensão desenhava", () => {
+  it("desenha o encaixe do relógio no pulso", () => {
     const html = draw(`root = View([w])
 w = WristFit(40, 16, "Casio 40 mm no seu pulso")`);
     expect(html).toContain("Casio 40 mm no seu pulso");
     expect(html).toContain("<svg");
-    expect(html).not.toContain("aparece completo na extensão");
+    expect(html).not.toMatch(/extensão/i);
   });
 
   it("monta caminhos para uma situação: o que a pessoa já tem aparece sem link nem preço", () => {
@@ -91,6 +92,60 @@ q = PreferenceChips("Para que você vai usar?", "fone.uso", ["Treino", "Trabalho
     expect(open).toHaveBeenCalledTimes(1);
     expect(open).toHaveBeenCalledWith("https://www.amazon.com.br/dp/B0A", "_blank", "noopener,noreferrer");
     vi.unstubAllGlobals();
+  });
+
+  it("open never opens a checkout url", () => {
+    const open = vi.fn();
+    vi.stubGlobal("window", { open });
+    vi.stubGlobal("navigator", { sendBeacon: () => true });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null)));
+    openStore("s1", "https://www.amazon.com.br/gp/buy/spc/handlers/display.html", "Carrinho", { source: "generated_ui" });
+    expect(open).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("um quadro salvo de uma conversa antiga é desenhado pelos componentes da web", () => {
+    const code = savedFrameCode({
+      id: "c1",
+      name: "show_products",
+      props: {
+        title: "Fones",
+        products: [
+          {
+            title: "Fone \"A\"",
+            url: "https://www.amazon.com.br/dp/B0A",
+            price: 99.9,
+            image: null,
+            rating: 4.5,
+            reasons: ["Bateria longa"],
+            caveat: null,
+          },
+        ],
+      },
+    });
+    expect(code).not.toBeNull();
+    const html = draw(code ?? "", { ...host, interactive: false });
+    expect(html).toContain("Fones");
+    expect(html).toContain("Fone &quot;A&quot;");
+    expect(html).toContain("Bateria longa");
+    expect(draw(savedFrameCode({ id: "c2", name: "show_fit", props: { caseMm: 40, wristCm: 16, label: "No pulso" } }) ?? "")).toContain("<svg");
+    const product = (title: string) => ({ title, url: "https://www.amazon.com.br/dp/B0A", price: 10, image: null, rating: null, reasons: [], caveat: null });
+    const comparison = savedFrameCode({
+      id: "c5",
+      name: "show_comparison",
+      props: { products: [product("X"), product("Y")], attributes: [{ label: "Bateria", values: ["10 h", "8 h"] }], recommended: 0, verdict: "Fique com o X" },
+    });
+    expect(draw(comparison ?? "", { ...host, interactive: false })).toContain("Fique com o X");
+    const question = savedFrameCode({ id: "c6", name: "quick_question", props: { question: "Qual tamanho?", memoryKey: "roupa.tamanho", options: ["P", "M"] } });
+    expect(draw(question ?? "", { ...host, interactive: false })).toContain("Qual tamanho?");
+    const choice = savedFrameCode({
+      id: "c7",
+      name: "ask_this_or_that",
+      props: { question: "Qual estilo?", memoryKey: "relogio.estilo", options: [{ label: "Clássico", image: null }, { label: "Esportivo", image: null }] },
+    });
+    expect(draw(choice ?? "", { ...host, interactive: false })).toContain("Esportivo");
+    expect(savedFrameCode({ id: "c3", name: "show_products", props: { title: 1 } })).toBeNull();
+    expect(savedFrameCode({ id: "c4", name: "desconhecido", props: {} })).toBeNull();
   });
 
   it("só liga para HTTPS de loja e nunca para checkout", () => {

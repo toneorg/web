@@ -1,5 +1,5 @@
-// Gerado de toneorg/extension@9e0a42adc746 (packages/shared/src/page.ts). Não edite aqui.
-// What the extension reads from the store's page (RNF5: the DOM, not a
+// Gerado de toneorg/extension@e7df4b741fe1 (packages/shared/src/page.ts). Não edite aqui.
+// A store page as the server's research reads it (RNF5: the text, not a
 // screenshot). Everything in a snapshot came from a third-party page, so the
 // server treats every string in it as data, never as an instruction (RNF10).
 import * as z from "zod";
@@ -80,14 +80,3 @@ export const PageSnapshot = z.object({
   blocker: z.enum(["captcha", "login", "error"]).nullable(),
 });
 export type PageSnapshot = z.infer<typeof PageSnapshot>;
-
-/** The short form the panel sends with every message (RF1.2): what the person is looking at. */
-export const PageContext = z.object({
-  url: z.string(),
-  site: z.string(),
-  kind: PageKind,
-  title: z.string(),
-  productTitle: z.string().nullable(),
-  productPrice: z.number().nullable(),
-});
-export type PageContext = z.infer<typeof PageContext>;

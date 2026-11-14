@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@9e0a42adc746 (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/extension@e7df4b741fe1 (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";
@@ -91,7 +91,6 @@ export const Me = z.object({
 export type Me = z.infer<typeof Me>;
 
 export const SessionCreate = z.object({
-  site: z.string().nullable(),
   onboarding: z.boolean().default(false),
   /** A conversation opened from a panel: it belongs to the panel and stays out of the conversation list. */
   watchId: z.string().min(1).max(60).optional(),
@@ -111,8 +110,6 @@ export const SessionSummary = z.object({
   lastAt: z.string(),
   /** How many messages the person wrote. */
   messages: z.number().int(),
-  /** T06: where the conversation started; it continues on either surface. */
-  surface: z.enum(["extension", "web"]).default("extension"),
 });
 export type SessionSummary = z.infer<typeof SessionSummary>;
 
@@ -142,10 +139,6 @@ export type Purchase = z.infer<typeof Purchase>;
 /** The version of the consent text the person accepted. Bump it when the text changes. */
 export const CONSENT_VERSION = "2026-10-18";
 
-/** T05: where an access session was opened. The web keeps its credential in an HttpOnly cookie. */
-export const AccessSurface = z.enum(["extension", "web"]);
-export type AccessSurface = z.infer<typeof AccessSurface>;
-
 /** What an invite code opens: the e-mail it was made for, and whether that e-mail already has an account. */
 export const InviteCheck = z.object({ code: z.string().min(4).max(64) });
 export const InviteInfo = z.object({ email: z.string().nullable(), existing: z.boolean() });
@@ -157,7 +150,6 @@ export type SignInRequest = z.infer<typeof SignInRequest>;
 
 export const AccessSession = z.object({
   id: z.string(),
-  surface: AccessSurface,
   createdAt: z.string(),
   lastUsedAt: z.string().nullable(),
   expiresAt: z.string().nullable(),

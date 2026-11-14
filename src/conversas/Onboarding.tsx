@@ -1,5 +1,5 @@
 "use client";
-// The first visit after signing in: five short steps through what the tone does,
+// The first visit after signing in: four short steps through what the tone does,
 // each with a drawing that plays once and shows the product doing that thing.
 // The last step offers example requests that open a conversation right away.
 // Seen once per account on this browser; "Rever o tour" in the profile opens it again.
@@ -139,34 +139,6 @@ function ArtRemember() {
   );
 }
 
-/** 5. The extension: a side panel next to the store page, which never pays. */
-function ArtExtension() {
-  return (
-    <div className="flex h-44 w-full max-w-sm overflow-hidden rounded-panel bg-surface shadow-raised">
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <span className="flex gap-1">
-          {[0, 1, 2].map((dot) => (
-            <span key={dot} className="size-1.5 rounded-full bg-rule" />
-          ))}
-        </span>
-        <span className="h-16 rounded-thumb bg-sunken" />
-        <span className={`${line} w-3/4`} />
-        <span className={`${line} w-1/2`} />
-        <span className="mt-auto h-6 w-20 rounded-full bg-sunken" />
-      </div>
-      <div className="ob-slide flex w-[45%] flex-col gap-2 bg-paper p-3" style={d(300)}>
-        <span className="text-label font-medium text-ink">tone</span>
-        <span className="ob-rise rounded-thumb bg-surface p-2 text-label text-ink shadow-raised" style={d(800)}>
-          Esse tem o tamanho 40 em preto.
-        </span>
-        <span className="ob-rise rounded-thumb bg-surface p-2 text-label text-ink shadow-raised" style={d(1100)}>
-          Coloquei no carrinho. O pagamento é com você.
-        </span>
-      </div>
-    </div>
-  );
-}
-
 const EXAMPLES = [
   "Um presente até R$ 200 para minha mãe, que gosta de cozinhar",
   "O tênis de corrida com melhor custo-benefício para iniciante",
@@ -200,12 +172,6 @@ const STEPS: Step[] = [
     text: "Tamanhos, gostos, o que você já tem. Quanto mais conversamos, melhores ficam as sugestões. Tudo fica visível no seu perfil.",
     art: ArtRemember,
   },
-  {
-    id: "extension",
-    title: "Nas lojas, com a extensão",
-    text: "No Chrome, a extensão lê a página da loja com você, escolhe variação e põe no carrinho. Entre com o mesmo e-mail e senha. Eu nunca pago nada.",
-    art: ArtExtension,
-  },
 ];
 
 export function Onboarding(props: {
@@ -220,7 +186,7 @@ export function Onboarding(props: {
   const [index, setIndex] = useState(0);
   const panel = useRef<HTMLDivElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-  const last = STEPS.length; // the final step (examples) comes after the five steps
+  const last = STEPS.length; // the final step (examples) comes after the four steps
   const onClose = useRef(props.onClose);
   useEffect(() => {
     onClose.current = props.onClose;

@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@9e0a42adc746 (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/extension@e7df4b741fe1 (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -152,6 +152,7 @@ export const WatchClarification = z.object({
   multiple: z.boolean().optional(),
 });
 export const WatchSource = z.object({
+  // legado: só leitura de linhas antigas ("local_extension")
   id: z.enum(["google_shopping_index", "remote_browser", "local_extension"]),
   label: z.string(),
   autonomous: z.boolean(),

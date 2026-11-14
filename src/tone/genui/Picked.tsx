@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@9e0a42adc746 (packages/genui-react/src/Picked.tsx). Não edite aqui.
+// Gerado de toneorg/extension@e7df4b741fe1 (packages/genui-react/src/Picked.tsx). Não edite aqui.
 // The product the person picked in the conversation, above the composer: a
 // thumbnail, its name, its videos and a way to let it go. The next message
 // carries it, so "is this one good for running?" needs no name.
@@ -12,7 +12,7 @@ export function PickedProductBar(props: {
   storeHosts: readonly string[];
   busy: boolean;
   onVideos: () => void;
-  /** "O que dizem os reviews": optional, so the extension can leave it out. */
+  /** "O que dizem os reviews": optional. */
   onReviews?: () => void;
   onRemove: () => void;
 }) {

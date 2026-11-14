@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@9e0a42adc746 (packages/genui-react/src/host.ts). Não edite aqui.
+// Gerado de toneorg/extension@e7df4b741fe1 (packages/genui-react/src/host.ts). Não edite aqui.
 // What a drawn component may ask of the panel. The model writes only data; the
 // panel decides what each button does, and checks every address before using it.
 import {
@@ -31,7 +31,7 @@ export type GenUIAction =
   | { type: "pick"; product: PickedProduct | null };
 
 export interface GenUIHost {
-  /** Stores whose pages and photos this surface may show: the extension's adapters, the web's fixed list. */
+  /** Stores whose pages and photos this surface may show: the web's fixed list. */
   storeHosts: readonly string[];
   /** Questions can be answered: the latest answer of a live conversation, with nothing running. */
   interactive: boolean;

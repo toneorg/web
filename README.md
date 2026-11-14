@@ -1,12 +1,12 @@
 # tone: home page and web app
 
-Next.js 16 + Tailwind 4, in Portuguese. Two public pages: the home page speaks to the person who buys and takes the waiting list; `/lojas` sells tone to stores and takes pilot requests. Everything is black and white, the neutral bench of the design system, like the extension. What tone is, for whom and the words to use: [`CONTEXT.md`](CONTEXT.md). The copy of both pages: [`docs/copy/landing.md`](docs/copy/landing.md).
+Next.js 16 + Tailwind 4, in Portuguese. Two public pages: the home page speaks to the person who buys and takes the waiting list; `/lojas` sells tone to stores and takes pilot requests. Everything is black and white, the neutral bench of the design system, like the app. What tone is, for whom and the words to use: [`CONTEXT.md`](CONTEXT.md). The copy of both pages: [`docs/copy/landing.md`](docs/copy/landing.md).
 
 | Route | What it is |
 |---|---|
 | `/` | The page for the person: what tone does, the why behind every recommendation, neutrality, the waiting list. "Entrar" leads to `/conversas` |
 | `/lojas` | The page for stores: tone for stores, the report of doubts, the pilot with a control group, the pilot request |
-| `/conversas` | The app (below). The first visit of an account shows a five-step tour (`src/conversas/Onboarding.tsx`); "Rever o tour da tone" in the profile shows it again |
+| `/conversas` | The app (below). The first visit of an account shows a four-step tour (`src/conversas/Onboarding.tsx`); "Rever o tour da tone" in the profile shows it again |
 | `/marcas` | Redirects to `/lojas`, so old links and QR codes still land somewhere |
 | `/privacidade` | Plain-language data note |
 
@@ -20,16 +20,16 @@ What is measured (product analytics, cost, errors, session replay, feedback) and
 
 ## Conversations (`/conversas`)
 
-The person's side of tone: sign in with the same account as the extension, conversations from both surfaces, new conversation, memory, the week's balance, and the agent's answers with research progress, decision board and watch drafts. Product pages open only on the person's click, in a new tab, and only store pages that do not pay.
+The person's side of tone, and its only client: sign in, conversations, new conversation, memory, the week's balance, and the agent's answers with research progress, decision board and watch drafts. Product pages open only on the person's click, in a new tab, and only store pages that do not pay.
 
 - **No tone credential in the browser's JavaScript.** The pages call this site's `/api/tone/*` (`src/app/api/tone/[...path]/route.ts`), a back end for front end (`src/lib/tone-bff.ts`): a closed list of API routes, the `tone_web` cookie and nothing else forwarded, changes only with `x-tone-web: 1` from this origin, and the API's cookie rewritten to this origin as `HttpOnly; SameSite=Strict; Path=/api/tone` (plus `Secure` over HTTPS).
-- **Same contracts as the server.** `src/tone/shared` is a generated copy of `packages/shared/src` from `toneorg/extension` (the commit is in each header and in `SOURCE`). After the contracts change there, run `npm run sync:shared -- ../extension`; never edit the copy.
-- **Same components as the extension.** `src/tone/genui` is a generated copy of `packages/genui-react/src` from the same repository: the drawings of every component the agent writes, and their CSS (`genui.css`, loaded with the design system's `tokens.css` in `src/app/conversas/layout.tsx`). `src/conversas/Program.tsx` only decides what each button does on the web. The same sync command copies it; never edit the copy, and ESLint skips `src/tone`.
+- **Same contracts as the server.** `src/tone/shared` is a generated copy of `packages/shared/src` from the tone server repository (the commit is in each header and in `SOURCE`). After the contracts change there, run `npm run sync:shared -- <path to the server repository>`; never edit the copy.
+- **Components from the server repository.** `src/tone/genui` is a generated copy of `packages/genui-react/src` from the same repository: the drawings of every component the agent writes, and their CSS (`genui.css`, loaded with the design system's `tokens.css` in `src/app/conversas/layout.tsx`). `src/conversas/Program.tsx` only decides what each button does on the web; `src/conversas/frames.ts` redraws the frames saved in old conversations with the same components. The same sync command copies it; never edit the copy, and ESLint skips `src/tone`.
 - **Design system.** These pages sit on the neutral bench of `@toneorg/design` (`theme.css`); `npm run check:design` reads `src/conversas` and `src/app/conversas` (see `tone-design.json`).
-- **No install scripts.** `.npmrc` turns dependency scripts off: `@openuidev/lang-core` ships an install-time telemetry script. The blocks are drawn with `@openuidev/react-lang`, as in the extension, with its observability off (`publishObservability={false}`).
+- **No install scripts.** `.npmrc` turns dependency scripts off: `@openuidev/lang-core` ships an install-time telemetry script. The blocks are drawn with `@openuidev/react-lang`, with its observability off (`publishObservability={false}`).
 - Set `TONE_API_URL` (the tone server, reached from this server) and `NEXT_PUBLIC_SITE_URL`. Without `TONE_API_URL` the API answers 503 and the pages say the web is not connected yet.
 
-What it does not do yet, and how it was checked: `toneorg/extension` `docs/web-conversas.md`.
+What it does not do yet, and how it was checked: `docs/web-conversas.md` in the server repository.
 
 ## Run
 
@@ -37,6 +37,7 @@ What it does not do yet, and how it was checked: `toneorg/extension` `docs/web-c
 npm install
 cp .env.example .env.local   # optional in dev
 npm run dev                  # http://localhost:3000
+npx tsc --noEmit             # types
 npm test                     # vitest: the BFF, the conversation components, analytics and feedback
 ```
 

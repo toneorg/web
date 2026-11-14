@@ -19,12 +19,6 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["..", "admin"])).toBeNull();
     expect(upstreamPath(["sessions", "a%2F..%2Fadmin"])).toBeNull();
     expect(upstreamPath(["admin"])).toBeNull();
-    // Local research: the web asks and follows; only the extension takes steps or beats.
-    expect(upstreamPath(["local-runs"])).toBe("/api/local-runs");
-    expect(upstreamPath(["local-runs", "abc", "stop"])).toBe("/api/local-runs/abc/stop");
-    expect(upstreamPath(["local-runs", "next"])).toBe("/api/local-runs/next");
-    expect(upstreamPath(["local-runs", "abc", "steps", "0"])).toBeNull();
-    expect(upstreamPath(["local-bridge", "heartbeat"])).toBeNull();
     // T11: the center's actions and the mute link of an e-mail.
     expect(upstreamPath(["watches", "w1", "mute"])).toBe("/api/watches/w1/mute");
     expect(upstreamPath(["watches", "w1", "unmute"])).toBe("/api/watches/w1/unmute");
@@ -47,6 +41,26 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["me"])).toBe("/api/me");
   });
 
+  it("allows reviews, connections and photos", () => {
+    expect(upstreamPath(["reviews"])).toBe("/api/reviews");
+    expect(upstreamPath(["connections"])).toBe("/api/connections");
+    expect(upstreamPath(["connections", "gmail"])).toBe("/api/connections/gmail");
+    expect(upstreamPath(["connections", "gmail", "start"])).toBe("/api/connections/gmail/start");
+    expect(upstreamPath(["connections", "calendar", "sync"])).toBe("/api/connections/calendar/sync");
+    expect(upstreamPath(["connections", "outlook"])).toBeNull();
+    expect(upstreamPath(["photos"])).toBe("/api/photos");
+    expect(upstreamPath(["photos", "abc"])).toBe("/api/photos/abc");
+    expect(upstreamPath(["photos", "abc", "image"])).toBe("/api/photos/abc/image");
+    expect(upstreamPath(["photos", "abc", "correction"])).not.toBeNull();
+    expect(upstreamPath(["photos", "abc", "other"])).toBeNull();
+  });
+
+  it("refuses local runs", () => {
+    expect(upstreamPath(["local-runs"])).toBeNull();
+    expect(upstreamPath(["local-runs", "abc", "stop"])).toBeNull();
+    expect(upstreamPath(["local-bridge"])).toBeNull();
+  });
+
   it("exige o cabeçalho da web e a mesma origem para mudar algo", () => {
     const headers = (entries: Record<string, string>) => new Headers(entries);
     expect(checkRequest("GET", headers({}), site)).toEqual({ ok: true });
@@ -60,11 +74,11 @@ describe("BFF da web (T06)", () => {
     expect(checkRequest("POST", headers({ "x-tone-web": "1", origin: site }), site)).toEqual({ ok: true });
   });
 
-  it("repassa só o cookie da tone e nunca uma credencial da extensão", () => {
+  it("repassa só o cookie da tone e nunca um Bearer", () => {
     const out = upstreamHeaders(
       new Headers({
         cookie: "outro=1; tone_web=segredo; _ga=x",
-        authorization: "Bearer da-extensao",
+        authorization: "Bearer de-fora",
         "content-type": "application/json",
         origin: site,
       }),

@@ -1,7 +1,7 @@
 "use client";
 // T05/T06: entering the web with the account's e-mail and password. The first
 // time, the invite code (made for one e-mail) opens the onboarding: name,
-// password and the consent, the same steps as in the extension.
+// password and the consent.
 import { type FormEvent, useEffect, useState } from "react";
 import { type InviteInfo, PASSWORD_MIN } from "@/tone/shared";
 import { track } from "./analytics";
@@ -15,10 +15,10 @@ const quiet =
   "min-h-11 self-start rounded-full px-4 text-ui text-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ink";
 const label = "text-body font-medium text-ink";
 
-/** What the test collects and why, the same terms the extension shows. */
+/** What the test collects and why. */
 const CONSENT = [
   "As conversas comigo, suas respostas e o que aprendo sobre seus gostos e medidas.",
-  "As páginas da loja que eu leio e as ações que faço nelas, enquanto o painel da extensão está em uso.",
+  "As páginas de loja que eu leio para pesquisar produtos e preços.",
   "Se você conectar: e-mails de confirmação de pedido (Gmail) e eventos da agenda, só para entender suas compras.",
   "Na web, como você usa as telas: cliques, erros e uma gravação da tela com o texto que você digita e as conversas mascarados.",
   "Serve só para testar o produto, e só a equipe da tone que conduz o teste vê.",
@@ -166,8 +166,8 @@ export function SignIn(props: {
         >
           <p className="text-ui text-graphite">
             {invite?.existing
-              ? "Esta conta já existe e ainda não tem senha. Depois de hoje, você entra com o e-mail e esta senha, aqui e na extensão."
-              : "Depois de hoje, você entra com o e-mail e a senha que definir aqui, na web e na extensão."}
+              ? "Esta conta já existe e ainda não tem senha. Depois de hoje, você entra com o e-mail e esta senha."
+              : "Depois de hoje, você entra com o e-mail e a senha que definir aqui."}
           </p>
           {invite?.existing ? null : (
             <>

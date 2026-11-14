@@ -1,8 +1,8 @@
-// Gerado de toneorg/extension@9e0a42adc746 (packages/shared/src/answer-rating.ts). Não edite aqui.
+// Gerado de toneorg/extension@e7df4b741fe1 (packages/shared/src/answer-rating.ts). Não edite aqui.
 // "Esta resposta ajudou?": under each answer, a thumb up or down. A thumb down opens
 // an optional form with ready reasons and a line of the person's own. One rating per
 // turn of the conversation (the turn is how many messages the person had sent), so it
-// survives a reload and the extension and the web see the same one.
+// survives a reload and every client sees the same one.
 import * as z from "zod";
 
 export const ANSWER_RATING_REASONS = [

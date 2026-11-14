@@ -21,7 +21,7 @@ import { WaitlistForm } from "@/landing/WaitlistForm";
 /*
   The home page speaks to the person who buys (CONTEXT.md, "Página principal").
   The copy is docs/copy/landing.md; change it there first. Neutral bench, like
-  the app and the extension.
+  the app.
 */
 
 export const metadata: Metadata = {
@@ -216,9 +216,9 @@ export default function Home() {
               <Feature
                 icon={<WindowIcon />}
                 title="Funciona onde você compra."
-                body="No navegador e na extensão do Chrome, ao lado da loja que você está olhando."
+                body="No navegador, no celular ou no computador. Você abre a loja quando quiser."
               >
-                <ExtensionDrawing />
+                <WebDrawing />
               </Feature>
             </div>
           </Container>
@@ -368,20 +368,30 @@ function PriceDrawing() {
   );
 }
 
-/** A store page with tone open at its side. */
-function ExtensionDrawing() {
+/** tone open in a browser on the computer and on the phone. */
+function WebDrawing() {
   return (
-    <div aria-hidden className="flex h-32 w-full max-w-64 overflow-hidden rounded-thumb bg-surface shadow-raised">
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <span className="h-12 rounded-md bg-sunken" />
-        <span className="h-2 w-3/4 rounded-full bg-rule" />
-        <span className="h-2 w-1/2 rounded-full bg-rule" />
+    <div aria-hidden className="flex w-full max-w-64 items-end gap-3">
+      <div className="flex h-32 flex-1 flex-col overflow-hidden rounded-thumb bg-surface shadow-raised">
+        <div className="flex items-center gap-1 border-b border-rule px-2.5 py-2">
+          <span className="size-1.5 rounded-full bg-rule" />
+          <span className="size-1.5 rounded-full bg-rule" />
+          <span className="size-1.5 rounded-full bg-rule" />
+          <span className="ms-2 h-2 flex-1 rounded-full bg-sunken" />
+        </div>
+        <div className="flex flex-1 flex-col gap-1.5 p-2.5">
+          <span className="font-display text-[0.9rem] leading-none text-ink">tone</span>
+          <span className="h-1.5 w-full rounded-full bg-edge" />
+          <span className="h-1.5 w-4/5 rounded-full bg-edge" />
+          <span className="mt-auto h-5 w-16 self-end rounded-full bg-ink" />
+        </div>
       </div>
-      <div className="flex w-24 flex-col gap-1.5 border-s border-rule bg-paper p-2.5">
+      <div className="flex h-28 w-16 flex-col gap-1.5 rounded-thumb bg-surface p-2 shadow-raised">
+        <span className="mx-auto h-1 w-5 rounded-full bg-rule" />
         <span className="font-display text-[0.9rem] leading-none text-ink">tone</span>
         <span className="h-1.5 w-full rounded-full bg-edge" />
-        <span className="h-1.5 w-4/5 rounded-full bg-edge" />
-        <span className="mt-auto h-5 rounded-full bg-ink" />
+        <span className="h-1.5 w-3/4 rounded-full bg-edge" />
+        <span className="mt-auto h-4 rounded-full bg-ink" />
       </div>
     </div>
   );

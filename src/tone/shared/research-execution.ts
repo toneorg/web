@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@9e0a42adc746 (packages/shared/src/research-execution.ts). Não edite aqui.
+// Gerado de toneorg/extension@e7df4b741fe1 (packages/shared/src/research-execution.ts). Não edite aqui.
 import * as z from "zod";
 import { evaluateRequirements, ResearchIntent, ResearchResult } from "./research";
 
@@ -86,7 +86,6 @@ export const ResearchExecution = z
         message: z.string(),
       }),
     ),
-    localComplement: z.object({ needed: z.boolean(), reason: z.string() }),
     recommendedOfferIds: z.array(z.string()),
     unknownOfferIds: z.array(z.string()),
     costUsd: z.number().nonnegative(),

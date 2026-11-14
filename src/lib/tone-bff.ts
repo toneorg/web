@@ -8,7 +8,7 @@ export const TONE_COOKIE = "tone_web";
 const SAFE = new Set(["GET", "HEAD", "OPTIONS"]);
 const SEGMENT = /^[A-Za-z0-9_-]{1,80}$/;
 
-/** The API routes the web may use, after /api/. Everything else (admin, extension sign-in) is refused here. */
+/** The API routes the web may use, after /api/. Everything else (admin, the Bearer sign-in) is refused here. */
 const ALLOWED: RegExp[] = [
   /^auth\/web\/(login|invite|redeem)$/,
   /^auth\/(logout|sessions)$/,
@@ -31,10 +31,13 @@ const ALLOWED: RegExp[] = [
   /^events$/,
   // The TikToks of a product picked in the conversation; the server searches and saves them.
   /^media$/,
-  // T14: the web asks for and follows local research; taking steps is the extension's (not listed).
-  /^local-runs$/,
-  /^local-runs\/[^/]+(\/stop)?$/,
-  /^local-bridge$/,
+  // "O que dizem os reviews" of the picked product.
+  /^reviews$/,
+  // The Google connections with the purchases: list, start, sync, disconnect.
+  /^connections(\/(gmail|calendar)(\/(start|sync))?)?$/,
+  // Reference photos: the list, one photo, its image, its reading and its correction.
+  /^photos$/,
+  /^photos\/[^/]+(\/(image|interpret|correction))?$/,
 ];
 
 export function upstreamPath(segments: string[]): string | null {

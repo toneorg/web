@@ -1,6 +1,6 @@
 "use client";
 // The person's own page on the web: who they are, what the tone knows about
-// them, and the keys to their data. The same account as the extension.
+// them, and the keys to their data.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";

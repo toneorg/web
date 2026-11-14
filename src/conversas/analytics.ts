@@ -43,11 +43,6 @@ export type WebEvent =
   | "product_reviews_requested"
   | "product_reviews_failed"
   | "situation_outcome_recorded"
-  // Research in the person's own Chrome (T14)
-  | "local_research_opened"
-  | "local_research_started"
-  | "local_research_failed"
-  | "local_research_stopped"
   // Decision board and watches drawn by the agent
   | "decision_changed"
   | "recommendation_rejected_clicked"

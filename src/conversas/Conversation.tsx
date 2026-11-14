@@ -1,6 +1,6 @@
 "use client";
-// T06: one conversation on the web, the same one the extension shows. The
-// agent researches through the server; store-tab actions stay in the extension.
+// T06: one conversation on the web. The agent researches through the server;
+// a product opens in a new tab only when the person clicks it.
 import Link from "next/link";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AnswerRating, type AnswerRatingChange, type AnswerRatingDetail, PickedProductBar, ProductVideos, ReviewSynthesisCard } from "@/tone/genui";
@@ -23,9 +23,9 @@ import {
 import { splitAnswer } from "@/tone/shared/genui";
 import { since, track } from "./analytics";
 import { ApiError, api, peek, rateAnswer, streamTurn } from "./api";
+import { savedFrameCode } from "./frames";
 import { Program, type ProgramHost, STORE_HOSTS, WATCHES_CHANGED } from "./Program";
 import { WatchReadings } from "./WatchReadings";
-import { LocalResearch } from "./LocalResearch";
 import { takePicked } from "./picked-handoff";
 import { ResearchRun } from "./ResearchRun";
 import { Shell } from "./Shell";
@@ -36,6 +36,8 @@ type Item =
   /** `turn` is the turn it answers, for the thumbs under it; the greeting has none. */
   | { id: string; kind: "assistant"; text: string; streaming?: boolean; turn?: number; rating?: AnswerRatingValue | null }
   | { id: string; kind: "notice"; text: string; error?: boolean }
+  /** A frame saved in an old conversation, drawn by the same components as an answer. */
+  | { id: string; kind: "frame"; code: string }
   | { id: string; kind: "research"; run: ResearchRunState }
   /** TikToks of a product, asked for from the picked product above the composer. */
   | { id: string; kind: "media"; media: ProductMedia }
@@ -112,14 +114,14 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
         if (!live) return;
         setMe(person);
         setItems([
-        ...transcript.map((item): Item => {
-          if (item.kind === "user") return { id: uid(), kind: "user", text: item.text };
+        ...transcript.flatMap((item): Item[] => {
+          if (item.kind === "user") return [{ id: uid(), kind: "user", text: item.text }];
           if (item.kind === "assistant")
-            return { id: uid(), kind: "assistant", text: item.text, turn: item.turn, rating: item.rating ?? null };
+            return [{ id: uid(), kind: "assistant", text: item.text, turn: item.turn, rating: item.rating ?? null }];
           const media = item.component.name === MEDIA_COMPONENT ? ProductMedia.safeParse(item.component.props) : null;
-          return media?.success
-            ? { id: uid(), kind: "media", media: media.data }
-            : { id: uid(), kind: "notice", text: "Um quadro desta conversa aparece completo na extensão." };
+          if (media?.success) return [{ id: uid(), kind: "media", media: media.data }];
+          const code = savedFrameCode(item.component);
+          return code ? [{ id: uid(), kind: "frame", code }] : [];
         }),
         ...runs.map((run): Item => ({ id: `run-${run.runId}`, kind: "research", run })),
         ...reviews.map((run): Item => ({ id: `reviews-${run.runId}`, kind: "reviews", run })),
@@ -306,7 +308,7 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
         length: trimmed.length,
         turn: items.filter((item) => item.kind === "user").length + 1,
       });
-      await runTurn({ type: "message", text: trimmed, page: null, ...(picked ? { product: picked } : {}) });
+      await runTurn({ type: "message", text: trimmed, ...(picked ? { product: picked } : {}) });
     },
     [busy, items, picked, runTurn, state],
   );
@@ -391,34 +393,6 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
     };
   }, [reviewsSince, sessionId]);
 
-  // T14: a local run is followed by reading its saved state until it ends (about every 2 s, at most 12 min).
-  const [following, setFollowing] = useState<string | null>(null);
-  useEffect(() => {
-    if (!following) return;
-    let live = true;
-    const started = Date.now();
-    const timer = setInterval(() => {
-      api
-        .researchRuns(sessionId)
-        .then((runs) => {
-          if (!live) return;
-          const run = runs.find((entry) => entry.runId === following);
-          if (!run) return;
-          setItems((list) => {
-            const index = list.findIndex((item) => item.kind === "research" && item.run.runId === run.runId);
-            const item = { id: `run-${run.runId}`, kind: "research" as const, run };
-            return index < 0 ? [...list, item] : list.map((entry, at) => (at === index ? item : entry));
-          });
-          if (run.terminal || Date.now() - started > 12 * 60_000) setFollowing(null);
-        })
-        .catch(() => undefined);
-    }, 2000);
-    return () => {
-      live = false;
-      clearInterval(timer);
-    };
-  }, [following, sessionId]);
-
   // T16: a conversation started from the home page arrives with its first message; it is sent once.
   // It comes from the page's search params: on a client navigation, window.location still
   // shows the previous page while this one first renders.
@@ -482,7 +456,7 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
       if (busy) return;
       track("conversation_reply_selected", { answers: Object.keys(answers).length });
       setItems((list) => [...list, { id: uid(), kind: "user", text: display }]);
-      void runTurn({ type: "ui_answer", answers, page: null });
+      void runTurn({ type: "ui_answer", answers });
     },
     say: (text) => void send(text),
     picked: picked?.url ?? null,
@@ -523,6 +497,8 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
                 {item.text}
               </p>
             );
+          if (item.kind === "frame")
+            return <Program key={item.id} code={item.code} streaming={false} host={hostFor(item.id)} />;
           if (item.kind === "research") return <ResearchRun key={item.id} run={item.run} />;
           if (item.kind === "media") return <ProductVideos key={item.id} media={item.media} />;
           if (item.kind === "reviews")
@@ -555,27 +531,6 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
         ))}
         <div ref={bottom} />
       </div>
-      {state === "ready" && !busy && !me?.remoteStores?.length ? (
-        <div className="flex flex-col gap-2 pb-3">
-          <LocalResearch
-            sessionId={sessionId}
-            suggestion={[...items].reverse().find((item) => item.kind === "user")?.text ?? ""}
-            onStarted={(runId) => setFollowing(runId)}
-          />
-          {following ? (
-            <button
-              type="button"
-              onClick={() => {
-                track("local_research_stopped");
-                void api.stopLocalRun(following).finally(() => setFollowing(null));
-              }}
-              className="min-h-11 self-start rounded-full px-4 text-ui text-ink focus-visible:outline-2 focus-visible:outline-ink"
-            >
-              Parar a pesquisa no meu Chrome
-            </button>
-          ) : null}
-        </div>
-      ) : null}
       <div className="sticky bottom-0 flex flex-col gap-2 bg-paper pb-5 pt-3">
         {busy ? (
           <div className="flex items-center justify-between gap-3">
@@ -635,5 +590,5 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
  * directly ("Também pesquiso direto em…") left the header on 10/11/2026: noise above every conversation.
  */
 export function researchNote(me: Me | null): string | null {
-  return me?.remoteStores?.length ? null : "Pôr no carrinho e escolher variação, só pela extensão";
+  return me?.remoteStores?.length ? null : "Escolher a variação e pôr no carrinho, só na loja";
 }

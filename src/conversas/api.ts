@@ -1,6 +1,6 @@
 "use client";
 // T06: the conversation pages' calls, all to this site's /api/tone (the BFF).
-// Responses are checked with the same contracts as the server and the extension.
+// Responses are checked with the same contracts as the server.
 import posthog from "posthog-js";
 import {
   AccessSession,
@@ -9,8 +9,6 @@ import {
   DecisionState,
   CONSENT_VERSION,
   InviteInfo,
-  LocalRun,
-  type LocalStore,
   Me,
   Memory,
   ProductMedia,
@@ -214,11 +212,6 @@ export const api = {
   deleteWatch: (id: string) => send(`watches/${id}`, "DELETE"),
   /** T11: the mute link of an e-mail, without signing in. */
   muteByLink: (token: string) => send("watch-mute", "POST", { token }),
-  /** T14: whether the person's extension is on and recently seen. */
-  localBridge: async () => (await call("local-bridge")) as { available: boolean; lastSeenAt: string | null },
-  localRun: async (sessionId: string, query: string, stores: LocalStore[]) =>
-    LocalRun.parse(await send("local-runs", "POST", { sessionId, query, stores })),
-  stopLocalRun: (id: string) => send(`local-runs/${id}/stop`, "POST", {}),
   /** TikToks of a product, searched by its name and saved in the conversation. */
   media: async (sessionId: string, productTitle: string) =>
     ProductMedia.parse(await send("media", "POST", { sessionId, productTitle })),
@@ -254,22 +247,6 @@ export function trackClick(sessionId: string | null, url: string, title: string,
     keepalive: true,
     body: JSON.stringify({ sessionId, events: [{ type: "recommendation_clicked", url, title, ...where }] }),
   }).catch(() => undefined);
-}
-
-/**
- * T14: tells the extension a run is waiting. It carries only the run id; the extension fetches
- * the steps from the server with its own token. Without the extension id, it waits for its next minute.
- */
-export function nudgeExtension(runId: string) {
-  const id = process.env.NEXT_PUBLIC_TONE_EXTENSION_ID;
-  const runtime = (globalThis as { chrome?: { runtime?: { sendMessage?: (id: string, message: unknown, done?: () => void) => void } } })
-    .chrome?.runtime;
-  if (!id || !runtime?.sendMessage) return;
-  try {
-    runtime.sendMessage(id, { type: "tone.local_run", runId }, () => undefined);
-  } catch {
-    // The extension is not there or does not accept this page: the minute alarm still picks the run up.
-  }
 }
 
 /** Posts a turn and hands each server-sent event, validated, to `onEvent`. */

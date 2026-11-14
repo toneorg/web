@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@9e0a42adc746 (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/extension@e7df4b741fe1 (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
 // in the panel and on the web: observed in the index (T04), read in the store
 // by the extension in the person's Chrome (T14), or read in the store's search
@@ -37,6 +37,7 @@ const STORE_NAMES: Record<string, string> = {
 /** A store's name as people say it, from its domain. */
 export const storeLabel = (store: string) => STORE_NAMES[store] ?? store;
 
+// legado: só leitura de linhas antigas ("extension")
 export type PriceProvenance = "index" | "extension" | "remote" | "direct";
 
 /** The kinds of reading behind the offers of a run, from its evidence. */
