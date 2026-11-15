@@ -26,18 +26,19 @@ import { splitAnswer } from "@/tone/shared/genui";
 import { since, track } from "./analytics";
 import { ApiError, api, peek, rateAnswer, streamTurn } from "./api";
 import { savedFrameCode } from "./frames";
-import { Program, type ProgramHost, STORE_HOSTS, WATCHES_CHANGED } from "./Program";
+import { Program, type ProgramHost, STORE_HOSTS, storeHostsOf, WATCHES_CHANGED } from "./Program";
 import { WatchReadings } from "./WatchReadings";
 import { takePicked } from "./picked-handoff";
 import { PhotoPicker, PhotoReference, usePhoto } from "./PhotoReference";
 import { ResearchRun } from "./ResearchRun";
 import { Shell } from "./Shell";
-import { ChosenStores, StoreOptions } from "./StoreMention";
+import { ChosenStores, StoreOptions, UserMessage } from "./StoreMention";
 import { filterStores, type Mention, mentionAt, pickStore } from "./store-mention";
 import { SignIn } from "./SignIn";
 
 export type Item =
-  | { id: string; kind: "user"; text: string }
+  /** `stores`: the stores picked with @ for this message, drawn with it. */
+  | { id: string; kind: "user"; text: string; stores?: string[] }
   /** `turn` is the turn it answers, for the thumbs under it; the greeting has none. */
   | { id: string; kind: "assistant"; text: string; streaming?: boolean; turn?: number; rating?: AnswerRatingValue | null }
   /** `saved`: read back from the conversation, so it is not announced again as it loads. */
@@ -66,7 +67,7 @@ const uid = () => `w${Date.now().toString(36)}${(++counter).toString(36)}`;
 
 /** One line of a saved conversation as this page draws it. */
 export function itemsOf(item: TranscriptItem): Item[] {
-  if (item.kind === "user") return [{ id: uid(), kind: "user", text: item.text }];
+  if (item.kind === "user") return [{ id: uid(), kind: "user", text: item.text, ...(item.stores?.length ? { stores: item.stores } : {}) }];
   // Why a message was left without an answer (the model failed, the balance ran out).
   if (item.kind === "notice") return [{ id: uid(), kind: "notice", error: true, saved: true, text: item.text }];
   if (item.kind === "assistant")
@@ -322,10 +323,9 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
       const stores = chosenStores;
       setChosenStores([]);
       setMention(null);
-      const where = stores.length
-        ? ` · em ${stores.map((domain) => me?.stores?.find((store) => store.domain === domain)?.label ?? domain).join(", ")}`
-        : "";
-      setItems((list) => [...list, { id: uid(), kind: "user", text: trimmed + where }]);
+      // The picked product goes with this message, then the bar lets it go: the person used it.
+      if (picked) setPicked(null);
+      setItems((list) => [...list, { id: uid(), kind: "user", text: trimmed, ...(stores.length ? { stores } : {}) }]);
       track("conversation_message_sent", {
         with_product: Boolean(picked),
         length: trimmed.length,
@@ -338,7 +338,7 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
         ...(stores.length ? { stores } : {}),
       });
     },
-    [busy, items, picked, runTurn, state, chosenStores, me],
+    [busy, items, picked, runTurn, state, chosenStores],
   );
 
   /** "Buscar parecidos": the message goes with the photo, so the agent can compare it with the candidates. */
@@ -356,14 +356,18 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
   /** "See videos of this product": no model involved, the server searches TikTok and saves the result. */
   const showMedia = async () => {
     if (!picked || busy) return;
+    // The person got what they picked it for: the bar goes away (it comes back if the call fails).
+    const product = picked;
+    setPicked(null);
     setBusy(true);
     setItems((list) => [...list, { id: uid(), kind: "user", text: "Ver vídeos deste produto" }]);
     track("product_videos_requested");
     try {
-      const media = await api.media(sessionId, picked.title);
+      const media = await api.media(sessionId, product.title);
       setItems((list) => [...list, { id: uid(), kind: "media", media }]);
     } catch (error) {
       track("product_videos_failed", { status: error instanceof ApiError ? error.status : null });
+      setPicked((current) => current ?? product);
       if (error instanceof ApiError && error.status === 401) setState("expired");
       else
         setItems((list) => [
@@ -382,14 +386,17 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
   /** "O que dizem os reviews": a button, not a default (04/11/2026), to see how many people want it. */
   const showReviews = async () => {
     if (!picked || busy) return;
+    const product = picked;
+    setPicked(null);
     setItems((list) => [...list, { id: uid(), kind: "user", text: "O que dizem os reviews deste produto" }]);
     track("product_reviews_requested");
     try {
-      const run = await api.reviews(sessionId, picked.title);
+      const run = await api.reviews(sessionId, product.title);
       setItems((list) => placeReviews(list, [run]));
       setReviewsSince(Date.now());
     } catch (error) {
       track("product_reviews_failed", { status: error instanceof ApiError ? error.status : null });
+      setPicked((current) => current ?? product);
       if (error instanceof ApiError && error.status === 401) setState("expired");
       else
         setItems((list) => [
@@ -529,6 +536,7 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
       void runTurn({ type: "ui_answer", answers });
     },
     say: (text) => void send(text),
+    storeHosts: storeHostsOf(me?.stores),
     picked: picked?.url ?? null,
     pick: (product) => {
       track(product ? "product_picked" : "product_unpicked");
@@ -556,11 +564,7 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
         {state === "loading" ? <p className="text-small text-graphite">Carregando a conversa…</p> : null}
         {items.map((item) => {
           if (item.kind === "user")
-            return (
-              <p key={item.id} className="self-end rounded-panel bg-ink px-4 py-3 text-body text-on-ink">
-                {item.text}
-              </p>
-            );
+            return <UserMessage key={item.id} text={item.text} stores={item.stores} options={me?.stores} />;
           if (item.kind === "notice")
             return (
               <p key={item.id} role={item.error && !item.saved ? "alert" : undefined} className={`text-small ${item.error ? "font-medium text-alert" : "text-graphite"}`}>
@@ -653,7 +657,7 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
             role="combobox"
             aria-autocomplete="list"
             aria-expanded={listOpen}
-            aria-controls="lojas-mencao"
+            aria-controls={listOpen ? "lojas-mencao" : undefined}
             aria-activedescendant={listOpen ? `lojas-mencao-${Math.min(activeStore, storeOptions.length - 1)}` : undefined}
             placeholder={
               state === "loading"

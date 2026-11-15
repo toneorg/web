@@ -50,6 +50,7 @@ export type WebEvent =
   | "situation_outcome_recorded"
   // Decision board and watches drawn by the agent
   | "decision_changed"
+  | "store_link_blocked"
   | "recommendation_rejected_clicked"
   | "watch_draft_saved"
   | "watch_draft_confirmed"

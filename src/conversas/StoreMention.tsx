@@ -1,8 +1,38 @@
 "use client";
 // The @ store picker of the composer: a listbox above the message box (the box keeps focus and
-// points at the active option), and the picked stores as removable pills.
-import type { StoreOption } from "@/tone/shared";
-import { readingLabel } from "./store-mention";
+// points at the active option), the picked stores as removable pills, and the person's message
+// drawn with the stores it was limited to.
+import { useEffect, useRef, useState } from "react";
+import { type StoreOption, storeLabel } from "@/tone/shared";
+import { readingLabel, storeInitial, storeLogoUrl } from "./store-mention";
+
+/** The store's icon, or its initial on a sunken tile when the icon does not load. */
+export function StoreLogo(props: { domain: string; label: string }) {
+  const [broken, setBroken] = useState(false);
+  return (
+    <span
+      aria-hidden="true"
+      className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-tag bg-sunken text-label text-graphite"
+    >
+      {broken ? (
+        storeInitial(props.label)
+      ) : (
+        // A favicon from a fixed service; next/image would proxy it for nothing.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={storeLogoUrl(props.domain)}
+          alt=""
+          width={24}
+          height={24}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setBroken(true)}
+          className="size-full bg-surface object-contain outline outline-1 -outline-offset-1 outline-image-outline"
+        />
+      )}
+    </span>
+  );
+}
 
 export function StoreOptions({
   id,
@@ -17,8 +47,14 @@ export function StoreOptions({
   onPick: (option: StoreOption) => void;
   onActive: (index: number) => void;
 }) {
+  const list = useRef<HTMLUListElement>(null);
+  // The arrows move the active option: the list follows it, so it never goes out of sight.
+  useEffect(() => {
+    list.current?.children[active]?.scrollIntoView({ block: "nearest" });
+  }, [active, options.length]);
   return (
     <ul
+      ref={list}
       id={id}
       role="listbox"
       aria-label="Lojas"
@@ -34,17 +70,21 @@ export function StoreOptions({
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => onPick(option)}
           onMouseEnter={() => onActive(index)}
-          className={`flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-input px-3 py-2 ${
+          className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-input px-3 py-2 ${
             index === active ? "bg-sunken" : ""
           }`}
         >
-          <span className="text-body text-ink">{option.label}</span>
-          <span className="text-small text-graphite">{readingLabel(option.reading)}</span>
+          <StoreLogo domain={option.domain} label={option.label} />
+          <span className="min-w-0 flex-1 truncate text-body text-ink">{option.label}</span>
+          <span className="shrink-0 text-small text-graphite">{readingLabel(option.reading)}</span>
         </li>
       ))}
     </ul>
   );
 }
+
+const labelOf = (stores: readonly StoreOption[] | undefined, domain: string) =>
+  stores?.find((store) => store.domain === domain)?.label ?? storeLabel(domain);
 
 export function ChosenStores({
   stores,
@@ -56,13 +96,14 @@ export function ChosenStores({
   onRemove: (domain: string) => void;
 }) {
   if (!chosen.length) return null;
-  const label = (domain: string) => stores.find((store) => store.domain === domain)?.label ?? domain;
+  const label = (domain: string) => labelOf(stores, domain);
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-small text-graphite">Buscar só em</span>
       <ul className="flex flex-wrap gap-2">
         {chosen.map((domain) => (
-          <li key={domain} className="flex min-h-11 items-center gap-1 rounded-full bg-surface pl-4 shadow-raised">
+          <li key={domain} className="flex min-h-11 items-center gap-2 rounded-full bg-surface pl-3 shadow-raised">
+            <StoreLogo domain={domain} label={label(domain)} />
             <span className="text-ui text-ink">{label(domain)}</span>
             <button
               type="button"
@@ -76,5 +117,19 @@ export function ChosenStores({
         ))}
       </ul>
     </div>
+  );
+}
+
+/** A message of the person, with the stores picked with @ for it as they were typed ("@Dior …"). */
+export function UserMessage(props: { text: string; stores?: readonly string[]; options?: readonly StoreOption[] }) {
+  return (
+    <p className="self-end rounded-panel bg-ink px-4 py-3 text-body text-on-ink">
+      {props.stores?.map((domain) => (
+        <span key={domain} className="font-medium">
+          @{labelOf(props.options, domain)}{" "}
+        </span>
+      ))}
+      {props.text}
+    </p>
   );
 }

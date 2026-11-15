@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@8c1d971872ff (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@1b690dac45f8 (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -92,7 +92,12 @@ export type AgentEvent = z.infer<typeof AgentEvent>;
 
 /** One line of the conversation as the panel shows it when a session is reopened. */
 export const TranscriptItem = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("user"), text: z.string() }),
+  z.object({
+    kind: z.literal("user"),
+    text: z.string(),
+    /** The stores picked with @ for this message (domains), drawn with it again when it is reopened. */
+    stores: z.array(z.string()).optional(),
+  }),
   z.object({
     kind: z.literal("assistant"),
     text: z.string(),

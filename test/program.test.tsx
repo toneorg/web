@@ -3,7 +3,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { savedFrameCode } from "../src/conversas/frames";
-import { openStore, Program, type ProgramHost, storeLink } from "../src/conversas/Program";
+import { openStore, Program, type ProgramHost, storeHostsOf, storeLink } from "../src/conversas/Program";
 
 const host: ProgramHost = {
   sessionId: "s1",
@@ -91,6 +91,24 @@ q = PreferenceChips("Para que você vai usar?", "fone.uso", ["Treino", "Trabalho
     openStore("s1", "https://tracker.example.com/p", "Fone C", { source: "generated_ui" });
     expect(open).toHaveBeenCalledTimes(1);
     expect(open).toHaveBeenCalledWith("https://www.amazon.com.br/dp/B0A", "_blank", "noopener,noreferrer");
+    vi.unstubAllGlobals();
+  });
+
+  it("abre a página da Dior no host do catálogo listado em /api/me, e nunca o checkout dela", () => {
+    const open = vi.fn();
+    vi.stubGlobal("window", { open });
+    vi.stubGlobal("navigator", { sendBeacon: () => true });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null)));
+    const hosts = storeHostsOf([{ domain: "dior.com", label: "Dior", reading: "catalog", hosts: ["shop.dior.com.br"] }]);
+    expect(hosts).toEqual(["dior.com", "shop.dior.com.br"]);
+    const page = "https://shop.dior.com.br/sauvage-eau-de-parfum/p?skuId=1";
+    // Without the list from /api/me the link was refused and the button did nothing (15/11/2026).
+    openStore("s1", page, "Sauvage", { source: "generated_ui" });
+    expect(open).not.toHaveBeenCalled();
+    openStore("s1", page, "Sauvage", { source: "generated_ui" }, hosts);
+    openStore("s1", "https://shop.dior.com.br/checkout/#/cart", "Carrinho", { source: "generated_ui" }, hosts);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledWith(page, "_blank", "noopener,noreferrer");
     vi.unstubAllGlobals();
   });
 

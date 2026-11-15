@@ -21,6 +21,7 @@ import {
   isCheckoutUrl,
   isGoogleShoppingUrl,
   type PickedProduct,
+  type StoreOption,
   type WatchRule,
 } from "@/tone/shared";
 import { track } from "./analytics";
@@ -29,6 +30,15 @@ import { api, trackClick } from "./api";
 /** Stores whose product photos and pages the web may show or link: the server index's (shared list). */
 export const STORE_HOSTS: string[] = [...INDEX_STORES, "mercadolibre.com"];
 
+/**
+ * The hosts of the stores the server lists in /api/me (the @ picker): their domains and where their
+ * pages live when elsewhere (Dior's catalog is on shop.dior.com.br). Configured on the server, never
+ * written by the model; on 15/11/2026 "Ver na loja" did nothing on Dior's products for lack of them.
+ */
+export function storeHostsOf(stores: readonly StoreOption[] | undefined): string[] {
+  return [...new Set((stores ?? []).flatMap((store) => [store.domain, ...(store.hosts ?? [])]))];
+}
+
 export interface ProgramHost {
   sessionId: string;
   /** Questions answer only on the latest answer, with nothing running. */
@@ -36,6 +46,8 @@ export interface ProgramHost {
   /** The person answered a question component: what the conversation shows and what becomes memory. */
   answer: (answers: Answer[], display: string) => void;
   say: (text: string) => void;
+  /** Hosts of the stores listed in /api/me, besides the fixed list (`storeHostsOf`). */
+  storeHosts?: readonly string[];
   /** The url of the product picked to talk about, shown above the composer. */
   picked: string | null;
   pick: (product: PickedProduct | null) => void;
@@ -46,14 +58,14 @@ export interface ProgramHost {
  * product known only from the index). `store` is a store the server itself read and checked the offer
  * against (T16, a remote browser); what the model writes gets only the fixed list.
  */
-export function storeLink(url: string, store?: string): string | null {
+export function storeLink(url: string, store?: string, extraHosts: readonly string[] = []): string | null {
   if (isGoogleShoppingUrl(url)) return url;
   // Google is never a store host: only the product page above opens, never another Google address.
   if (store === GOOGLE_SHOPPING) store = undefined;
   if (!URL.canParse(url)) return null;
   const parsed = new URL(url);
   if (parsed.protocol !== "https:" || parsed.username || parsed.password || isCheckoutUrl(url)) return null;
-  const hosts = store ? [...STORE_HOSTS, store] : STORE_HOSTS;
+  const hosts = [...STORE_HOSTS, ...extraHosts, ...(store ? [store] : [])];
   return hosts.some((host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)) ? url : null;
 }
 
@@ -88,9 +100,19 @@ export function StoreLink(props: { url: string; label?: string; click?: ClickCon
 }
 
 /** Opens a product the person clicked, in a new tab, only on a store page that does not pay. */
-export function openStore(sessionId: string, url: string, title: string, where: ClickWhere) {
-  const href = storeLink(url);
-  if (!href) return;
+export function openStore(
+  sessionId: string,
+  url: string,
+  title: string,
+  where: ClickWhere,
+  extraHosts: readonly string[] = [],
+) {
+  const href = storeLink(url, undefined, extraHosts);
+  if (!href) {
+    // Only the host, never the address: a refused link is a gap in the list of stores to close.
+    track("store_link_blocked", { host: URL.canParse(url) ? new URL(url).hostname : null });
+    return;
+  }
   trackClick(sessionId, href, title, where);
   window.open(href, "_blank", "noopener,noreferrer");
 }
@@ -105,6 +127,7 @@ function announceWatches<T>(watch: T): T {
 /** The web's side of the components: what each button does, and where decisions and watches live. */
 function useWebHost(host: ProgramHost): GenUIHost {
   const { sessionId, interactive, answer, say, picked, pick } = host;
+  const extraHosts = host.storeHosts ?? [];
   const decisions = useMemo(
     () => ({
       load: () => api.decision(sessionId),
@@ -132,7 +155,7 @@ function useWebHost(host: ProgramHost): GenUIHost {
   const act = (action: GenUIAction) => {
     switch (action.type) {
       case "open":
-        openStore(sessionId, action.url, action.title, action.where ?? { source: "generated_ui" });
+        openStore(sessionId, action.url, action.title, action.where ?? { source: "generated_ui" }, extraHosts);
         return;
       case "reject":
         track("recommendation_rejected_clicked", { reason: action.reason });
@@ -150,7 +173,7 @@ function useWebHost(host: ProgramHost): GenUIHost {
         return;
     }
   };
-  return { storeHosts: STORE_HOSTS, interactive, actionable: true, act, picked, decisions, watches };
+  return { storeHosts: [...STORE_HOSTS, ...extraHosts], interactive, actionable: true, act, picked, decisions, watches };
 }
 
 /** One block of an answer, drawn while it streams. */

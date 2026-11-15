@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@8c1d971872ff (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/server@1b690dac45f8 (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";
@@ -82,6 +82,11 @@ export const StoreOption = z.object({
   domain: z.string(),
   label: z.string(),
   reading: z.enum(["catalog", "direct", "amazon", "unblock", "index"]),
+  /**
+   * Other hosts where this store's product pages live, when they are not under `domain` (Dior's
+   * catalog pages are on shop.dior.com.br). The web opens "Ver na loja" only on these and the domain.
+   */
+  hosts: z.array(z.string()).optional(),
 });
 export type StoreOption = z.infer<typeof StoreOption>;
 

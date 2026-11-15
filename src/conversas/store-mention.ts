@@ -61,3 +61,12 @@ const READINGS: Record<StoreOption["reading"], string> = {
 };
 /** How tone reads a store, as the list shows it. */
 export const readingLabel = (reading: StoreOption["reading"]) => READINGS[reading];
+
+/**
+ * The store's icon, from DuckDuckGo's favicon service (it never gets the referrer, only the store's
+ * domain). A store without one answers 404 and the list shows its initial instead.
+ */
+export const storeLogoUrl = (domain: string) => `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`;
+
+/** The initial of the store's name, for when its icon does not load. */
+export const storeInitial = (label: string) => (fold(label).replace(/ /g, "")[0] ?? "?").toUpperCase();
