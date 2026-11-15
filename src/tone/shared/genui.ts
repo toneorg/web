@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@1b690dac45f8 (packages/shared/src/genui.ts). Não edite aqui.
+// Gerado de toneorg/server@dcdd90760914 (packages/shared/src/genui.ts). Não edite aqui.
 // The components the agent draws in the panel, in OpenUI Lang (openui.com).
 // One definition, two consumers: the server turns it into the instructions the
 // model reads and checks what the model wrote; the panel gives each component
@@ -140,6 +140,27 @@ export const RememberedPreference = define(
   z.object({ memoryKey: text(60), label: text(40), value: text(80) }),
 );
 
+export const CompareRow = define(
+  "CompareRow",
+  "Uma linha de Comparison: o atributo e um valor curto por opção, na ordem das opções. best: índice da opção que se destaca nesta linha, se alguma se destaca.",
+  z.object({
+    label: text(40),
+    values: z.array(text(80)).min(2).max(6),
+    best: optional(z.number().int().min(0)),
+  }),
+);
+
+export const ScaleRow = define(
+  "ScaleRow",
+  "Uma linha de Comparison desenhada como escala de 1 a 5 entre dois extremos ('Fresco' e 'Denso', 'Discreto' e 'Marcante', 'Leve' e 'Robusto'), um número por opção, na ordem das opções.",
+  z.object({
+    label: text(40),
+    left: text(24),
+    right: text(24),
+    values: z.array(z.number().int().min(1).max(5)).min(2).max(6),
+  }),
+);
+
 // ---- The components the agent places in an answer --------------------------
 
 export const ProductCarousel = define(
@@ -173,7 +194,7 @@ export const ProductQuiz = define(
 
 export const ComparisonMatrix = define(
   "ComparisonMatrix",
-  "Compara 2 a 4 produtos lado a lado nos atributos que decidem a compra e indica o recomendado (índice em products).",
+  "Compara 2 a 4 produtos da pesquisa (com url e preço da loja) lado a lado nos atributos que decidem a compra e indica o recomendado (índice em products). Para opções sem produto da loja (linhas, versões, tipos), use Comparison.",
   z.object({
     products: z.array(Product.ref).min(2).max(4),
     rows: z.array(MatrixRow.ref).min(1).max(8),
@@ -270,6 +291,28 @@ export const PreferenceMemory = define(
   z.object({ title: text(80), items: z.array(RememberedPreference.ref).min(1).max(8) }),
 );
 
+export const Comparison = define(
+  "Comparison",
+  "Compara 2 a 6 opções que não são produtos da pesquisa: linhas ou concentrações de um perfume (EDT, EDP, Parfum, Elixir), versões ou gerações de um aparelho, tecnologias, materiais, tipos, planos. options: o nome curto de cada opção (as colunas). rows: os atributos que decidem, cada um um CompareRow (texto curto) ou um ScaleRow (escala de 1 a 5, como intensidade). choose: quando escolher cada opção, uma frase por opção, na ordem. recommended: índice da opção que você indica para esta pessoa, só quando o pedido ou a memória justificam. note: uma ressalva curta.",
+  z.object({
+    title: text(80),
+    options: z.array(text(40)).min(2).max(6),
+    rows: z
+      .array(z.union([CompareRow.ref, ScaleRow.ref]))
+      .min(1)
+      .max(8),
+    choose: optional(z.array(text(140)).max(6)),
+    recommended: optional(z.number().int().min(0)),
+    note: optional(text(200)),
+  }),
+);
+
+export const Callout = define(
+  "Callout",
+  "Um aviso curto que não pode passar despercebido. kind atencao: uma armadilha ou um risco (nome parecido que é outro produto, falsificação comum, incompatibilidade); dica: um atalho útil; nota: um contexto. title curto, text com o que fazer.",
+  z.object({ kind: z.enum(["atencao", "dica", "nota"]), title: text(60), text: text(280) }),
+);
+
 export const SolutionItem = define(
   "SolutionItem",
   "Uma peça de um caminho. role: o papel dela no conjunto ('Vestido', 'Seu sapato', 'Complemento', 'Seu monitor'). owned true quando é algo que a pessoa já tem (da memória): sem url, sem preço. Produto da loja: url, image e price exatamente como vieram.",
@@ -337,6 +380,8 @@ const BLOCKS = [
   VisualChoice,
   ProductQuiz,
   ComparisonMatrix,
+  Comparison,
+  Callout,
   TradeoffSliders,
   ProductVerdict,
   EvidenceCards,
@@ -388,6 +433,8 @@ export const GENUI_COMPONENTS = [
   RememberedPreference,
   SolutionItem,
   SolutionPath,
+  CompareRow,
+  ScaleRow,
   ...BLOCKS,
   View,
 ];
@@ -417,6 +464,7 @@ const COMPONENT_GROUPS = [
     name: "Mostrar produtos",
     components: ["ProductCarousel", "SolutionSet", "ComparisonMatrix", "SavedShortlist", "DecisionBoard"],
   },
+  { name: "Explicar e comparar opções", components: ["Comparison", "Callout"] },
   { name: "Perguntar", components: ["PreferenceChips", "VisualChoice", "ProductQuiz", "TradeoffSliders"] },
   { name: "Aprender com a pessoa", components: ["MemoryCheck", "OutcomeCheck"] },
   {
@@ -455,6 +503,12 @@ check = MemoryCheck("roupa.comprimento.formal", "Para eventos formais, você pre
   `root = View([verdict])
 verdict = ProductVerdict(prod, "depende", "Bom preço, mas a bateria decepciona quem usa o dia todo.", ["Nota 4,6 em 8 mil avaliações"], ["Bateria abaixo do anunciado"], 7)
 prod = Product("PHILIPS Fone TWS TAT1109", "https://www.amazon.com.br/dp/B0DVMQVVDY", 109.9, null, 4.6, 8099, null, null, null)`,
+  `root = View([cmp, warn])
+cmp = Comparison("LED, QLED e OLED", ["LED", "QLED", "OLED"], [r1, r2, r3], ["Quarto ou TV secundária, quando o preço pesa mais", "Sala clara, com muita luz de dia", "Filmes e jogos à noite, sala escura"], null, null)
+r1 = CompareRow("Como acende", ["Luz de fundo branca", "Luz de fundo com pontos quânticos", "Cada ponto acende sozinho"], null)
+r2 = CompareRow("Preto", ["Acinzentado", "Bom", "Perfeito"], 2)
+r3 = ScaleRow("Brilho", "Baixo", "Alto", [2, 5, 3])
+warn = Callout("atencao", "QNED não é OLED", "QNED e Neo QLED são nomes de marca para telas LED com luz de fundo melhor. Confira a tecnologia na ficha.")`,
 ];
 
 const RULES = [
@@ -462,7 +516,8 @@ const RULES = [
   "Cada bloco é um programa completo: a primeira linha é root = View([...]).",
   "Use só dados do retrato da página ou da memória: título, url, image, preço, nota e avaliações exatamente como vieram. Nunca invente produto, preço, link, imagem ou avaliação.",
   'Escreva números como números (109.9, não "R$ 109,90"); o painel formata.',
-  "Para conversa, dúvida ou explicação, responda só em texto, sem bloco.",
+  "Explicação que compara opções (diferença entre linhas, versões, modelos, tipos; 'qual usar quando'; 'X ou Y?') vai num Comparison, mesmo sem pesquisa e sem produto da loja. Uma armadilha ou um cuidado importante vai num Callout. O texto fica com uma frase antes do bloco e não repete o que a tabela mostra.",
+  "Só texto, sem bloco: conversa, resposta curta de um fato só, ou explicação de uma coisa só, sem opções a comparar.",
   'Se o seu texto anuncia um componente ("responda:", "veja:", "aqui estão"), o bloco vem na mesma resposta, logo depois.',
 ];
 
@@ -470,7 +525,7 @@ const RULES = [
 export function genuiInstructions(): string {
   return genuiSpec.prompt({
     preamble:
-      "Você desenha componentes no painel escrevendo OpenUI Lang. Use um componente quando ele mostrar melhor do que o texto: opções de produto, comparação, veredito, preço, pergunta com toque.",
+      "Você desenha componentes no painel escrevendo OpenUI Lang. Use um componente sempre que ele mostrar melhor do que o texto: opções de produto, comparação de produtos ou de opções (linhas, versões, tipos), veredito, preço, aviso importante, pergunta com toque. Três ou mais opções descritas em parágrafos são sempre uma tabela que faltou.",
     additionalRules: RULES,
     examples: EXAMPLES,
   });

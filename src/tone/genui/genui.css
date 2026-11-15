@@ -1,4 +1,4 @@
-/* Gerado de toneorg/server@1b690dac45f8 (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/server@dcdd90760914 (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -1405,6 +1405,43 @@ fieldset.field legend {
   padding: 0;
   list-style: none;
 }
+/* While it reads: one line per place; a finished line keeps its mark and fades to muted. */
+.reviews .review-stages > li {
+  display: flex;
+  align-items: center;
+  gap: var(--tone-space-sm);
+  min-height: 28px;
+}
+.review-stage-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 14px;
+  block-size: 14px;
+  flex: none;
+  color: var(--tone-graphite);
+}
+.reviews .review-stages > li[data-status="running"] .review-stage-mark::before {
+  content: "";
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--tone-ink);
+  animation: review-stage-pulse 1.2s var(--tone-ease-soft) infinite alternate;
+}
+@keyframes review-stage-pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reviews .review-stages > li[data-status="running"] .review-stage-mark::before {
+    animation: none;
+  }
+}
 .reviews .review-group > ul > li + li {
   margin-top: var(--tone-space-md);
   padding-top: var(--tone-space-md);
@@ -1646,5 +1683,151 @@ html:has(.rating-sheet[open]) {
   }
   .rating-thumb:active {
     scale: none;
+  }
+}
+
+/* Comparison of options that are not store products: a table where there is room,
+   one card per option on a narrow screen. The container decides, not the window, so the
+   panel beside the conversation and the phone draw the same way. */
+.comparison {
+  container-type: inline-size;
+}
+.comparison .compare th[scope="row"] {
+  min-width: 112px;
+}
+.comparison .compare td {
+  min-width: 120px;
+}
+.comparison .compare th[scope="row"],
+.comparison .compare thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--tone-surface);
+}
+.comparison .compare .choose td,
+.comparison .compare .choose th {
+  border-bottom: 0;
+}
+.comparison .compare .choose td {
+  color: var(--tone-ink);
+}
+.scale-ends {
+  display: block;
+  font: 400 13px / 18px var(--tone-font-sans);
+  color: var(--tone-graphite);
+}
+.scale {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+}
+.scale-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.scale-pips .pip {
+  width: 14px;
+}
+.compare-cards {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex-direction: column;
+  gap: var(--tone-space-md);
+}
+.compare-card {
+  padding: var(--tone-space-lg);
+  border-radius: var(--tone-radius-panel);
+  background: var(--tone-sunken);
+}
+.compare-card.recommended {
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-raised);
+}
+.compare-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tone-space-sm);
+  margin-bottom: var(--tone-space-sm);
+}
+.compare-card-head h4 {
+  margin: 0;
+  font: 600 17px / 23px var(--tone-font-sans);
+  text-wrap: balance;
+}
+.compare-cards dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.compare-cards dl > div {
+  display: grid;
+  grid-template-columns: minmax(88px, 2fr) 3fr;
+  gap: var(--tone-space-md);
+  padding: var(--tone-space-sm) 0;
+  border-bottom: 1px solid var(--tone-rule);
+  font: 400 14px / 20px var(--tone-font-sans);
+}
+.compare-cards dt {
+  color: var(--tone-graphite);
+  font-weight: 500;
+}
+.compare-cards dd {
+  margin: 0;
+}
+.compare-cards .best dd {
+  font-weight: 600;
+}
+.compare-choose {
+  margin: var(--tone-space-md) 0 0;
+  font: 400 14px / 20px var(--tone-font-sans);
+  text-wrap: pretty;
+}
+.compare-choose-label {
+  display: block;
+  font-weight: 600;
+}
+@container (max-width: 520px) {
+  .compare-wide {
+    display: none;
+  }
+  .compare-cards {
+    display: flex;
+  }
+}
+
+/* Callout: a warning or a tip that must not be missed */
+.callout {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: var(--tone-space-md);
+  padding: var(--tone-space-lg);
+  border-radius: var(--tone-radius-panel);
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-raised);
+  animation: rise var(--tone-duration-rise) var(--tone-ease-soft) both;
+}
+.callout p {
+  margin: 0;
+}
+.callout-mark {
+  display: flex;
+  padding-top: 2px;
+  color: var(--tone-graphite);
+}
+.callout.atencao .callout-mark {
+  color: var(--tone-alert);
+}
+.callout .callout-title {
+  font: 600 15px / 20px var(--tone-font-sans);
+  margin-bottom: var(--tone-space-xs);
+  text-wrap: balance;
+}
+@media (prefers-reduced-motion: reduce) {
+  .callout {
+    animation: none;
   }
 }

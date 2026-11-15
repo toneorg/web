@@ -112,6 +112,18 @@ q = PreferenceChips("Para que você vai usar?", "fone.uso", ["Treino", "Trabalho
     vi.unstubAllGlobals();
   });
 
+  it("desenha uma comparação de opções que não são produtos, com escala e aviso", () => {
+    const html = draw(`root = View([cmp, warn])
+cmp = Comparison("As linhas do Sauvage", ["EDT", "EDP"], [r1, r2], ["Dia a dia no calor", "Noite"], null, null)
+r1 = CompareRow("Concentração", ["Eau de Toilette", "Eau de Parfum"], null)
+r2 = ScaleRow("Intensidade", "Leve", "Marcante", [2, 4])
+warn = Callout("atencao", "Eau Sauvage é outro perfume", "É um clássico de 1966, não é da linha Sauvage.")`);
+    expect(html).toContain("<table");
+    expect(html).toContain("As linhas do Sauvage");
+    expect(html).toContain("Eau de Parfum");
+    expect(html).toContain("Eau Sauvage é outro perfume");
+  });
+
   it("open never opens a checkout url", () => {
     const open = vi.fn();
     vi.stubGlobal("window", { open });

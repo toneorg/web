@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@1b690dac45f8 (packages/shared/src/tools.ts). Não edite aqui.
+// Gerado de toneorg/server@dcdd90760914 (packages/shared/src/tools.ts). Não edite aqui.
 // The tools the agent can call. They all run on the server: tone researches the
 // stores from there and never drives a store page; a store opens only when the
 // person clicks its link. One zod schema per tool is both the validation and the
@@ -93,7 +93,7 @@ export const ServerTools = {
   },
   review_videos: {
     description:
-      'Lê reviews do YouTube (transcrições) e monta uma síntese de reviews: o que importa, consensos, divergências, cuidados e modelos citados. Roda em segundo plano e NÃO devolve a síntese agora: responda com o que já tem; ela aparece na conversa quando ficar pronta e chega a você no próximo turno. Use só quando a pessoa pedir o que os reviews dizem (ela também tem o botão "O que dizem os reviews" no produto selecionado); não chame por conta própria. subject category uma vez por conversa; subject product só para até três candidatas da lista curta, com marca e modelo.',
+      'Lê reviews do YouTube (transcrições) e da web (blogs, conversas do Reddit e avaliações de compradores em lojas, achados no Google) e monta uma síntese de reviews: o que importa, consensos, divergências, cuidados e modelos citados. Roda em segundo plano e NÃO devolve a síntese agora: responda com o que já tem; ela aparece na conversa quando ficar pronta e chega a você no próximo turno. Use só quando a pessoa pedir o que os reviews dizem (ela também tem o botão "O que dizem os reviews" no produto selecionado); não chame por conta própria. subject category uma vez por conversa; subject product só para até três candidatas da lista curta, com marca e modelo.',
     args: ReviewRequest,
   },
   update_decision: {

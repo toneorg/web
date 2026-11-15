@@ -580,7 +580,7 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
               <ReviewSynthesisCard
                 key={item.id}
                 run={item.run}
-                onOpen={(videoId) => track("review_link_opened", { video_id: videoId })}
+                onOpen={(sourceId) => track("review_link_opened", { source_id: sourceId })}
               />
             );
           return (

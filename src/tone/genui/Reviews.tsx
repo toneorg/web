@@ -1,10 +1,19 @@
-// Gerado de toneorg/server@1b690dac45f8 (packages/genui-react/src/Reviews.tsx). Não edite aqui.
-// Síntese de reviews: what YouTube reviews say, as tone read them (spec
-// 2026-11-03). Every point names its videos and opens the moment it was said,
-// on YouTube, in a new tab, only when the person clicks. Titles, channels and
-// quotes are third-party text, shown as plain text.
+// Gerado de toneorg/server@dcdd90760914 (packages/genui-react/src/Reviews.tsx). Não edite aqui.
+// Síntese de reviews: what reviews say, as tone read them (spec 2026-11-03):
+// YouTube videos and, since 15/11/2026, blogs, Reddit threads and buyers'
+// reviews in stores. Every point names its sources and opens them (the video
+// at the moment it was said), in a new tab, only when the person clicks.
+// Titles, channels, sites and quotes are third-party text, shown as plain text.
 
-import { clock, type ReviewClaim, type ReviewRunState, type ReviewVideo, youtubeAt } from "@/tone/shared";
+import {
+  claimSource,
+  clock,
+  type ReviewClaim,
+  type ReviewRunState,
+  type ReviewSource,
+  type ReviewVideo,
+  youtubeAt,
+} from "@/tone/shared";
 import { Icon } from "./Icon";
 
 const MAX_SOURCES = 2;
@@ -15,6 +24,10 @@ const VISIBLE = { matters: 4, consensus: 4, divergences: 3 } as const;
 const heading = (text: string) => text.charAt(0).toLocaleUpperCase("pt-BR") + text.slice(1);
 
 const year = new Intl.DateTimeFormat("pt-BR", { month: "short", year: "numeric" });
+const rating = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+
+/** How each kind of source is named next to it. */
+const KIND: Record<ReviewSource["kind"], string> = { blog: "blog", reddit: "Reddit", store: "loja" };
 
 function flags(video: ReviewVideo | undefined): string[] {
   if (!video) return [];
@@ -25,18 +38,78 @@ function flags(video: ReviewVideo | undefined): string[] {
   ].filter((flag): flag is string => Boolean(flag));
 }
 
-function Sources(props: {
-  ids: string[];
+/** "r/fragrance" for a Reddit thread, the site otherwise. */
+function sourceName(source: ReviewSource): string {
+  if (source.kind === "reddit") {
+    const community = /reddit\.com\/r\/([A-Za-z0-9_]{2,40})\//.exec(source.url)?.[1];
+    if (community) return `r/${community}`;
+  }
+  return source.site;
+}
+
+function ratingText(source: ReviewSource): string | null {
+  if (source.rating === null) return null;
+  const count = source.ratingCount ? ` (${source.ratingCount.toLocaleString("pt-BR")} avaliações)` : "";
+  return `nota ${rating.format(source.rating)}${count}`;
+}
+
+interface Lookup {
   claims: Map<string, ReviewClaim>;
   videos: Map<string, ReviewVideo>;
-  onOpen?: (videoId: string) => void;
-}) {
-  // One moment per video, the first two shown: the rest is counted, so a point stays one line.
+  pages: Map<string, ReviewSource>;
+  onOpen?: (sourceId: string) => void;
+}
+
+function SourceLink(props: { claim: ReviewClaim } & Lookup) {
+  const { claim } = props;
+  if (claim.videoId) {
+    const video = props.videos.get(claim.videoId);
+    const marks = ["vídeo", ...flags(video)];
+    const videoId = claim.videoId;
+    return (
+      <li>
+        <a
+          className="small"
+          href={youtubeAt(videoId, claim.atSeconds)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => props.onOpen?.(videoId)}
+          title={claim.quote ?? claim.summary}
+        >
+          {video?.channel ?? "YouTube"} aos {clock(claim.atSeconds)}
+          <Icon name="external" size={14} stroke={1.5} />
+        </a>
+        <span className="small muted"> · {marks.join(", ")}</span>
+      </li>
+    );
+  }
+  const page = claim.sourceId ? props.pages.get(claim.sourceId) : undefined;
+  if (!page) return null;
+  return (
+    <li>
+      <a
+        className="small"
+        href={page.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => props.onOpen?.(page.id)}
+        title={claim.quote ?? claim.summary}
+      >
+        {sourceName(page)}
+        <Icon name="external" size={14} stroke={1.5} />
+      </a>
+      <span className="small muted"> · {KIND[page.kind]}</span>
+    </li>
+  );
+}
+
+function Sources(props: { ids: string[] } & Lookup) {
+  // One link per source, the first two shown: the rest is counted, so a point stays one line.
   const seen = new Set<string>();
   const each = props.ids.flatMap((id) => {
     const claim = props.claims.get(id);
-    if (!claim || seen.has(claim.videoId)) return [];
-    seen.add(claim.videoId);
+    if (!claim || seen.has(claimSource(claim))) return [];
+    seen.add(claimSource(claim));
     return [claim];
   });
   if (!each.length) return null;
@@ -44,49 +117,80 @@ function Sources(props: {
   const more = each.length - shown.length;
   return (
     <ul className="review-sources">
-      {shown.map((claim) => {
-        const video = props.videos.get(claim.videoId);
-        const marks = flags(video);
-        return (
-          <li key={claim.id}>
-            <a
-              className="small"
-              href={youtubeAt(claim.videoId, claim.atSeconds)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => props.onOpen?.(claim.videoId)}
-              title={claim.quote ?? claim.summary}
-            >
-              {video?.channel ?? "YouTube"} aos {clock(claim.atSeconds)}
-              <Icon name="external" size={14} stroke={1.5} />
-            </a>
-            {marks.length ? <span className="small muted"> · {marks.join(", ")}</span> : null}
-          </li>
-        );
-      })}
+      {shown.map((claim) => (
+        <SourceLink key={claim.id} claim={claim} {...props} />
+      ))}
       {more > 0 ? (
         <li className="small muted">
-          +{more} {more === 1 ? "vídeo" : "vídeos"}
+          +{more} {more === 1 ? "fonte" : "fontes"}
         </li>
       ) : null}
     </ul>
   );
 }
 
-function moreLabel(synthesis: NonNullable<ReviewRunState["synthesis"]>, videos: number): string {
+/** "3 vídeos, 2 conversas do Reddit e 1 loja". */
+export function sourcesSummary(run: Pick<ReviewRunState, "videos" | "sources">): string {
+  const count = (kind: ReviewSource["kind"]) => (run.sources ?? []).filter((s) => s.kind === kind).length;
+  const plural = (n: number, one: string, many: string) => (n ? `${n} ${n === 1 ? one : many}` : null);
+  const parts = [
+    plural(run.videos.length, "vídeo no YouTube", "vídeos no YouTube"),
+    plural(count("reddit"), "conversa no Reddit", "conversas no Reddit"),
+    plural(count("blog"), "blog", "blogs"),
+    plural(count("store"), "loja", "lojas"),
+  ].filter((part): part is string => Boolean(part));
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} e ${parts.at(-1)}` : (parts[0] ?? "nenhuma fonte");
+}
+
+function moreLabel(synthesis: NonNullable<ReviewRunState["synthesis"]>, sources: number): string {
   const parts = [
     synthesis.cautions.length ? `${synthesis.cautions.length} cuidados` : null,
     synthesis.products.length ? `${synthesis.products.length} modelos citados` : null,
-    `${videos} vídeos`,
+    `${sources} ${sources === 1 ? "fonte" : "fontes"}`,
   ];
   return parts.filter(Boolean).join(", ");
 }
 
-export function ReviewSynthesisCard(props: { run: ReviewRunState; onOpen?: (videoId: string) => void }) {
+/** While it reads: one line per place (YouTube, Reddit, blogs and stores), each with its own count. */
+function Progress(props: { run: ReviewRunState }) {
   const { run } = props;
-  const claims = new Map(run.claims.map((claim) => [claim.id, claim]));
-  const videos = new Map(run.videos.map((video) => [video.id, video]));
-  const sources = (ids: string[]) => <Sources ids={ids} claims={claims} videos={videos} onOpen={props.onOpen} />;
+  const stages = run.stages ?? [];
+  const running = run.status === "running";
+  if (!stages.length || !running)
+    return (
+      <p className="small muted" role={running ? "status" : undefined}>
+        {run.message}
+      </p>
+    );
+  return (
+    <ul className="review-stages" role="status" aria-label="Leitura dos reviews">
+      {stages.map((stage) => (
+        <li key={stage.kind} className="small" data-status={stage.status}>
+          <span className="review-stage-mark" aria-hidden="true">
+            {stage.status === "running" ? null : <Icon name={stage.status === "done" ? "check" : "minus"} size={14} />}
+          </span>
+          <span className={stage.status === "running" ? undefined : "muted"}>{stage.message}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function ReviewSynthesisCard(props: {
+  run: ReviewRunState;
+  /** A source was opened: a video id, or a page id (w1, w2…). */
+  onOpen?: (sourceId: string) => void;
+}) {
+  const { run } = props;
+  const pagesRead = run.sources ?? [];
+  const lookup: Lookup = {
+    claims: new Map(run.claims.map((claim) => [claim.id, claim])),
+    videos: new Map(run.videos.map((video) => [video.id, video])),
+    pages: new Map(pagesRead.map((page) => [page.id, page])),
+    onOpen: props.onOpen,
+  };
+  const sources = (ids: string[]) => <Sources ids={ids} {...lookup} />;
+  const total = run.videos.length + pagesRead.length;
   const synthesis = run.status === "completed" ? run.synthesis : null;
   const others = synthesis
     ? [
@@ -103,13 +207,11 @@ export function ReviewSynthesisCard(props: { run: ReviewRunState; onOpen?: (vide
     <section className="card reviews" aria-label={`Reviews de ${run.query}`}>
       <h3>O que os reviews dizem: “{run.query}”</h3>
       {!synthesis ? (
-        <p className="small muted" role={run.status === "running" ? "status" : undefined}>
-          {run.message}
-        </p>
+        <Progress run={run} />
       ) : (
         <>
           <p className="small muted">
-            Leitura da tone de {run.videos.length} reviews no YouTube. Abra o vídeo no momento citado para conferir.
+            Leitura da tone de {sourcesSummary(run)}. Abra a fonte para conferir; o vídeo abre no momento citado.
           </p>
           {synthesis.matters.length ? (
             <div className="review-group">
@@ -161,7 +263,7 @@ export function ReviewSynthesisCard(props: { run: ReviewRunState; onOpen?: (vide
           ) : null}
           <details className="review-more">
             <summary className="small">
-              Ver mais: {moreLabel(synthesis, run.videos.length)}
+              Ver mais: {moreLabel(synthesis, total)}
               <Icon name="down" size={16} />
             </summary>
             {others.length ? (
@@ -204,7 +306,7 @@ export function ReviewSynthesisCard(props: { run: ReviewRunState; onOpen?: (vide
               </div>
             ) : null}
             <div className="review-group">
-              <h4>Vídeos lidos</h4>
+              <h4>Fontes lidas</h4>
               <ul className="review-videos">
                 {run.videos.map((video) => (
                   <li key={video.id} className="small">
@@ -220,12 +322,29 @@ export function ReviewSynthesisCard(props: { run: ReviewRunState; onOpen?: (vide
                       {" "}
                       ·{" "}
                       {[
+                        "vídeo",
                         video.channel,
                         video.publishedAt ? year.format(new Date(video.publishedAt)) : null,
                         ...flags(video),
                       ]
                         .filter(Boolean)
                         .join(" · ")}
+                    </span>
+                  </li>
+                ))}
+                {pagesRead.map((page) => (
+                  <li key={page.id} className="small">
+                    <a
+                      href={page.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => props.onOpen?.(page.id)}
+                    >
+                      {page.title}
+                    </a>
+                    <span className="muted">
+                      {" "}
+                      · {[KIND[page.kind], sourceName(page), ratingText(page)].filter(Boolean).join(" · ")}
                     </span>
                   </li>
                 ))}

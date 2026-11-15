@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@1b690dac45f8 (packages/genui-react/src/Icon.tsx). Não edite aqui.
+// Gerado de toneorg/server@dcdd90760914 (packages/genui-react/src/Icon.tsx). Não edite aqui.
 // Hand-drawn line icons (components/icon.md): 24 grid, round caps, currentColor.
 const PATHS = {
   send: "M12 19V5M5 12l7-7 7 7",
@@ -20,6 +20,8 @@ const PATHS = {
   history: "M12 7v5l3 2M3.5 12a8.5 8.5 0 102.5-6M3 4v4h4",
   thumbDown: "M10 15v4a2 2 0 002 2l4-8V4H7.5a2 2 0 00-2 1.6l-1.4 7A2 2 0 006 15h4zM16 4h3v9h-3",
   thumbUp: "M10 9V5a2 2 0 012-2l4 8v9H7.5a2 2 0 01-2-1.6l-1.4-7A2 2 0 016 9h4zM16 20h3v-9h-3",
+  alert: "M12 4l9 16H3zM12 10v4M12 17h.01",
+  info: "M12 3a9 9 0 100 18 9 9 0 000-18zM12 11v6M12 7.5h.01",
   memory:
     "M12 3a6 6 0 016 6c0 2.4-1.4 3.8-2.5 5-.7.8-1.5 1.6-1.5 3H10c0-1.4-.8-2.2-1.5-3C7.4 12.8 6 11.4 6 9a6 6 0 016-6zM10 20h4",
 } as const;

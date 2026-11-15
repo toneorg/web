@@ -1,9 +1,11 @@
-// Gerado de toneorg/server@1b690dac45f8 (packages/shared/src/reviews.ts). Não edite aqui.
-// Síntese de reviews: YouTube reviews read for the person (spec 2026-11-03,
-// ADR 0002). A run is started by the agent and ends apart from the turn, so
-// the research results never wait for the videos. Channel names, titles and
-// quotes come from third parties: the surfaces show them as plain text and
-// the chat model never reads them, only the summaries the server validated.
+// Gerado de toneorg/server@dcdd90760914 (packages/shared/src/reviews.ts). Não edite aqui.
+// Síntese de reviews: reviews read for the person (spec 2026-11-03, ADR 0002):
+// YouTube videos by their captions and, since 15/11/2026, pages of the web
+// (blogs, Reddit threads, buyers' reviews in stores) found on Google. A run is
+// started by the agent or the button and ends apart from the turn, so the
+// research results never wait for it. Channel names, titles, sites and quotes
+// come from third parties: the surfaces show them as plain text and the chat
+// model never reads them, only the summaries the server validated.
 import * as z from "zod";
 
 export const REVIEW_LIMITS = { category: 6, product: 3 } as const;
@@ -23,7 +25,9 @@ export const ReviewRequest = z.object({
     .max(120)
     .nullable()
     .optional()
-    .describe("A mesma busca em inglês, usada só se faltarem reviews em português."),
+    .describe(
+      "A mesma busca em inglês, usada só se faltarem reviews em português (sem ela, a busca em português é repetida em inglês).",
+    ),
   brand: z.string().max(60).nullable().optional().describe("Com subject product: a marca."),
   model: z.string().max(80).nullable().optional().describe("Com subject product: o modelo, sem a marca."),
 });
@@ -47,20 +51,59 @@ export const ReviewVideo = z.object({
 });
 export type ReviewVideo = z.infer<typeof ReviewVideo>;
 
+/** A page of the web read for a run: w1, w2… in the order it was read. */
+const SOURCE_ID = /^w\d{1,2}$/;
+
+/** blog: blogs and review sites; reddit: a thread; store: a store's product page with buyers' reviews. */
+export const ReviewSourceKind = z.enum(["blog", "reddit", "store"]);
+export type ReviewSourceKind = z.infer<typeof ReviewSourceKind>;
+
+export const ReviewSource = z.object({
+  id: z.string().regex(SOURCE_ID),
+  kind: ReviewSourceKind,
+  title: z.string().max(200),
+  /** The host, without "www.". */
+  site: z.string().max(80),
+  /** HTTPS only; it opens only when the person clicks it. */
+  url: z
+    .string()
+    .max(500)
+    .refine((url) => url.startsWith("https://"), "só https"),
+  /** The rating Google shows for the page (stores and review sites), 0 to 5. */
+  rating: z.number().min(0).max(5).nullable().default(null),
+  ratingCount: z.number().int().min(0).nullable().default(null),
+});
+export type ReviewSource = z.infer<typeof ReviewSource>;
+
 export const ReviewClaim = z.object({
   id: z.string().min(1).max(40),
-  videoId: z.string().regex(VIDEO_ID),
+  /** A claim comes from a video (videoId) or from a page of the web (sourceId), never both. */
+  videoId: z.string().regex(VIDEO_ID).optional(),
+  sourceId: z.string().regex(SOURCE_ID).optional(),
   /** The product it is about, as brand and model; null when it is about the category. */
   product: z.string().max(100).nullable(),
   topic: z.string().min(1).max(60),
   polarity: z.enum(["positive", "negative", "neutral"]),
   /** What was said, in a sentence written by tone's extractor. */
   summary: z.string().min(1).max(240),
-  /** The words of the video, shown to the person only. */
+  /** The words of the video or page, shown to the person only. */
   quote: z.string().max(240).nullable(),
+  /** The moment of the video; 0 for a page. */
   atSeconds: z.number().int().min(0),
 });
 export type ReviewClaim = z.infer<typeof ReviewClaim>;
+
+/** The video or page a claim came from. */
+export const claimSource = (claim: Pick<ReviewClaim, "videoId" | "sourceId">): string =>
+  claim.videoId ?? claim.sourceId ?? "";
+
+/** One line of the progress: what is being read now, as fixed server text. */
+export const ReviewStage = z.object({
+  kind: z.enum(["video", "reddit", "web"]),
+  status: z.enum(["running", "done", "empty", "failed"]),
+  message: z.string().max(120),
+});
+export type ReviewStage = z.infer<typeof ReviewStage>;
 
 const ClaimIds = z.array(z.string().min(1).max(40)).min(1).max(12);
 export const ReviewSynthesis = z.object({
@@ -104,7 +147,11 @@ export const ReviewRunState = z.object({
   done: z.number().int().min(0),
   total: z.number().int().min(0),
   videos: z.array(ReviewVideo).max(12),
+  /** Pages of the web read (runs before 15/11/2026 have none). */
+  sources: z.array(ReviewSource).max(12).default([]),
   claims: z.array(ReviewClaim).max(200),
+  /** YouTube, Reddit and the rest of the web, each with its own progress. */
+  stages: z.array(ReviewStage).max(4).default([]),
   synthesis: ReviewSynthesis.nullable(),
   startedAt: z.string(),
   updatedAt: z.string(),
@@ -143,6 +190,83 @@ export function productKey(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+const STOP = new Set(["a", "o", "e", "de", "da", "do", "das", "dos", "com", "para", "the", "of", "for", "and", "by"]);
+const UNITS = /^(ml|l|g|kg|mg|oz|cm|mm|m|gb|tb|mb|w|v|mah|pol|un|unidades?)$/;
+const MEASURE = /^\d+([.,]\d+)?(ml|l|g|kg|mg|oz|cm|mm|m|gb|tb|mb|w|v|mah)$/;
+/** Words that name the kind of product or its concentration, not which product it is. */
+const GENERIC = new Set([
+  "eau",
+  "toilette",
+  "parfum",
+  "edt",
+  "edp",
+  "perfume",
+  "colonia",
+  "cologne",
+  "masculino",
+  "feminino",
+  "unissex",
+  "men",
+  "women",
+  "homme",
+  "femme",
+]);
+
+/** The concentration of a fragrance named in a text, to tell Sauvage EDT from Sauvage EDP. */
+export function concentration(text: string): string | null {
+  const key = ` ${productKey(text)} `;
+  if (/ (edt|eau de toilette) /.test(key)) return "edt";
+  if (/ (edp|eau de parfum) /.test(key)) return "edp";
+  if (/ elixir /.test(key)) return "elixir";
+  if (/ (parfum|extrait) /.test(key)) return "parfum";
+  return null;
+}
+
+/** The words of a product name that tell it apart: no stop words, measures ("100 ml"), kind or concentration. */
+export function distinctiveWords(name: string): string[] {
+  const words = productKey(name).split(" ").filter(Boolean);
+  return words.filter((word, index) => {
+    if (STOP.has(word) || GENERIC.has(word) || UNITS.test(word) || MEASURE.test(word)) return false;
+    // "100" in "100 ml" is a measure; "15" in "iPhone 15" is the model.
+    if (/^\d+([.,]\d+)?$/.test(word) && UNITS.test(words[index + 1] ?? "")) return false;
+    return true;
+  });
+}
+
+/**
+ * Whether a claim is about the product asked for. With brand and model, every word of both
+ * (`sameProduct`). Without them, as when the person taps "O que dizem os reviews" on a listing
+ * title: half of the distinctive words of the query and every model number in it, and never
+ * another concentration of the same fragrance.
+ */
+export function aboutProduct(
+  claimProduct: string | null,
+  query: string,
+  brand?: string | null,
+  model?: string | null,
+): boolean {
+  if (!claimProduct) return false;
+  if (model) return sameProduct(claimProduct, brand ?? null, model);
+  const wanted = concentration(query);
+  const said = concentration(claimProduct);
+  if (wanted && said && wanted !== said) return false;
+  const words = new Set(productKey(claimProduct).split(" "));
+  const distinctive = distinctiveWords(query);
+  if (!distinctive.length) return true;
+  if (!distinctive.filter((word) => /^\d+$/.test(word)).every((word) => words.has(word))) return false;
+  const hits = distinctive.filter((word) => words.has(word)).length;
+  return hits >= Math.ceil(distinctive.length / 2);
+}
+
+/** The words to search for: the name without measures, which only narrow what reviews talk about. */
+export function reviewSearchQuery(query: string): string {
+  const cleaned = query
+    .replace(/\b\d+([.,]\d+)?\s?(ml|l|g|kg|mg|oz|gb|tb|mah)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length >= 2 ? cleaned : query;
 }
 
 /** A claim is about the product when every word of the brand and of the model is in its product. */

@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@1b690dac45f8 (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@dcdd90760914 (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -519,6 +519,186 @@ const ComparisonMatrix: ComponentRenderer<{
         </div>
       ) : null}
     </section>
+  );
+};
+
+/** A row of a Comparison: short text per option, or a 1-to-5 scale between two ends (a ScaleRow). */
+interface CompareRowData {
+  label: string;
+  values?: unknown;
+  best?: number | null;
+  left?: string;
+  right?: string;
+}
+
+const isScale = (row: CompareRowData) => typeof row.left === "string" && typeof row.right === "string";
+
+/** Five pips, the filled ones the value; the number and the ends are written for the screen reader. */
+function ScaleValue(props: { value: number | null; left: string; right: string }) {
+  if (props.value === null) return <>—</>;
+  const value = Math.max(1, Math.min(5, Math.round(props.value)));
+  return (
+    <span className="scale">
+      <span className="scale-pips" aria-hidden="true">
+        {[1, 2, 3, 4, 5].map((pip) => (
+          <span key={pip} className={pip <= value ? "pip on" : "pip"} />
+        ))}
+      </span>
+      <span className="visually-hidden">
+        {value} de 5, de {props.left} a {props.right}
+      </span>
+    </span>
+  );
+}
+
+function CompareValue(props: { row: CompareRowData; index: number }) {
+  const { row, index } = props;
+  if (isScale(row)) {
+    const values = Array.isArray(row.values) ? row.values : [];
+    return <ScaleValue value={num(values[index])} left={text(row.left)} right={text(row.right)} />;
+  }
+  const best = num(row.best) === index;
+  return (
+    <>
+      {strings(row.values)[index] ?? "—"}
+      {best ? <span className="visually-hidden"> (destaque nesta linha)</span> : null}
+    </>
+  );
+}
+
+function CompareLabel(props: { row: CompareRowData }) {
+  const { row } = props;
+  return (
+    <>
+      {text(row.label)}
+      {isScale(row) ? (
+        <span className="scale-ends">
+          {text(row.left)} → {text(row.right)}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Options that are not store products (the lines of a perfume, kinds of screen), side by side.
+ * A real table where there is room; one card per option on a narrow screen (genui.css).
+ */
+const Comparison: ComponentRenderer<{
+  title: string;
+  options: unknown;
+  rows: unknown;
+  choose?: unknown;
+  recommended?: number | null;
+  note?: string | null;
+}> = ({ props }) => {
+  const options = strings(props.options);
+  const rows = listOf<CompareRowData>(props.rows);
+  const choose = strings(props.choose);
+  const recommended = num(props.recommended);
+  const bestClass = (row: CompareRowData, i: number) =>
+    [i === recommended ? "recommended" : "", !isScale(row) && num(row.best) === i ? "best" : ""].join(" ").trim() ||
+    undefined;
+  return (
+    <section className="card comparison" aria-label={text(props.title) || "Comparação"}>
+      <h3>{text(props.title)}</h3>
+      <div className="compare compare-wide">
+        <table>
+          <caption className="visually-hidden">{text(props.title)}</caption>
+          <thead>
+            <tr>
+              <th scope="col">
+                <span className="visually-hidden">Atributo</span>
+              </th>
+              {options.map((option, i) => (
+                <th key={option} scope="col" className={i === recommended ? "recommended" : undefined}>
+                  <span className="compare-title">{option}</span>
+                  {i === recommended ? <span className="tag">Para você</span> : null}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={text(row.label)}>
+                <th scope="row">
+                  <CompareLabel row={row} />
+                </th>
+                {options.map((option, i) => (
+                  <td key={option} className={bestClass(row, i)}>
+                    <CompareValue row={row} index={i} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {choose.length ? (
+              <tr className="choose">
+                <th scope="row">Quando escolher</th>
+                {options.map((option, i) => (
+                  <td key={option} className={i === recommended ? "recommended" : undefined}>
+                    {choose[i] ?? "—"}
+                  </td>
+                ))}
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+      <ul className="compare-cards" aria-label={text(props.title)}>
+        {options.map((option, i) => (
+          <li key={option} className={i === recommended ? "compare-card recommended" : "compare-card"}>
+            <div className="compare-card-head">
+              <h4>{option}</h4>
+              {i === recommended ? <span className="tag">Para você</span> : null}
+            </div>
+            <dl>
+              {rows.map((row) => (
+                <div key={text(row.label)} className={bestClass(row, i)}>
+                  <dt>
+                    <CompareLabel row={row} />
+                  </dt>
+                  <dd>
+                    <CompareValue row={row} index={i} />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            {choose[i] ? (
+              <p className="compare-choose">
+                <span className="compare-choose-label">Quando escolher</span> {choose[i]}
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {props.note ? <p className="small muted spaced">{props.note}</p> : null}
+    </section>
+  );
+};
+
+const CALLOUT = {
+  atencao: { icon: "alert", label: "Atenção" },
+  dica: { icon: "memory", label: "Dica" },
+  nota: { icon: "info", label: "Nota" },
+} as const;
+
+/** A short warning or tip that must not be missed. The kind is written, not only drawn. */
+const Callout: ComponentRenderer<{ kind: keyof typeof CALLOUT; title: string; text: string }> = ({ props }) => {
+  const kind = CALLOUT[props.kind] ? props.kind : "nota";
+  const look = CALLOUT[kind];
+  return (
+    <aside className={`callout ${kind}`} aria-label={`${look.label}: ${text(props.title)}`}>
+      <span className="callout-mark" aria-hidden="true">
+        <Icon name={look.icon} size={20} />
+      </span>
+      <div>
+        <p className="callout-title">
+          <span className="visually-hidden">{look.label}: </span>
+          {text(props.title)}
+        </p>
+        <p className="small">{text(props.text)}</p>
+      </div>
+    </aside>
   );
 };
 
@@ -1179,6 +1359,8 @@ export const RENDERERS: Record<string, ComponentRenderer<never>> = {
   ChoiceOption: Part,
   QuizStep: Part,
   MatrixRow: Part,
+  CompareRow: Part,
+  ScaleRow: Part,
   Tradeoff: Part,
   Evidence: Part,
   ReviewTheme: Part,
@@ -1198,6 +1380,8 @@ export const RENDERERS: Record<string, ComponentRenderer<never>> = {
   VisualChoice,
   ProductQuiz,
   ComparisonMatrix,
+  Comparison,
+  Callout,
   TradeoffSliders,
   ProductVerdict,
   EvidenceCards,
