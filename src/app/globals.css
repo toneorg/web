@@ -23,6 +23,17 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* On a computer screen everything read too big, with thin margins, at the
+     browser's 100%: the size that looked right was the browser at 75%. Type,
+     spacing, radii and widths all come in rem, so a 75% root gives that size at
+     100%, still relative to the person's own font setting. Phones and tablets
+     (touch, or narrower than 64rem) keep the full size and the 44px targets. */
+  @media (min-width: 64rem) and (pointer: fine) {
+    html {
+      font-size: 75%;
+    }
+  }
+
   /* The neutral bench everywhere: the site and the app are black and white. */
   body {
     background: var(--color-paper);
