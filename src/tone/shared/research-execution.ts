@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@31777966ea48 (packages/shared/src/research-execution.ts). Não edite aqui.
+// Gerado de toneorg/server@e3abdbdc9a06 (packages/shared/src/research-execution.ts). Não edite aqui.
 import * as z from "zod";
 import { evaluateRequirements, ResearchIntent, ResearchResult } from "./research";
 
@@ -103,11 +103,16 @@ export const ResearchExecution = z
         context.addIssue({ code: "custom", path: [field], message: "Ofertas repetidas." });
       for (const id of ids) {
         const offer = execution.result.offers.find((entry) => entry.id === id);
-        if (
-          offer &&
-          evaluateRequirements(execution.result.intent.requirements, offer.assessments).classification !==
-            classification
-        )
+        const requirements = offer
+          ? evaluateRequirements(execution.result.intent.requirements, offer.assessments).classification
+          : undefined;
+        const actual =
+          offer?.identityMatch === "conflict"
+            ? "does_not_meet_required"
+            : offer?.identityMatch === "unconfirmed" && requirements === "meets_required"
+              ? "unknown"
+              : requirements;
+        if (offer && actual !== classification)
           context.addIssue({
             code: "custom",
             path: [field],

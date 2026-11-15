@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@31777966ea48 (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/server@e3abdbdc9a06 (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
 // in the panel and on the web: observed in the index (T04) or read in the store's
 // search by a remote browser of tone (T16). Rows from the retired extension (T14)
@@ -38,7 +38,7 @@ const STORE_NAMES: Record<string, string> = {
 export const storeLabel = (store: string) => STORE_NAMES[store] ?? store;
 
 // legado: só leitura de linhas antigas ("extension")
-export type PriceProvenance = "index" | "extension" | "remote" | "direct";
+export type PriceProvenance = "index" | "amazon" | "local" | "extension" | "remote" | "direct";
 
 /** The kinds of reading behind the offers of a run, from its evidence. */
 export function provenanceOf(run: Pick<ResearchRunState, "result">): Set<PriceProvenance> {
@@ -46,12 +46,16 @@ export function provenanceOf(run: Pick<ResearchRunState, "result">): Set<PricePr
   for (const entry of run.result?.evidence ?? [])
     kinds.add(
       entry.level === "index"
-        ? "index"
-        : entry.source.startsWith("remote:")
-          ? "remote"
-          : entry.source.startsWith("direct:")
-            ? "direct"
-            : "extension",
+        ? entry.source.startsWith("dataforseo.")
+          ? "amazon"
+          : "index"
+        : entry.source.startsWith("local:")
+          ? "local"
+          : entry.source.startsWith("remote:")
+            ? "remote"
+            : entry.source.startsWith("direct:")
+              ? "direct"
+              : "extension",
     );
   return kinds;
 }
@@ -62,7 +66,11 @@ export function provenanceNote(run: Pick<ResearchRunState, "result">): string {
     ? ` em ${new Date(run.result.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
     : "";
   if (kinds.size > 1)
-    return "Os preços vêm de leituras diferentes: na página da loja e no índice do Google Shopping; a loja pode ter outro valor, frete ou estoque.";
+    return "Os preços vêm de fontes diferentes, indicadas em cada evidência; a loja pode ter outro valor, frete ou estoque.";
+  if (kinds.has("amazon"))
+    return `Preços anunciados na listagem da Amazon Brasil, obtidos por um provedor de dados${when}; vendedor, variante, frete e estoque podem precisar de confirmação.`;
+  if (kinds.has("local"))
+    return `Preços lidos por uma integração própria da tone na loja, sem login${when}; frete e estoque do seu endereço podem mudar.`;
   if (kinds.has("direct"))
     return `Preços lidos na busca da própria loja pela tone, sem login${when}; frete e estoque do seu endereço podem mudar.`;
   if (kinds.has("remote"))

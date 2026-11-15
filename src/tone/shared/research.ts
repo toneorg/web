@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@31777966ea48 (packages/shared/src/research.ts). Não edite aqui.
+// Gerado de toneorg/server@e3abdbdc9a06 (packages/shared/src/research.ts). Não edite aqui.
 import * as z from "zod";
 import { isCheckoutUrl } from "./safety";
 
@@ -102,6 +102,22 @@ export type RequirementAssessment = z.infer<typeof RequirementAssessment>;
 
 const ObservedFieldEvidence = z.array(Identifier).min(1).refine(uniqueIdentifiers, "Evidências repetidas.");
 
+export const ListingSignals = z.object({
+  evidenceIds: ObservedFieldEvidence,
+  promotionTexts: z.array(Text).max(8).default([]),
+  rating: z
+    .object({ value: z.number().nonnegative(), best: z.number().positive(), count: z.number().int().nonnegative() })
+    .refine((value) => value.value <= value.best, "Nota fora da escala.")
+    .optional(),
+  reportedPurchases: z
+    .object({
+      value: z.number().int().nonnegative(),
+      period: z.literal("month"),
+      precision: z.enum(["exact", "lower_bound", "unknown"]),
+    })
+    .optional(),
+});
+
 export const ResearchOffer = z.object({
   id: Identifier,
   variantId: Identifier,
@@ -116,6 +132,9 @@ export const ResearchOffer = z.object({
   finalTotal: z.object({ amount: Amount, currency: Currency, evidenceIds: ObservedFieldEvidence }).nullable(),
   /** T07: the product image the source listed, for a visual comparison on the server; not shown to the person. */
   imageUrl: ResearchUrl.nullable().optional(),
+  /** Algorithmic compatibility with the query, not confirmation of stock or authenticity. */
+  identityMatch: z.enum(["compatible", "unconfirmed", "conflict"]).optional(),
+  listingSignals: ListingSignals.optional(),
   assessments: z
     .array(RequirementAssessment)
     .refine((values) => uniqueIdentifiers(values.map((entry) => entry.requirementId)), "Avaliações repetidas."),
@@ -203,6 +222,14 @@ export const ResearchResult = z
             issue(path, "A evidência precisa sustentar este campo da própria oferta.");
         });
       }
+      offer.listingSignals?.evidenceIds.forEach((id) => {
+        const entry = evidence.get(id);
+        if (!entry || entry.subjectId !== offer.id || !entry.supportedFields.includes("listingSignals"))
+          issue(
+            ["offers", index, "listingSignals", "evidenceIds"],
+            "A evidência precisa sustentar os sinais desta oferta.",
+          );
+      });
       const allowedSubjects = new Set([offer.id, offer.variantId, variant?.productId]);
       offer.assessments.forEach((assessment, assessmentIndex) => {
         const path = ["offers", index, "assessments", assessmentIndex];
