@@ -28,7 +28,7 @@ export function ErrorScreen(props: { error: Error & { digest?: string }; retry: 
           href="/conversas"
           className="press inline-flex min-h-11 items-center rounded-full bg-surface px-5 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
-          Voltar para as conversas
+          Voltar para a conversa
         </Link>
       </div>
     </main>

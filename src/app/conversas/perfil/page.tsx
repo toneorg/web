@@ -1,7 +1,6 @@
-import { Profile } from "@/conversas/Profile";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Meu perfil", robots: { index: false, follow: false } };
-
+// The profile is no longer a page (15/11/2026): the avatar opens it over the chat.
 export default function PerfilPage() {
-  return <Profile />;
+  redirect("/conversas?perfil=1");
 }

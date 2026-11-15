@@ -9,6 +9,9 @@ const site = "https://tone.example";
 describe("BFF da web (T06)", () => {
   it("só repassa caminhos conhecidos da API, sem travessia", () => {
     expect(upstreamPath(["sessions", "abc-123", "transcript"])).toBe("/api/sessions/abc-123/transcript");
+    expect(upstreamPath(["chat", "sessions"])).toBe("/api/chat/sessions");
+    expect(upstreamPath(["messages", "search"])).toBe("/api/messages/search");
+    expect(upstreamPath(["messages"])).toBeNull();
     expect(upstreamPath(["agent", "turn"])).toBe("/api/agent/turn");
     expect(upstreamPath(["auth", "web", "login"])).toBe("/api/auth/web/login");
     expect(upstreamPath(["auth", "web", "invite"])).toBe("/api/auth/web/invite");

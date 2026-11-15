@@ -213,7 +213,7 @@ export function PanelPage(props: { watchId: string }) {
   };
 
   return (
-    <Shell me={me} current="conversas">
+    <Shell me={me}>
       {state === "loading" ? (
         <p className="py-2 text-small text-graphite">Carregando o painel…</p>
       ) : state === "missing" ? (

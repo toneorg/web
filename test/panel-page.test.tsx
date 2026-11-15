@@ -95,6 +95,6 @@ describe("página do painel", () => {
 
   it("panel conversation back link points to the panel", () => {
     expect(backLink("w1", "iPhone 18")).toEqual({ href: "/paineis/w1", label: "← iPhone 18" });
-    expect(backLink(null, null)).toEqual({ href: "/conversas", label: "← Conversas" });
+    expect(backLink(null, null)).toEqual({ href: "/conversas", label: "← Conversa" });
   });
 });
