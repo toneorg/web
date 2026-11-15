@@ -18,6 +18,9 @@ export type WebEvent =
   | "sign_in_failed"
   | "invite_checked"
   | "invite_link_opened"
+  | "password_reset_requested"
+  | "password_reset_link_opened"
+  | "password_reset_completed"
   | "signed_out"
   // Onboarding
   | "onboarding_started"

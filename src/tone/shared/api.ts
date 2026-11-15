@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@273a8eb1426c (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/server@5416ddda8f97 (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";
@@ -147,6 +147,20 @@ export type InviteInfo = z.infer<typeof InviteInfo>;
 /** Entering an existing account, on either surface. */
 export const SignInRequest = z.object({ email: z.email().max(200), password: z.string().min(1).max(200) });
 export type SignInRequest = z.infer<typeof SignInRequest>;
+
+/** A forgotten password: the account's e-mail. The answer is the same whether the account exists or not. */
+export const PasswordForgotRequest = z.object({ email: z.email().max(200) });
+export type PasswordForgotRequest = z.infer<typeof PasswordForgotRequest>;
+
+/** The reset e-mail's link carries a one-time token; checking it shows which e-mail it resets. */
+export const PasswordResetToken = z.string().min(20).max(200);
+export const PasswordResetCheck = z.object({ token: PasswordResetToken });
+export const PasswordResetInfo = z.object({ email: z.string() });
+export type PasswordResetInfo = z.infer<typeof PasswordResetInfo>;
+
+/** Spends the token, sets the new password and signs the browser in. */
+export const PasswordResetRequest = z.object({ token: PasswordResetToken, password: Password });
+export type PasswordResetRequest = z.infer<typeof PasswordResetRequest>;
 
 export const AccessSession = z.object({
   id: z.string(),

@@ -1,7 +1,8 @@
 "use client";
 // T05/T06: entering the web with the account's e-mail and password. The first
 // time, the invite code (made for one e-mail) opens the onboarding: name,
-// password and the consent.
+// password and the consent. A forgotten password goes by e-mail: the link
+// (?redefinir=TOKEN) opens the step that sets a new one.
 import { type FormEvent, useEffect, useState } from "react";
 import { type InviteInfo, PASSWORD_MIN } from "@/tone/shared";
 import { track } from "./analytics";
@@ -26,13 +27,36 @@ const CONSENT = [
   "Eu nunca pago nem finalizo uma compra. Você vê, corrige e apaga tudo em “Você”, quando quiser.",
 ];
 
-type Step = "signin" | "invite" | "onboarding";
+type Step = "signin" | "invite" | "onboarding" | "forgot" | "sent" | "reset";
+
+const TITLES: Record<Step, string> = {
+  signin: "Entrar na tone",
+  invite: "Entrar com o convite",
+  onboarding: "Criar a sua conta",
+  forgot: "Esqueci minha senha",
+  sent: "Confira seu e-mail",
+  reset: "Crie uma senha nova",
+};
 
 /** The invite code in the address (?convite=CODE), from the invite e-mail's link; empty when there is none. */
 function linkedInvite(): string {
   if (typeof window === "undefined") return "";
   const code = new URLSearchParams(window.location.search).get("convite")?.trim().toUpperCase() ?? "";
   return /^[A-Z0-9]{4,16}$/.test(code) ? code : "";
+}
+
+/** The reset token in the address (?redefinir=TOKEN), from the reset e-mail's link; empty when there is none. */
+export function linkedReset(): string {
+  if (typeof window === "undefined") return "";
+  const token = new URLSearchParams(window.location.search).get("redefinir")?.trim() ?? "";
+  return /^[\w-]{20,200}$/.test(token) ? token : "";
+}
+
+/** Takes the reset token out of the address once it is spent or refused, so a reload or a shared link carries nothing. */
+function dropResetFromAddress() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("redefinir");
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 export function SignIn(props: {
@@ -44,7 +68,10 @@ export function SignIn(props: {
   // The invite e-mail links here with ?convite=CODE. SignIn renders only after the client checked the
   // session, never on the server, so reading the address while starting the state is safe.
   const [linked] = useState(linkedInvite);
-  const [step, setStep] = useState<Step>(linked ? "invite" : "signin");
+  const [resetToken] = useState(linkedReset);
+  const [step, setStep] = useState<Step>(resetToken ? "reset" : linked ? "invite" : "signin");
+  /** The e-mail the reset link is for; null while the link is being checked. */
+  const [resetEmail, setResetEmail] = useState<string | null>(null);
   const [code, setCode] = useState(linked);
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [name, setName] = useState("");
@@ -56,10 +83,36 @@ export function SignIn(props: {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (linked) track("invite_link_opened");
-  }, [linked]);
+    if (linked && !resetToken) track("invite_link_opened");
+  }, [linked, resetToken]);
+
+  // The reset link: check it before showing the form, so an expired one says so at once.
+  useEffect(() => {
+    if (!resetToken) return;
+    track("password_reset_link_opened");
+    let live = true;
+    api
+      .checkReset(resetToken)
+      .then((info) => {
+        if (live) setResetEmail(info.email);
+      })
+      .catch((failure: unknown) => {
+        if (!live) return;
+        dropResetFromAddress();
+        setStep("forgot");
+        setError(
+          failure instanceof ApiError && failure.status !== 403
+            ? failure.message
+            : "Este link expirou ou já foi usado. Digite seu e-mail para receber um novo.",
+        );
+      });
+    return () => {
+      live = false;
+    };
+  }, [resetToken]);
 
   const go = (next: Step) => {
+    if (resetToken && next !== "reset") dropResetFromAddress();
     setStep(next);
     setError(null);
     setPassword("");
@@ -94,7 +147,7 @@ export function SignIn(props: {
       className={props.embedded ? "flex w-full flex-col gap-6" : "mx-auto flex w-full max-w-md flex-col gap-6 px-5 py-12"}
     >
       <Title id="entrar-titulo" className="display-sm font-display text-ink">
-        {step === "signin" ? "Entrar na tone" : step === "invite" ? "Entrar com o convite" : invite?.existing ? "Defina a sua senha" : "Criar a sua conta"}
+        {step === "onboarding" && invite?.existing ? "Defina a sua senha" : TITLES[step]}
       </Title>
       {props.expired && step === "signin" ? (
         <p role="status" className="text-small text-ink">
@@ -124,7 +177,112 @@ export function SignIn(props: {
           <button type="submit" className={primary} disabled={busy || !email.includes("@") || !password}>
             {busy ? "Entrando…" : "Entrar"}
           </button>
+          <button type="button" className={quiet} onClick={() => go("forgot")}>
+            Esqueci minha senha
+          </button>
         </form>
+      ) : step === "forgot" ? (
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(event) =>
+            void run(event, async () => {
+              await api.forgotPassword(email.trim());
+              track("password_reset_requested");
+              go("sent");
+            })
+          }
+        >
+          <p id="esqueci-dica" className="text-ui text-graphite">
+            Enviamos um link para o e-mail da sua conta. Por ele, você cria uma senha nova.
+          </p>
+          <label htmlFor="email-esqueci" className={label}>
+            E-mail
+          </label>
+          <input
+            id="email-esqueci"
+            type="email"
+            className={field}
+            autoComplete="email"
+            value={email}
+            aria-invalid={invalid}
+            aria-describedby={described ?? "esqueci-dica"}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          <button type="submit" className={primary} disabled={busy || !email.includes("@")}>
+            {busy ? "Enviando…" : "Enviar link"}
+          </button>
+        </form>
+      ) : step === "sent" ? (
+        <div className="flex flex-col gap-3">
+          <p role="status" className="text-body text-ink">
+            Se existir uma conta com <span className="font-medium break-all">{email.trim()}</span>, o link para criar uma
+            senha nova chega em instantes.
+          </p>
+          <p className="text-ui text-graphite">O link vale por uma hora e serve uma vez. Se não chegar, confira o spam.</p>
+          <button type="button" className={quiet} onClick={() => go("forgot")}>
+            Enviar de novo
+          </button>
+        </div>
+      ) : step === "reset" ? (
+        resetEmail === null ? (
+          <p role="status" className="text-ui text-graphite">
+            Conferindo o link…
+          </p>
+        ) : (
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(event) =>
+              void run(event, async () => {
+                if (password.length < PASSWORD_MIN) throw new Error(`A senha precisa de ${PASSWORD_MIN} caracteres ou mais.`);
+                if (password !== confirmation) throw new Error("As duas senhas não são iguais.");
+                await api.resetPassword(resetToken, password);
+                track("password_reset_completed");
+                track("sign_in_completed", { method: "password_reset" });
+                dropResetFromAddress();
+                props.onDone();
+              })
+            }
+          >
+            <p className="text-ui text-graphite">
+              Para a conta <span className="font-medium text-ink break-all">{resetEmail}</span>. Ao salvar, quem estiver
+              com a conta aberta em outro aparelho precisa entrar de novo.
+            </p>
+            {/* Lets the password manager save the new password under the right account. */}
+            <input type="email" className="sr-only" autoComplete="username" value={resetEmail} readOnly tabIndex={-1} aria-hidden />
+            <label htmlFor="senha-nova" className={label}>
+              Senha nova
+            </label>
+            <input
+              id="senha-nova"
+              type="password"
+              className={field}
+              autoComplete="new-password"
+              value={password}
+              aria-invalid={invalid}
+              aria-describedby={described ? `${described} senha-nova-dica` : "senha-nova-dica"}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+            <p id="senha-nova-dica" className="text-small text-graphite">
+              {PASSWORD_MIN} caracteres ou mais.
+            </p>
+            <label htmlFor="repetir-senha-nova" className={label}>
+              Repita a senha
+            </label>
+            <input
+              id="repetir-senha-nova"
+              type="password"
+              className={field}
+              autoComplete="new-password"
+              value={confirmation}
+              aria-invalid={invalid}
+              aria-describedby={described}
+              onChange={(event) => setConfirmation(event.target.value)}
+            />
+            <button type="submit" className={primary} disabled={busy || !password || !confirmation}>
+              {busy ? "Salvando…" : "Salvar senha e entrar"}
+            </button>
+          </form>
+        )
       ) : step === "invite" ? (
         <form
           className="flex flex-col gap-3"
@@ -237,9 +395,9 @@ export function SignIn(props: {
         <button type="button" className={quiet} onClick={() => go("invite")}>
           Tenho um convite
         </button>
-      ) : (
+      ) : step === "reset" && resetEmail === null ? null : (
         <button type="button" className={quiet} onClick={() => go(step === "onboarding" ? "invite" : "signin")}>
-          {step === "onboarding" ? "Voltar" : "Já tenho conta"}
+          {step === "onboarding" ? "Voltar" : step === "invite" ? "Já tenho conta" : "Voltar para entrar"}
         </button>
       )}
       {step === "signin" ? (

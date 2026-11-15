@@ -12,6 +12,7 @@ import {
   CONSENT_VERSION,
   InviteInfo,
   Me,
+  PasswordResetInfo,
   Memory,
   ProductMedia,
   Purchase,
@@ -171,6 +172,12 @@ export const api = {
   /** The onboarding: spends the invite and sets the password. */
   redeem: (code: string, name: string, email: string, password: string) =>
     send("auth/web/redeem", "POST", { code, name, email, password, consent: true, consentVersion: CONSENT_VERSION }),
+  /** A forgotten password: the server e-mails a one-time link when the account exists, and answers the same either way. */
+  forgotPassword: (email: string) => send("auth/web/forgot", "POST", { email }),
+  /** The reset link opened: the e-mail it resets, or a 403 when it expired or was used. */
+  checkReset: async (token: string) => PasswordResetInfo.parse(await send("auth/web/reset/check", "POST", { token })),
+  /** Spends the reset link: the new password, every other session out, this browser in. */
+  resetPassword: (token: string, password: string) => send("auth/web/reset", "POST", { token, password }),
   logout,
   /** Gmail and Agenda: whether each is connected and what was read from it. Read fresh, it changes on sync. */
   connections: async () => ConnectionStatus.array().parse(await call("connections")),

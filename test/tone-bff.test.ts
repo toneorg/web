@@ -12,6 +12,10 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["agent", "turn"])).toBe("/api/agent/turn");
     expect(upstreamPath(["auth", "web", "login"])).toBe("/api/auth/web/login");
     expect(upstreamPath(["auth", "web", "invite"])).toBe("/api/auth/web/invite");
+    // A forgotten password: the request, the link's check and the new password.
+    expect(upstreamPath(["auth", "web", "forgot"])).toBe("/api/auth/web/forgot");
+    expect(upstreamPath(["auth", "web", "reset", "check"])).toBe("/api/auth/web/reset/check");
+    expect(upstreamPath(["auth", "web", "reset"])).toBe("/api/auth/web/reset");
     expect(upstreamPath(["auth", "web", "link"])).toBeNull();
     expect(upstreamPath(["auth", "link-codes"])).toBeNull();
     expect(upstreamPath(["auth", "redeem"])).toBeNull();

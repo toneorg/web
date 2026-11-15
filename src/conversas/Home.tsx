@@ -18,7 +18,7 @@ import { track } from "./analytics";
 import { ApiError, api, peek } from "./api";
 import { Onboarding, onboardingSeen } from "./Onboarding";
 import { Shell } from "./Shell";
-import { SignIn } from "./SignIn";
+import { linkedReset, SignIn } from "./SignIn";
 import { dismissWelcome, startWelcomeChat, WELCOME_MEMORY_FLOOR, welcomeDismissed } from "./welcome";
 
 const primary =
@@ -84,7 +84,12 @@ export function Home() {
   const [tour, setTour] = useState<"first_visit" | "reopened" | null>(null);
   useEffect(() => {
     let live = true;
-    Promise.all([api.me(), api.sessions(), api.situations().catch(() => []), api.memories().catch(() => null)])
+    // The reset e-mail's link opens the new-password step even where the account is already open: the person
+    // may be signed in here and still have forgotten the password, and saving it ends this session anyway.
+    const loading = linkedReset()
+      ? Promise.reject(new ApiError("Link de nova senha", 401))
+      : Promise.all([api.me(), api.sessions(), api.situations().catch(() => []), api.memories().catch(() => null)]);
+    loading
       .then(([person, list, occasions, memories]) => {
         if (!live) return;
         setMe(person);
