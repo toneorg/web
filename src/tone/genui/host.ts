@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@999764a87b95 (packages/genui-react/src/host.ts). Não edite aqui.
+// Gerado de toneorg/server@273a8eb1426c (packages/genui-react/src/host.ts). Não edite aqui.
 // What a drawn component may ask of the panel. The model writes only data; the
 // panel decides what each button does, and checks every address before using it.
 import {

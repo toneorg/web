@@ -1,4 +1,4 @@
-// Foto de referência na conversa: o limite de 4 MB, o envio, a leitura e a exclusão.
+// Foto de referência na conversa: o limite de tamanho, o envio, a leitura e a exclusão.
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PhotoSummary } from "../src/tone/shared";
@@ -88,12 +88,12 @@ describe("foto de referência", () => {
   it("falls back to the raw file when the browser cannot decode it, under the guard", async () => {
     const small = fileOf(1000);
     expect(await prepareFile(small)).toBe(small);
-    await expect(prepareFile(fileOf(MAX_RAW_BYTES + 1024))).rejects.toThrow("A foto passa de 4 MB.");
+    await expect(prepareFile(fileOf(MAX_RAW_BYTES + 1024))).rejects.toThrow("A foto é grande demais para enviar.");
   });
 
   it("refuses a photo still too big after preparing, before uploading", async () => {
-    await expect(attachPhoto("s1", fileOf(10), noop, () => Promise.reject(new Error("A foto passa de 4 MB.")))).rejects.toThrow(
-      "A foto passa de 4 MB.",
+    await expect(attachPhoto("s1", fileOf(10), noop, () => Promise.reject(new Error("A foto é grande demais para enviar.")))).rejects.toThrow(
+      "A foto é grande demais para enviar.",
     );
     expect(uploadPhoto).not.toHaveBeenCalled();
   });

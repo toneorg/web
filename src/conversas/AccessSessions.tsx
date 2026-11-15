@@ -112,7 +112,10 @@ export function AccessSessions(props: { ask: (pending: Ask) => void }) {
     <div className="flex flex-col gap-2">
       <SessionsStatus
         failed={failed && !listed}
-        onRetry={() => setRound((value) => value + 1)}
+        onRetry={() => {
+          setFailed(false);
+          setRound((value) => value + 1);
+        }}
       />
       {listed ? (
         <h3 className="mt-2 text-ui text-ink">Onde você está conectado</h3>

@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@999764a87b95 (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/server@273a8eb1426c (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -227,11 +227,10 @@ const money = (amount: number, currency: string) =>
 const DEAL = /promo|desconto|oferta|barat|baixar|queda|liquida|black friday/i;
 const isIndexStore = (store: string) => INDEX_STORES.some((domain) => store === domain || store.endsWith(`.${domain}`));
 
-/** What still needs the person, and what each source can really do for this rule. */
 /**
+ * What still needs the person, and what each source can really do for this rule.
  * `remoteStores`: the stores this server reads by a remote browser (Pomerado), which also run in
- * the daily check, on the store's own search. Without them, a store outside the index needs the
- * extension and the open browser.
+ * the daily check, on the store's own search. A store in neither list is not checked daily.
  */
 export function reviewWatch(rule: WatchRule, remoteStores: readonly string[] = []): WatchReview {
   const clarifications: z.infer<typeof WatchClarification>[] = (rule.questions ?? []).map((q) => ({
@@ -267,12 +266,10 @@ export function reviewWatch(rule: WatchRule, remoteStores: readonly string[] = [
   if (rule.storeScope.kind === "explicit" && covered.length === 0 && remote.length === 0)
     clarifications.push({
       field: "storeScope",
-      question: `${uncovered.join(", ")} só pode ser lida pela extensão com o navegador aberto. Para acompanhar todo dia sem o navegador, escolha também uma loja que eu consigo observar: ${INDEX_STORES.join(", ")}.`,
+      question: `${uncovered.join(", ")} não entra na verificação diária: só o índice e o navegador remoto leem lojas. Para acompanhar todo dia, escolha também uma loja que eu consigo observar: ${INDEX_STORES.join(", ")}.`,
     });
   else if (uncovered.length)
-    notes.push(
-      `${uncovered.join(", ")} não entra na verificação diária: só pode ser lida pela extensão, com o navegador aberto.`,
-    );
+    notes.push(`${uncovered.join(", ")} não entra na verificação diária: só o índice e o navegador remoto leem lojas.`);
   if (rule.storeScope.kind === "unrestricted")
     notes.push(
       `Pesquisa livre cobre as lojas que o índice observa: ${INDEX_STORES.join(", ")}. Não é a internet toda.`,
@@ -309,13 +306,6 @@ export function reviewWatch(rule: WatchRule, remoteStores: readonly string[] = [
             },
           ]
         : []),
-      {
-        id: "local_extension",
-        label: "Leitura na loja pela extensão",
-        autonomous: false,
-        stores: uncovered,
-        note: "Só quando você está com o Chrome e a extensão abertos; não roda na verificação diária.",
-      },
     ],
     notes,
   };

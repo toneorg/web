@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@999764a87b95 (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
+// Gerado de toneorg/server@273a8eb1426c (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
 // T09: the draft of a watch, for the person to review and confirm. The model
 // writes only the id; the rule comes from the server and every button is the
 // panel's: it saves the person's edits and confirms the version on screen.
@@ -313,7 +313,7 @@ export function WatchDraftView(props: {
             .map((source) => (
               <li key={source.id}>
                 <strong>{source.label}</strong>
-                {source.autonomous ? ", roda sem o navegador" : ", só com o navegador aberto"}: {source.note}
+                {source.autonomous ? ", roda sem o navegador" : ", não roda na verificação diária"}: {source.note}
               </li>
             ))}
           {watch.review.notes.map((note) => (

@@ -1,8 +1,8 @@
-// Gerado de toneorg/server@999764a87b95 (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/server@273a8eb1426c (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
-// in the panel and on the web: observed in the index (T04), read in the store
-// by the extension in the person's Chrome (T14), or read in the store's search
-// by a remote browser of tone (T16).
+// in the panel and on the web: observed in the index (T04) or read in the store's
+// search by a remote browser of tone (T16). Rows from the retired extension (T14)
+// still read as "extension".
 import type { ResearchRunState } from "./progress";
 
 const STORE_NAMES: Record<string, string> = {

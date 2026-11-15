@@ -5,6 +5,7 @@
 // photos/:id/image into a local blob: it never gets a public address. The person keeps, rewrites
 // or ignores each attribute the tone read before the search.
 import { useCallback, useEffect, useRef, useState } from "react";
+import { color } from "@toneorg/design";
 import { CameraIcon } from "@/components/icons";
 import type { PhotoCorrection, PhotoSummary } from "@/tone/shared";
 import { api } from "./api";
@@ -15,7 +16,7 @@ export const MAX_SIDE = 2048;
 export const MAX_BASE64_LENGTH = 4_000_000;
 /** When the browser cannot re-encode (HEIC, no canvas), the file goes as it is, up to this size. */
 export const MAX_RAW_BYTES = Math.floor((MAX_BASE64_LENGTH * 3) / 4);
-export const TOO_BIG = "A foto passa de 4 MB.";
+export const TOO_BIG = "A foto é grande demais para enviar.";
 
 /** The size to draw a photo at: the same shape, the longest side no more than `max`, never enlarged. */
 export function fitWithin(width: number, height: number, max = MAX_SIDE): { width: number; height: number } {
@@ -35,13 +36,22 @@ export async function prepareFile(file: File): Promise<Blob> {
   let encoded: Blob | null = null;
   try {
     const bitmap = await createImageBitmap(file);
-    const size = fitWithin(bitmap.width, bitmap.height);
-    const canvas = document.createElement("canvas");
-    canvas.width = size.width;
-    canvas.height = size.height;
-    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, size.width, size.height);
-    bitmap.close();
-    encoded = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    try {
+      const size = fitWithin(bitmap.width, bitmap.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = size.width;
+      canvas.height = size.height;
+      const context = canvas.getContext("2d");
+      // No canvas: throw, so the raw file goes instead of a blank upload.
+      if (!context) throw new Error("canvas indisponível");
+      // JPEG has no alpha: a transparent PNG or WebP would turn black without a white base.
+      context.fillStyle = color.white;
+      context.fillRect(0, 0, size.width, size.height);
+      context.drawImage(bitmap, 0, 0, size.width, size.height);
+      encoded = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    } finally {
+      bitmap.close();
+    }
   } catch {
     encoded = null;
   }
