@@ -8,6 +8,7 @@ import { type Me, type Memory, memoryLabel, OWNED_CATEGORY } from "@/tone/shared
 import { ToneWordmark } from "@/components/tone-logo";
 import { track } from "./analytics";
 import { ApiError, api, peek } from "./api";
+import { AccessSessions } from "./AccessSessions";
 import { Connections } from "./Connections";
 import { Sheet, useSheetClose } from "./Sheet";
 import { Shell } from "./Shell";
@@ -322,6 +323,7 @@ export function Profile() {
               Apagar o que sei sobre você
             </button>
           </div>
+          <AccessSessions ask={setPending} />
           <div className="mt-2 flex flex-wrap gap-2">
             <Link href="/conversas?tour=1" className={`${quiet} inline-flex items-center`}>
               Rever o tour

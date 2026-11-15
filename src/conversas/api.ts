@@ -184,6 +184,9 @@ export const api = {
   /** What was read from the person's order e-mails. */
   purchases: async () => Purchase.array().parse(await call("purchases")),
   accessSessions: async () => AccessSession.array().parse(await call("auth/sessions")),
+  endAccessSession: async (id: string) => {
+    await send(`auth/sessions/${encodeURIComponent(id)}`, "DELETE");
+  },
   memories: () => cached("memories", async () => Memory.array().parse(await call("memories"))),
   deleteMemory: (id: string) => send(`memories/${id}`, "DELETE"),
   /** A hypothesis of the tone, confirmed by the person from the list. */
