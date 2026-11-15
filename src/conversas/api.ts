@@ -15,6 +15,7 @@ import {
   Memory,
   ProductMedia,
   Purchase,
+  PhotoSummary,
   PurchaseSituation,
   ResearchRunState,
   ReviewRunState,
@@ -25,6 +26,7 @@ import {
   Watch,
   WatchResult,
   type ClickWhere,
+  type PhotoCorrection,
   type DecisionOp,
   type SituationOutcomeVerdict,
   type TurnInput,
@@ -148,6 +150,16 @@ async function logout() {
   }
 }
 
+/** The file as base64, without the "data:…;base64," prefix: the server reads the type from the bytes. */
+export function fileToBase64(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new ApiError("Não consegui ler o arquivo da foto.", 0));
+    reader.onload = () => resolve(String(reader.result).split(",", 2)[1] ?? "");
+    reader.readAsDataURL(file);
+  });
+}
+
 export const api = {
   me,
   /** Every entry after the first: e-mail and password. */
@@ -232,6 +244,21 @@ export const api = {
   /** "O que dizem os reviews": starts the synthesis of the picked product; it is then read with reviewRuns. */
   reviews: async (sessionId: string, productTitle: string) =>
     ReviewRunState.parse(await send("reviews", "POST", { sessionId, productTitle })),
+  /** A reference photo of the conversation: the file goes as base64 (the BFF repeats up to 6 MB). */
+  uploadPhoto: async (sessionId: string, file: File) =>
+    PhotoSummary.parse(await send("photos", "POST", { sessionId, data: await fileToBase64(file) })),
+  /** The vision model reads the photo; takes a few seconds and spends budget. */
+  interpretPhoto: async (id: string) => PhotoSummary.parse(await send(`photos/${id}/interpret`, "POST", {})),
+  /** What the person kept, rewrote or ignored from the reading, before the search. */
+  correctPhoto: async (id: string, correction: PhotoCorrection) =>
+    PhotoSummary.parse(await send(`photos/${id}/correction`, "PATCH", correction)),
+  deletePhoto: (id: string) => send(`photos/${id}`, "DELETE"),
+  /** The photo itself, for a local blob: it never gets a public address. */
+  photoImage: async (id: string) => {
+    const response = await fetch(`/api/tone/photos/${id}/image`, { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) throw new ApiError("A foto não está mais disponível.", response.status);
+    return response.blob();
+  },
 };
 
 /**

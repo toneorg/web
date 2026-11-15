@@ -46,3 +46,12 @@ export function PlusIcon({ className, bold }: IconProps) {
     </svg>
   );
 }
+
+export function CameraIcon({ className, bold }: IconProps) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className={className} {...stroke(bold)}>
+      <path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.3-2h6l1.3 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z" />
+      <circle cx="12" cy="13" r="3.25" />
+    </svg>
+  );
+}

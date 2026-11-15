@@ -42,6 +42,7 @@ export type WebEvent =
   | "product_videos_failed"
   | "product_reviews_requested"
   | "product_reviews_failed"
+  | "photo_search_started"
   | "situation_outcome_recorded"
   // Decision board and watches drawn by the agent
   | "decision_changed"

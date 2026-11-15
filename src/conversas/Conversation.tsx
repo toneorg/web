@@ -10,6 +10,7 @@ import {
   MEDIA_COMPONENT,
   type Me,
   memoryLabel,
+  type PhotoSummary,
   type PickedProduct,
   ProductMedia,
   type ResearchRunState,
@@ -27,6 +28,7 @@ import { savedFrameCode } from "./frames";
 import { Program, type ProgramHost, STORE_HOSTS, WATCHES_CHANGED } from "./Program";
 import { WatchReadings } from "./WatchReadings";
 import { takePicked } from "./picked-handoff";
+import { PhotoPicker, PhotoReference, usePhoto } from "./PhotoReference";
 import { ResearchRun } from "./ResearchRun";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
@@ -67,6 +69,7 @@ export function backLink(panelId: string | null, panelTitle: string | null): { h
 
 export function Conversation(props: { sessionId: string; first?: string | null; panelId?: string | null }) {
   const { sessionId } = props;
+  const photo = usePhoto(sessionId);
   const panelId = props.panelId ?? null;
   // A panel's conversation names its panel in the way back.
   const [panelTitle, setPanelTitle] = useState<string | null>(null);
@@ -313,6 +316,18 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
     [busy, items, picked, runTurn, state],
   );
 
+  /** "Buscar parecidos": the message goes with the photo, so the agent can compare it with the candidates. */
+  const searchWithPhoto = useCallback(
+    async (reference: PhotoSummary) => {
+      if (busy || state !== "ready") return;
+      const text = "Busque produtos parecidos com a minha foto de referência.";
+      setItems((list) => [...list, { id: uid(), kind: "user", text }]);
+      track("photo_search_started", { attributes: reference.correction?.attributes.length ?? 0 });
+      await runTurn({ type: "message", text, photoId: reference.id, ...(picked ? { product: picked } : {}) });
+    },
+    [busy, picked, runTurn, state],
+  );
+
   /** "See videos of this product": no model involved, the server searches TikTok and saves the result. */
   const showMedia = async () => {
     if (!picked || busy) return;
@@ -553,7 +568,9 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
             }}
           />
         ) : null}
+        <PhotoReference state={photo} busy={busy} onSearch={(reference) => void searchWithPhoto(reference)} />
         <div className="flex items-end gap-2">
+          <PhotoPicker disabled={busy || state !== "ready" || photo.working !== null} onFile={(file) => void photo.pick(file)} />
           <label htmlFor="mensagem" className="sr-only">
             Mensagem
           </label>
