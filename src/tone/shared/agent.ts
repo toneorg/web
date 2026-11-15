@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@5416ddda8f97 (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@31777966ea48 (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -100,5 +100,7 @@ export const TranscriptItem = z.discriminatedUnion("kind", [
     rating: AnswerRatingValue.optional(),
   }),
   z.object({ kind: z.literal("ui"), component: UiComponent }),
+  /** What the server said instead of an answer (the model failed, the balance ran out). */
+  z.object({ kind: z.literal("notice"), text: z.string() }),
 ]);
 export type TranscriptItem = z.infer<typeof TranscriptItem>;

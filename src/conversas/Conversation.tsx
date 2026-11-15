@@ -16,6 +16,7 @@ import {
   type ResearchRunState,
   reduceResearchRuns,
   type ReviewRunState,
+  type TranscriptItem,
   type TurnInput,
   type Watch,
   type WatchResult,
@@ -33,11 +34,12 @@ import { ResearchRun } from "./ResearchRun";
 import { Shell } from "./Shell";
 import { SignIn } from "./SignIn";
 
-type Item =
+export type Item =
   | { id: string; kind: "user"; text: string }
   /** `turn` is the turn it answers, for the thumbs under it; the greeting has none. */
   | { id: string; kind: "assistant"; text: string; streaming?: boolean; turn?: number; rating?: AnswerRatingValue | null }
-  | { id: string; kind: "notice"; text: string; error?: boolean }
+  /** `saved`: read back from the conversation, so it is not announced again as it loads. */
+  | { id: string; kind: "notice"; text: string; error?: boolean; saved?: boolean }
   /** A frame saved in an old conversation, drawn by the same components as an answer. */
   | { id: string; kind: "frame"; code: string }
   | { id: string; kind: "research"; run: ResearchRunState }
@@ -59,6 +61,19 @@ function placeReviews(list: Item[], runs: ReviewRunState[]): Item[] {
 
 let counter = 0;
 const uid = () => `w${Date.now().toString(36)}${(++counter).toString(36)}`;
+
+/** One line of a saved conversation as this page draws it. */
+export function itemsOf(item: TranscriptItem): Item[] {
+  if (item.kind === "user") return [{ id: uid(), kind: "user", text: item.text }];
+  // Why a message was left without an answer (the model failed, the balance ran out).
+  if (item.kind === "notice") return [{ id: uid(), kind: "notice", error: true, saved: true, text: item.text }];
+  if (item.kind === "assistant")
+    return [{ id: uid(), kind: "assistant", text: item.text, turn: item.turn, rating: item.rating ?? null }];
+  const media = item.component.name === MEDIA_COMPONENT ? ProductMedia.safeParse(item.component.props) : null;
+  if (media?.success) return [{ id: uid(), kind: "media", media: media.data }];
+  const code = savedFrameCode(item.component);
+  return code ? [{ id: uid(), kind: "frame", code }] : [];
+}
 
 /** Where "←" goes: a panel's conversation goes back to its panel, any other to the list. */
 export function backLink(panelId: string | null, panelTitle: string | null): { href: string; label: string } {
@@ -117,15 +132,7 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
         if (!live) return;
         setMe(person);
         setItems([
-        ...transcript.flatMap((item): Item[] => {
-          if (item.kind === "user") return [{ id: uid(), kind: "user", text: item.text }];
-          if (item.kind === "assistant")
-            return [{ id: uid(), kind: "assistant", text: item.text, turn: item.turn, rating: item.rating ?? null }];
-          const media = item.component.name === MEDIA_COMPONENT ? ProductMedia.safeParse(item.component.props) : null;
-          if (media?.success) return [{ id: uid(), kind: "media", media: media.data }];
-          const code = savedFrameCode(item.component);
-          return code ? [{ id: uid(), kind: "frame", code }] : [];
-        }),
+        ...transcript.flatMap(itemsOf),
         ...runs.map((run): Item => ({ id: `run-${run.runId}`, kind: "research", run })),
         ...reviews.map((run): Item => ({ id: `reviews-${run.runId}`, kind: "reviews", run })),
         ]);
@@ -508,7 +515,7 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
             );
           if (item.kind === "notice")
             return (
-              <p key={item.id} role={item.error ? "alert" : undefined} className={`text-small ${item.error ? "font-medium text-alert" : "text-graphite"}`}>
+              <p key={item.id} role={item.error && !item.saved ? "alert" : undefined} className={`text-small ${item.error ? "font-medium text-alert" : "text-graphite"}`}>
                 {item.text}
               </p>
             );
