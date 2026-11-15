@@ -7,7 +7,8 @@ vi.mock("../src/conversas/api", () => ({
   ApiError: class ApiError extends Error {},
   api: { accessSessions: vi.fn(), endAccessSession: vi.fn() },
 }));
-const { AccessSessionsView, withoutSession, endSession } = await import("../src/conversas/AccessSessions");
+const { AccessSessionsView, SessionsStatus, withoutSession, endSession } =
+  await import("../src/conversas/AccessSessions");
 const { api } = await import("../src/conversas/api");
 
 const session = (overrides: Partial<AccessSession> = {}): AccessSession => ({
@@ -24,7 +25,6 @@ describe("AccessSessionsView", () => {
     const html = renderToStaticMarkup(
       <AccessSessionsView
         sessions={[session({ id: "a", current: true }), session({ id: "b" })]}
-        busy={null}
         onEnd={() => undefined}
       />,
     );
@@ -33,12 +33,21 @@ describe("AccessSessionsView", () => {
     expect(html).toContain("10/11/2026");
   });
 
-  it("disables the button of the session being ended", () => {
+  it("says the load failed, with a retry", () => {
     const html = renderToStaticMarkup(
-      <AccessSessionsView sessions={[session({ id: "b" })]} busy="b" onEnd={() => undefined} />,
+      <SessionsStatus failed onRetry={() => undefined} />,
     );
-    expect(html).toContain('disabled=""');
-    expect(html).toContain("Encerrando…");
+    expect(html).toContain('role="status"');
+    expect(html).toContain("Não deu para carregar as sessões.");
+    expect(html).toContain("Tentar de novo");
+  });
+
+  it("keeps the status region mounted and empty without a failure", () => {
+    const html = renderToStaticMarkup(
+      <SessionsStatus failed={false} onRetry={() => undefined} />,
+    );
+    expect(html).toContain('role="status"');
+    expect(html).not.toContain("Tentar de novo");
   });
 });
 
