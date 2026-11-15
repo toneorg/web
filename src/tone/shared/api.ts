@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@e706eb19be12 (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/server@8c1d971872ff (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";
@@ -77,6 +77,14 @@ export const ConnectionStatus = z.object({
 });
 export type ConnectionStatus = z.infer<typeof ConnectionStatus>;
 
+/** A store the @ picker offers, and how tone reads it: its catalog copy, its own search, the Amazon listing, a re-read page or prices announced in shopping results. */
+export const StoreOption = z.object({
+  domain: z.string(),
+  label: z.string(),
+  reading: z.enum(["catalog", "direct", "amazon", "unblock", "index"]),
+});
+export type StoreOption = z.infer<typeof StoreOption>;
+
 export const Me = z.object({
   id: z.string(),
   name: z.string(),
@@ -87,6 +95,8 @@ export const Me = z.object({
   budget: BudgetStatement.optional(),
   /** T16: the stores the server can search with a remote browser, for the web; empty when not configured. */
   remoteStores: z.array(z.string()).optional(),
+  /** The stores the @ picker lists. */
+  stores: z.array(StoreOption).optional(),
 });
 export type Me = z.infer<typeof Me>;
 

@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@e706eb19be12 (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@8c1d971872ff (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -40,6 +40,8 @@ export const TurnInput = z.discriminatedUnion("type", [
     intent: z.enum(["watch"]).optional(),
     /** With intent "watch": the draft the message answers, so the agent adjusts it instead of drafting another. */
     watchId: z.string().min(1).max(60).optional(),
+    /** Stores picked with @ in the composer: this message's searches look only there. */
+    stores: z.array(z.string().min(3).max(80)).max(10).optional(),
   }),
   z.object({
     type: z.literal("ui_answer"),

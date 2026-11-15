@@ -40,6 +40,7 @@ export type WebEvent =
   | "conversation_reply_selected"
   | "product_picked"
   | "product_unpicked"
+  | "store_mentioned"
   | "product_videos_requested"
   | "review_link_opened"
   | "product_videos_failed"

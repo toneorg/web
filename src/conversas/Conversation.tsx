@@ -32,6 +32,8 @@ import { takePicked } from "./picked-handoff";
 import { PhotoPicker, PhotoReference, usePhoto } from "./PhotoReference";
 import { ResearchRun } from "./ResearchRun";
 import { Shell } from "./Shell";
+import { ChosenStores, StoreOptions } from "./StoreMention";
+import { filterStores, type Mention, mentionAt, pickStore } from "./store-mention";
 import { SignIn } from "./SignIn";
 
 export type Item =
@@ -103,6 +105,11 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
   const [items, setItems] = useState<Item[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "expired" | "error">("loading");
   const [draft, setDraft] = useState("");
+  // "@" opens the store list; the stores picked limit this message's search.
+  const [chosenStores, setChosenStores] = useState<string[]>([]);
+  const [mention, setMention] = useState<Mention | null>(null);
+  const [activeStore, setActiveStore] = useState(0);
+  const box = useRef<HTMLTextAreaElement>(null);
   // The frame (account and panels) draws at once from the last copy while the conversation loads.
   const [me, setMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
   const [busy, setBusy] = useState(false);
@@ -312,15 +319,26 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
       const trimmed = text.trim();
       if (!trimmed || busy || state !== "ready") return;
       setDraft("");
-      setItems((list) => [...list, { id: uid(), kind: "user", text: trimmed }]);
+      const stores = chosenStores;
+      setChosenStores([]);
+      setMention(null);
+      const where = stores.length
+        ? ` · em ${stores.map((domain) => me?.stores?.find((store) => store.domain === domain)?.label ?? domain).join(", ")}`
+        : "";
+      setItems((list) => [...list, { id: uid(), kind: "user", text: trimmed + where }]);
       track("conversation_message_sent", {
         with_product: Boolean(picked),
         length: trimmed.length,
         turn: items.filter((item) => item.kind === "user").length + 1,
       });
-      await runTurn({ type: "message", text: trimmed, ...(picked ? { product: picked } : {}) });
+      await runTurn({
+        type: "message",
+        text: trimmed,
+        ...(picked ? { product: picked } : {}),
+        ...(stores.length ? { stores } : {}),
+      });
     },
-    [busy, items, picked, runTurn, state],
+    [busy, items, picked, runTurn, state, chosenStores, me],
   );
 
   /** "Buscar parecidos": the message goes with the photo, so the agent can compare it with the candidates. */
@@ -431,7 +449,37 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
     controller.current?.abort();
     setItems((list) => [...list, { id: uid(), kind: "notice", text: "Parei. O que já chegou continua aqui." }]);
   };
+  const storeOptions = mention ? filterStores(me?.stores ?? [], mention.query, chosenStores) : [];
+  const listOpen = storeOptions.length > 0;
+  const pickMentioned = (domain: string) => {
+    if (!mention) return;
+    const next = pickStore(draft, mention);
+    setDraft(next.text);
+    setChosenStores((list) => (list.includes(domain) ? list : [...list, domain]));
+    setMention(null);
+    track("store_mentioned", { store: domain });
+    requestAnimationFrame(() => box.current?.setSelectionRange(next.caret, next.caret));
+  };
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (listOpen) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        setActiveStore((index) => (index + step + storeOptions.length) % storeOptions.length);
+        return;
+      }
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault();
+        const option = storeOptions[activeStore] ?? storeOptions[0];
+        if (option) pickMentioned(option.domain);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMention(null);
+        return;
+      }
+    }
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void send(draft);
@@ -576,24 +624,57 @@ export function Conversation(props: { sessionId: string; first?: string | null; 
           />
         ) : null}
         <PhotoReference state={photo} busy={busy} onSearch={(reference) => void searchWithPhoto(reference)} />
+        <ChosenStores
+          stores={me?.stores ?? []}
+          chosen={chosenStores}
+          onRemove={(domain) => setChosenStores((list) => list.filter((entry) => entry !== domain))}
+        />
         <div className="flex items-end gap-2">
           <PhotoPicker disabled={busy || state !== "ready" || photo.working !== null} onFile={(file) => void photo.pick(file)} />
           <label htmlFor="mensagem" className="sr-only">
             Mensagem
           </label>
+          <div className="relative flex flex-1">
+          {listOpen ? (
+            <StoreOptions
+              id="lojas-mencao"
+              options={storeOptions}
+              active={Math.min(activeStore, storeOptions.length - 1)}
+              onActive={setActiveStore}
+              onPick={(option) => pickMentioned(option.domain)}
+            />
+          ) : null}
           <textarea
             id="mensagem"
+            ref={box}
             rows={2}
             maxLength={4000}
             value={draft}
-            placeholder={state === "loading" ? "Carregando a conversa… já dá para escrever" : "O que você procura?"}
-            onChange={(event) => setDraft(event.target.value)}
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={listOpen}
+            aria-controls="lojas-mencao"
+            aria-activedescendant={listOpen ? `lojas-mencao-${Math.min(activeStore, storeOptions.length - 1)}` : undefined}
+            placeholder={
+              state === "loading"
+                ? "Carregando a conversa… já dá para escrever"
+                : me?.stores?.length
+                  ? "O que você procura? Digite @ para escolher lojas"
+                  : "O que você procura?"
+            }
+            onChange={(event) => {
+              setDraft(event.target.value);
+              setMention(me?.stores?.length ? mentionAt(event.target.value, event.target.selectionStart) : null);
+              setActiveStore(0);
+            }}
+            onBlur={() => setMention(null)}
             onKeyDown={onKeyDown}
             // Writing while the conversation loads: on 04/11/2026 a slow load left this box locked
             // and the tester clicked it again and again. Only sending waits for "ready".
             disabled={state !== "ready" && state !== "loading"}
             className="min-h-13 flex-1 resize-none rounded-input bg-surface px-4 py-3 text-body text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-ink"
           />
+          </div>
           <button
             type="button"
             disabled={busy || state !== "ready" || !draft.trim()}
