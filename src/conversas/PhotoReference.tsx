@@ -1,6 +1,7 @@
 "use client";
-// The person's reference photo in the conversation. The file goes to the server as base64 (the
-// BFF repeats up to 6 MB, the server takes 4 MB of photo), the image comes back from
+// The person's reference photo in the conversation. The photo is shrunk and re-encoded in the
+// browser first (hosting caps a request body near 4.5 MB and base64 adds a third), then goes to the
+// server as base64; the image comes back from
 // photos/:id/image into a local blob: it never gets a public address. The person keeps, rewrites
 // or ignores each attribute the tone read before the search.
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -8,8 +9,46 @@ import { CameraIcon } from "@/components/icons";
 import type { PhotoCorrection, PhotoSummary } from "@/tone/shared";
 import { api } from "./api";
 
-export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+/** The longest side after shrinking, in pixels. */
+export const MAX_SIDE = 2048;
+/** The most base64 text a photo may weigh on the wire: under the ~4.5 MB a request body may have. */
+export const MAX_BASE64_LENGTH = 4_000_000;
+/** When the browser cannot re-encode (HEIC, no canvas), the file goes as it is, up to this size. */
+export const MAX_RAW_BYTES = Math.floor((MAX_BASE64_LENGTH * 3) / 4);
 export const TOO_BIG = "A foto passa de 4 MB.";
+
+/** The size to draw a photo at: the same shape, the longest side no more than `max`, never enlarged. */
+export function fitWithin(width: number, height: number, max = MAX_SIDE): { width: number; height: number } {
+  const scale = Math.min(1, max / Math.max(width, height));
+  return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
+}
+
+/** Whether `bytes` of file still fit in the request once written as base64. */
+export const fitsOnTheWire = (bytes: number) => Math.ceil(bytes / 3) * 4 <= MAX_BASE64_LENGTH;
+
+/**
+ * What goes to the server: the photo shrunk to 2048 px and re-encoded as JPEG (EXIF goes with it).
+ * If the browser cannot decode it (HEIC, say), the raw file goes, if it fits; if it is still too
+ * big after re-encoding, the photo is refused.
+ */
+export async function prepareFile(file: File): Promise<Blob> {
+  let encoded: Blob | null = null;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const size = fitWithin(bitmap.width, bitmap.height);
+    const canvas = document.createElement("canvas");
+    canvas.width = size.width;
+    canvas.height = size.height;
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, size.width, size.height);
+    bitmap.close();
+    encoded = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+  } catch {
+    encoded = null;
+  }
+  const result = encoded ?? file;
+  if (!fitsOnTheWire(result.size)) throw new Error(TOO_BIG);
+  return result;
+}
 const FAILED = "Não deu certo. Tente de novo.";
 
 type Attributes = PhotoCorrection["attributes"];
@@ -23,17 +62,34 @@ const PRIORITY: Record<Priority, string> = {
 export const failureText = (error: unknown) => (error instanceof Error && error.message ? error.message : FAILED);
 
 /**
- * Checks the size before anything leaves the browser, uploads, then asks for the reading. The photo
+ * Shrinks the photo (and checks it still fits) before anything leaves the browser, uploads, then asks for the reading. The photo
  * is handed to `onPhoto` as soon as it is stored, so a failed reading still leaves "Ler a foto".
  */
-export async function attachPhoto(sessionId: string, file: File, onPhoto: (photo: PhotoSummary) => void) {
-  if (file.size > MAX_PHOTO_BYTES) throw new Error(TOO_BIG);
-  const stored = await api.uploadPhoto(sessionId, file);
+export async function attachPhoto(
+  sessionId: string,
+  file: File,
+  onPhoto: (photo: PhotoSummary) => void,
+  prepare: (file: File) => Promise<Blob> = prepareFile,
+) {
+  const stored = await api.uploadPhoto(sessionId, await prepare(file));
   onPhoto(stored);
   onPhoto(await api.interpretPhoto(stored.id));
 }
 
 export const removePhoto = (id: string) => api.deletePhoto(id);
+
+/** Whether the draft is what the server has kept: only then the search compares what the person sees. */
+export function draftIsSaved(photo: PhotoSummary, draft: Attributes): boolean {
+  const saved = photo.correction?.attributes;
+  return (
+    Boolean(saved) &&
+    saved?.length === draft.length &&
+    draft.every((entry, at) => {
+      const kept = saved?.[at];
+      return kept?.key === entry.key && kept.value === entry.value && kept.priority === entry.priority;
+    })
+  );
+}
 
 /** What the attributes start as: the person's correction, or else the reading. */
 export function draftOf(photo: PhotoSummary): Attributes {
@@ -113,7 +169,6 @@ export function PhotoPicker(props: { disabled: boolean; onFile: (file: File) => 
         ref={input}
         type="file"
         accept="image/*"
-        capture="user"
         tabIndex={-1}
         aria-hidden
         className="hidden"
@@ -224,7 +279,7 @@ export function PhotoCardView(props: {
             >
               Confirmar atributos
             </button>
-            <button type="button" className={solid} disabled={props.working || !photo.correction} onClick={props.onSearch}>
+            <button type="button" className={solid} disabled={props.working || !draftIsSaved(photo, draft)} onClick={props.onSearch}>
               Buscar parecidos
             </button>
           </div>

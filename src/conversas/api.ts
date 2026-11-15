@@ -67,7 +67,9 @@ async function call(path: string, init: RequestInit = {}): Promise<unknown> {
   const body = (await response.json().catch(() => null)) as { error?: string } | null;
   if (!response.ok) {
     failed(path, method, response.status);
-    throw new ApiError(body?.error ?? `Erro ${response.status}`, response.status);
+    // The host answers a body that is too big with a page, not JSON.
+    const fallback = response.status === 413 ? "A foto é grande demais para enviar." : `Erro ${response.status}`;
+    throw new ApiError(body?.error ?? fallback, response.status);
   }
   return body;
 }
@@ -244,8 +246,8 @@ export const api = {
   /** "O que dizem os reviews": starts the synthesis of the picked product; it is then read with reviewRuns. */
   reviews: async (sessionId: string, productTitle: string) =>
     ReviewRunState.parse(await send("reviews", "POST", { sessionId, productTitle })),
-  /** A reference photo of the conversation: the file goes as base64 (the BFF repeats up to 6 MB). */
-  uploadPhoto: async (sessionId: string, file: File) =>
+  /** A reference photo of the conversation: the photo goes as base64, already shrunk by the screen to stay under the host's body limit. */
+  uploadPhoto: async (sessionId: string, file: Blob) =>
     PhotoSummary.parse(await send("photos", "POST", { sessionId, data: await fileToBase64(file) })),
   /** The vision model reads the photo; takes a few seconds and spends budget. */
   interpretPhoto: async (id: string) => PhotoSummary.parse(await send(`photos/${id}/interpret`, "POST", {})),
