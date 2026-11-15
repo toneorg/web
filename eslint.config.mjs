@@ -12,7 +12,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Copies of toneorg/extension (npm run sync:shared), linted there with Biome. Never edited here.
+    // Copies of toneorg/server (npm run sync:shared), linted there with Biome. Never edited here.
     "src/tone/**",
   ]),
 ]);

@@ -1,4 +1,4 @@
-// Gerado de toneorg/extension@e7df4b741fe1 (packages/shared/src/tools.ts). Não edite aqui.
+// Gerado de toneorg/server@999764a87b95 (packages/shared/src/tools.ts). Não edite aqui.
 // The tools the agent can call. They all run on the server: tone researches the
 // stores from there and never drives a store page; a store opens only when the
 // person clicks its link. One zod schema per tool is both the validation and the

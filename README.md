@@ -23,7 +23,7 @@ What is measured (product analytics, cost, errors, session replay, feedback) and
 The person's side of tone, and its only client: sign in, conversations, new conversation, memory, the week's balance, and the agent's answers with research progress, decision board and watch drafts. Product pages open only on the person's click, in a new tab, and only store pages that do not pay.
 
 - **No tone credential in the browser's JavaScript.** The pages call this site's `/api/tone/*` (`src/app/api/tone/[...path]/route.ts`), a back end for front end (`src/lib/tone-bff.ts`): a closed list of API routes, the `tone_web` cookie and nothing else forwarded, changes only with `x-tone-web: 1` from this origin, and the API's cookie rewritten to this origin as `HttpOnly; SameSite=Strict; Path=/api/tone` (plus `Secure` over HTTPS).
-- **Same contracts as the server.** `src/tone/shared` is a generated copy of `packages/shared/src` from the tone server repository (the commit is in each header and in `SOURCE`). After the contracts change there, run `npm run sync:shared -- <path to the server repository>`; never edit the copy.
+- **Same contracts as the server.** `src/tone/shared` is a generated copy of `packages/shared/src` from the `toneorg/server` repository, expected at `../server` (the commit is in each header and in `SOURCE`). After the contracts change there, run `npm run sync:shared -- ../server`; never edit the copy.
 - **Components from the server repository.** `src/tone/genui` is a generated copy of `packages/genui-react/src` from the same repository: the drawings of every component the agent writes, and their CSS (`genui.css`, loaded with the design system's `tokens.css` in `src/app/conversas/layout.tsx`). `src/conversas/Program.tsx` only decides what each button does on the web; `src/conversas/frames.ts` redraws the frames saved in old conversations with the same components. The same sync command copies it; never edit the copy, and ESLint skips `src/tone`.
 - **Design system.** These pages sit on the neutral bench of `@toneorg/design` (`theme.css`); `npm run check:design` reads `src/conversas` and `src/app/conversas` (see `tone-design.json`).
 - **No install scripts.** `.npmrc` turns dependency scripts off: `@openuidev/lang-core` ships an install-time telemetry script. The blocks are drawn with `@openuidev/react-lang`, with its observability off (`publishObservability={false}`).
@@ -43,7 +43,7 @@ npm test                     # vitest: the BFF, the conversation components, ana
 
 ## Deploy
 
-Vercel works out of the box. Set `TONE_API_URL`, `LEADS_WEBHOOK_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` (see `.env.example` and `docs/analytics.md`).
+Vercel works out of the box. Set `TONE_API_URL` (production: `https://tone-server.fly.dev`), `LEADS_WEBHOOK_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` (see `.env.example` and `docs/analytics.md`).
 
 ## Before publishing, check
 

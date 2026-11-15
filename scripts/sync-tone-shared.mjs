@@ -10,7 +10,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-const source = resolve(process.argv[2] ?? "../tone-extension");
+const source = resolve(process.argv[2] ?? "../server");
 const commit = execFileSync("git", ["-C", source, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 // Logging helpers are the server's own; the web does not need them.
 const skip = new Set(["telemetry.ts"]);
@@ -24,12 +24,12 @@ function copy(pkg, dest, suffixes, rewrite = (body) => body) {
   const files = readdirSync(dir).filter((name) => suffixes.some((suffix) => name.endsWith(suffix)) && !skip.has(name));
   for (const name of files) {
     const body = rewrite(readFileSync(join(dir, name), "utf8"));
-    const where = `toneorg/extension@${commit.slice(0, 12)} (packages/${pkg}/src/${name})`;
+    const where = `toneorg/server@${commit.slice(0, 12)} (packages/${pkg}/src/${name})`;
     const header = name.endsWith(".css") ? `/* Gerado de ${where}. Não edite aqui. */\n` : `// Gerado de ${where}. Não edite aqui.\n`;
     writeFileSync(join(out, name), header + body);
   }
-  writeFileSync(join(out, "SOURCE"), `toneorg/extension@${commit}\n${files.join("\n")}\n`);
-  console.log(`${files.length} arquivos de toneorg/extension@${commit.slice(0, 12)} em ${dest}`);
+  writeFileSync(join(out, "SOURCE"), `toneorg/server@${commit}\n${files.join("\n")}\n`);
+  console.log(`${files.length} arquivos de toneorg/server@${commit.slice(0, 12)} em ${dest}`);
 }
 
 copy("shared", "src/tone/shared", [".ts"]);
