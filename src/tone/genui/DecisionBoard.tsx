@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@e3abdbdc9a06 (packages/genui-react/src/DecisionBoard.tsx). Não edite aqui.
+// Gerado de toneorg/server@e706eb19be12 (packages/genui-react/src/DecisionBoard.tsx). Não edite aqui.
 // T08: the decision board. The model writes only the decision id; the data
 // comes from the server with its evidence, and every button is the panel's:
 // it changes the decision as the person, opens a store page, or asks the agent.
@@ -173,8 +173,8 @@ function Candidate(props: {
               {cell.basis === "inference" ? <span className="meta"> · inferência, sem fonte</span> : null}
               {cell.evidence.map((entry) => (
                 <span key={entry.id} className="decision-evidence">
-                  “{entry.excerpt}” — {entry.source},{" "}
-                  {entry.level === "origin" ? "lido na loja" : "observado no índice"} em {day(entry.observedAt)}
+                  “{entry.excerpt}” — {entry.source}, {entry.level === "origin" ? "lido na loja" : "anunciado"} em{" "}
+                  {day(entry.observedAt)}
                   {entry.kind === "review" ? " (opinião de avaliações)" : ""}
                 </span>
               ))}

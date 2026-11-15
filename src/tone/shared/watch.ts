@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@e3abdbdc9a06 (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/server@e706eb19be12 (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -293,7 +293,7 @@ export function reviewWatch(rule: WatchRule, remoteStores: readonly string[] = [
         label: "Google Shopping (índice)",
         autonomous: true,
         stores: covered,
-        note: "Preço observado no índice do Google Shopping, uma vez por dia; não confirma o preço final, o frete nem o estoque na loja.",
+        note: "Preço anunciado pelas lojas, conferido uma vez por dia; não confirma o preço final, o frete nem o estoque na loja.",
       },
       ...(remote.length
         ? [

@@ -88,7 +88,7 @@ export function PanelView(props: {
             </p>
             {emptyRound ? (
               <p className="text-caption text-graphite">
-                A leitura mais recente não achou ofertas no índice; estas são as últimas vistas.
+                A leitura mais recente não achou ofertas; estas são as últimas vistas.
               </p>
             ) : null}
             {matches.length ? (
@@ -97,7 +97,7 @@ export function PanelView(props: {
               <p className="text-small text-graphite">{latest.summary.message}</p>
             )}
             <p className="text-caption text-graphite">
-              Preços observados no índice do Google Shopping; o preço final, o frete e o estoque se confirmam na loja.
+              Preços anunciados pelas lojas; o preço final, o frete e o estoque se confirmam na loja.
             </p>
           </>
         ) : (

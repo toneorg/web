@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@e3abdbdc9a06 (packages/shared/src/research-execution.ts). Não edite aqui.
+// Gerado de toneorg/server@e706eb19be12 (packages/shared/src/research-execution.ts). Não edite aqui.
 import * as z from "zod";
 import { evaluateRequirements, ResearchIntent, ResearchResult } from "./research";
 

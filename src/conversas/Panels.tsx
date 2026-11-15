@@ -151,7 +151,7 @@ function PanelCard(props: {
           ) : null}
           {props.panel.emptyRound ? (
             <span className="text-caption text-graphite">
-              A leitura mais recente não achou ofertas no índice; este é o último preço visto.
+              A leitura mais recente não achou ofertas; este é o último preço visto.
             </span>
           ) : null}
         </div>

@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@e3abdbdc9a06 (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/server@e706eb19be12 (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
 // in the panel and on the web: observed in the index (T04) or read in the store's
 // search by a remote browser of tone (T16). Rows from the retired extension (T14)
@@ -38,24 +38,27 @@ const STORE_NAMES: Record<string, string> = {
 export const storeLabel = (store: string) => STORE_NAMES[store] ?? store;
 
 // legado: só leitura de linhas antigas ("extension")
-export type PriceProvenance = "index" | "amazon" | "local" | "extension" | "remote" | "direct";
+export type PriceProvenance = "index" | "amazon" | "local" | "extension" | "remote" | "direct" | "catalog";
 
 /** The kinds of reading behind the offers of a run, from its evidence. */
 export function provenanceOf(run: Pick<ResearchRunState, "result">): Set<PriceProvenance> {
   const kinds = new Set<PriceProvenance>();
   for (const entry of run.result?.evidence ?? [])
     kinds.add(
-      entry.level === "index"
-        ? entry.source.startsWith("dataforseo.")
-          ? "amazon"
-          : "index"
-        : entry.source.startsWith("local:")
-          ? "local"
-          : entry.source.startsWith("remote:")
-            ? "remote"
-            : entry.source.startsWith("direct:")
-              ? "direct"
-              : "extension",
+      // The catalog copy is the store's own data at either level: re-read now, or as of its last sync.
+      entry.source.startsWith("catalog:")
+        ? "catalog"
+        : entry.level === "index"
+          ? entry.source.startsWith("dataforseo.")
+            ? "amazon"
+            : "index"
+          : entry.source.startsWith("local:")
+            ? "local"
+            : entry.source.startsWith("remote:")
+              ? "remote"
+              : entry.source.startsWith("direct:")
+                ? "direct"
+                : "extension",
     );
   return kinds;
 }
@@ -69,6 +72,8 @@ export function provenanceNote(run: Pick<ResearchRunState, "result">): string {
     return "Os preços vêm de fontes diferentes, indicadas em cada evidência; a loja pode ter outro valor, frete ou estoque.";
   if (kinds.has("amazon"))
     return `Preços anunciados na listagem da Amazon Brasil, obtidos por um provedor de dados${when}; vendedor, variante, frete e estoque podem precisar de confirmação.`;
+  if (kinds.has("catalog"))
+    return `Preços do catálogo da própria loja, copiado pela tone e conferido na loja${when}; frete e estoque do seu endereço podem mudar.`;
   if (kinds.has("local"))
     return `Preços lidos por uma integração própria da tone na loja, sem login${when}; frete e estoque do seu endereço podem mudar.`;
   if (kinds.has("direct"))
@@ -77,5 +82,5 @@ export function provenanceNote(run: Pick<ResearchRunState, "result">): string {
     return `Preços lidos na busca da loja por um navegador remoto da tone, sem login${when}; frete e estoque do seu endereço podem mudar.`;
   if (kinds.has("extension"))
     return `Preços lidos na página da loja pela extensão, no seu Chrome${when}; frete e estoque podem mudar no carrinho.`;
-  return `Preços observados no índice do Google Shopping${when}; a loja pode ter outro valor, frete ou estoque.`;
+  return `Preços anunciados pelas lojas${when}; a loja pode ter outro valor, frete ou estoque.`;
 }

@@ -162,14 +162,14 @@ export function WatchReadings(props: { watch: Watch; results: WatchResult[]; ses
           </p>
           {emptyRound ? (
             <p className="text-caption text-graphite">
-              A leitura mais recente não achou ofertas no índice; estas são as últimas vistas.
+              A leitura mais recente não achou ofertas; estas são as últimas vistas.
             </p>
           ) : null}
           {offers.length ? (
             <OfferList watch={watch} matches={latest?.summary.matches ?? []} sessionId={props.sessionId} />
           ) : null}
           <p className="text-caption text-graphite">
-            Preços observados no índice do Google Shopping; o preço final, o frete e o estoque se confirmam na loja.
+            Preços anunciados pelas lojas; o preço final, o frete e o estoque se confirmam na loja.
           </p>
         </div>
       ) : (
@@ -192,7 +192,7 @@ export function WatchReadings(props: { watch: Watch; results: WatchResult[]; ses
           <ul className="flex flex-col gap-1 ps-4 text-caption text-graphite">
             {earlier.map((result) => (
               <li key={result.id} className="tabular-nums">
-                {when(result.observedAt)}: {lowestOf(result) ? `menor preço ${lowestOf(result)}` : "sem ofertas no índice"}
+                {when(result.observedAt)}: {lowestOf(result) ? `menor preço ${lowestOf(result)}` : "sem ofertas"}
                 {result.conditionMet ? " · condição atingida" : ""}
               </li>
             ))}
