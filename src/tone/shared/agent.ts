@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@8c1d971872ff (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@30f579562c6e (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -90,9 +90,12 @@ export const AgentEvent = z.discriminatedUnion("type", [
 ]);
 export type AgentEvent = z.infer<typeof AgentEvent>;
 
+/** When the line was said (ISO), for the day separators of the web's single chat. Older servers leave it out. */
+const SaidAt = z.string().optional();
+
 /** One line of the conversation as the panel shows it when a session is reopened. */
 export const TranscriptItem = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("user"), text: z.string() }),
+  z.object({ kind: z.literal("user"), text: z.string(), at: SaidAt }),
   z.object({
     kind: z.literal("assistant"),
     text: z.string(),
@@ -100,9 +103,10 @@ export const TranscriptItem = z.discriminatedUnion("kind", [
     turn: z.number().int().min(1).optional(),
     /** The thumb the person gave this turn, if any. */
     rating: AnswerRatingValue.optional(),
+    at: SaidAt,
   }),
-  z.object({ kind: z.literal("ui"), component: UiComponent }),
+  z.object({ kind: z.literal("ui"), component: UiComponent, at: SaidAt }),
   /** What the server said instead of an answer (the model failed, the balance ran out). */
-  z.object({ kind: z.literal("notice"), text: z.string() }),
+  z.object({ kind: z.literal("notice"), text: z.string(), at: SaidAt }),
 ]);
 export type TranscriptItem = z.infer<typeof TranscriptItem>;

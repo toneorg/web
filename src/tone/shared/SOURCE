@@ -1,4 +1,4 @@
-toneorg/server@8c1d971872ffd3233dd5bdee8b92f8df17301525
+toneorg/server@30f579562c6ebfb8a86e965790d9839b62050f4d
 agent.ts
 answer-rating.ts
 api.ts
@@ -16,6 +16,7 @@ research-execution.ts
 research.ts
 reviews.ts
 safety.ts
+search.ts
 situation.ts
 tools.ts
 tracking.ts

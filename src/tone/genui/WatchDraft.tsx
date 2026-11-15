@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@8c1d971872ff (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
+// Gerado de toneorg/server@30f579562c6e (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
 // T09: the draft of a watch, for the person to review and confirm. The model
 // writes only the id; the rule comes from the server and every button is the
 // panel's: it saves the person's edits and confirms the version on screen.
