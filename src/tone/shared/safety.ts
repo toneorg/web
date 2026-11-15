@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@dcdd90760914 (packages/shared/src/safety.ts). Não edite aqui.
+// Gerado de toneorg/server@b3447d8df18a (packages/shared/src/safety.ts). Não edite aqui.
 // RNF11: the agent never pays. This is enforced in code and not left to the
 // model: no checkout address is opened or linked, whatever the model asked.
 

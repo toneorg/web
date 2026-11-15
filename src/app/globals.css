@@ -145,6 +145,55 @@
   animation: build 1.1s var(--ease-soft) infinite;
 }
 
+/* The profile opens as a drawer from the trailing edge on a wide screen; on a phone it is a folha. */
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes drawer-out {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@media (min-width: 40rem) {
+  .drawer.sheet-in {
+    animation-name: drawer-in;
+  }
+  .drawer.sheet-out {
+    animation-name: drawer-out;
+  }
+}
+
+/*
+  A message reached from the search: a ring that stays for the moment the chat
+  marks it (the class goes away after 2.4 s), and fades out only where motion is welcome.
+*/
+.found {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .found {
+    animation: found 2.4s var(--ease-soft) both;
+  }
+}
+
+@keyframes found {
+  0%,
+  70% {
+    outline-color: var(--color-ink);
+  }
+  to {
+    outline-color: transparent;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sheet-in,
   .sheet-out,

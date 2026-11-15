@@ -48,6 +48,14 @@ export type WebEvent =
   | "product_reviews_failed"
   | "photo_search_started"
   | "situation_outcome_recorded"
+  // The single chat: its history, the search and the profile drawer
+  | "chat_history_loaded"
+  | "chat_session_started"
+  | "chat_jumped"
+  | "search_opened"
+  | "messages_searched"
+  | "search_result_opened"
+  | "profile_opened"
   // Decision board and watches drawn by the agent
   | "decision_changed"
   | "store_link_blocked"

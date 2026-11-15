@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@dcdd90760914 (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/server@b3447d8df18a (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";
@@ -109,6 +109,11 @@ export const SessionCreate = z.object({
   onboarding: z.boolean().default(false),
   /** A conversation opened from a panel: it belongs to the panel and stays out of the conversation list. */
   watchId: z.string().min(1).max(60).optional(),
+  /**
+   * Opens without a greeting: the web's single chat starts a new session under the hood after a
+   * pause, and the conversation simply goes on, with no "Oi" in the middle of it.
+   */
+  silent: z.boolean().default(false),
 });
 export const SessionCreated = z.object({ sessionId: z.string(), greeting: z.string() });
 export type SessionCreated = z.infer<typeof SessionCreated>;
@@ -127,6 +132,37 @@ export const SessionSummary = z.object({
   messages: z.number().int(),
 });
 export type SessionSummary = z.infer<typeof SessionSummary>;
+
+/**
+ * A session of the web's single chat: every conversation of the person outside the panels,
+ * shown one after the other as one long chat. The newest first.
+ */
+export const ChatSession = z.object({
+  id: z.string(),
+  onboarding: z.boolean(),
+  startedAt: z.string(),
+  lastAt: z.string(),
+  /** How many messages the person wrote. */
+  messages: z.number().int(),
+});
+export type ChatSession = z.infer<typeof ChatSession>;
+
+/** The longest search the server reads. */
+export const MESSAGE_SEARCH_MAX = 120;
+
+/**
+ * A message of the single chat that has every word of a search (`GET /api/messages/search?q=`).
+ * `index` is its position in `GET /api/sessions/:id/transcript`, so the chat can scroll to it.
+ */
+export const MessageMatch = z.object({
+  sessionId: z.string(),
+  index: z.number().int().min(0),
+  role: z.enum(["user", "assistant"]),
+  /** The text around the first match, cut at words; the web marks the words in it (`matchRanges`). */
+  snippet: z.string(),
+  at: z.string(),
+});
+export type MessageMatch = z.infer<typeof MessageMatch>;
 
 /**
  * A conversation kept in a panel: one opened from it, or (for panels made before 10/11/2026) the one

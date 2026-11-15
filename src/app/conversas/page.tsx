@@ -1,5 +1,5 @@
-import { Home } from "@/conversas/Home";
+import { Chat } from "@/conversas/Chat";
 
 export default function ConversasPage() {
-  return <Home />;
+  return <Chat />;
 }

@@ -114,8 +114,8 @@ export function draftOf(photo: PhotoSummary): Attributes {
 
 export type PhotoState = ReturnType<typeof usePhoto>;
 
-/** The photo of one conversation and what is happening to it. */
-export function usePhoto(sessionId: string) {
+/** The photo of one conversation and what is happening to it. The single chat passes how to get its session, opened on demand. */
+export function usePhoto(sessionId: string | (() => Promise<string>)) {
   const [photo, setPhoto] = useState<PhotoSummary | null>(null);
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -136,7 +136,10 @@ export function usePhoto(sessionId: string) {
     photo,
     working,
     error,
-    pick: (file: File) => run("Enviando e lendo a foto…", () => attachPhoto(sessionId, file, setPhoto)),
+    pick: (file: File) =>
+      run("Enviando e lendo a foto…", async () =>
+        attachPhoto(typeof sessionId === "string" ? sessionId : await sessionId(), file, setPhoto),
+      ),
     interpret: (id: string) => run("Lendo a foto…", async () => setPhoto(await api.interpretPhoto(id))),
     correct: (id: string, correction: PhotoCorrection) =>
       run("Guardando os atributos…", async () => setPhoto(await api.correctPhoto(id, correction))),
@@ -171,7 +174,7 @@ export function PhotoStatus(props: { text: string | null; problem?: boolean }) {
 }
 
 /** The camera button of the composer; the file input stays hidden and the button opens it. */
-export function PhotoPicker(props: { disabled: boolean; onFile: (file: File) => void }) {
+export function PhotoPicker(props: { disabled: boolean; onFile: (file: File) => void; className?: string }) {
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -193,7 +196,7 @@ export function PhotoPicker(props: { disabled: boolean; onFile: (file: File) => 
         aria-label="Enviar foto de referência"
         disabled={props.disabled}
         onClick={() => input.current?.click()}
-        className="press flex size-13 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50"
+        className={`press flex shrink-0 items-center justify-center rounded-full text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50 ${props.className ?? "size-13 bg-surface shadow-raised"}`}
       >
         <CameraIcon className="size-6" />
       </button>

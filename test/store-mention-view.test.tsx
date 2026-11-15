@@ -42,7 +42,7 @@ describe("mensagem com @ reaberta", () => {
     const html = renderToStaticMarkup(
       <UserMessage text="eu quero o perfume sauvage" stores={["dior.com"]} options={stores} />,
     );
-    expect(html.replace(/<[^>]+>/g, "")).toBe("@Dior eu quero o perfume sauvage");
+    expect(html.replace(/<[^>]+>/g, "")).toBe("Você: @Dior eu quero o perfume sauvage");
   });
   it("uma mensagem antiga, sem lojas, fica como era", () => {
     const [saved] = TranscriptItem.array().parse([{ kind: "user", text: "oi" }]);

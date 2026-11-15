@@ -133,7 +133,7 @@ function ArtRemember() {
         ))}
       </div>
       <span className="ob-rise text-caption text-graphite" style={d(1300)}>
-        Você confirma, corrige ou apaga em “Meu perfil”.
+        Você confirma, corrige ou apaga no seu perfil, pelo círculo com a sua inicial.
       </span>
     </div>
   );

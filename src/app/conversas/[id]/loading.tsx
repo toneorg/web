@@ -7,7 +7,7 @@ import { Shell } from "@/conversas/Shell";
 
 export default function Loading() {
   return (
-    <Shell me={peek<Me>("me") ?? null} current="conversas">
+    <Shell me={peek<Me>("me") ?? null}>
       <main id="conteudo" className="flex flex-col gap-4 py-4" aria-busy="true">
         <p role="status" className="text-small text-graphite">
           Abrindo a conversa…

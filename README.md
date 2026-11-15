@@ -6,7 +6,9 @@ Next.js 16 + Tailwind 4, in Portuguese. Two public pages: the home page speaks t
 |---|---|
 | `/` | The page for the person: what tone does, the why behind every recommendation, neutrality, the waiting list. "Entrar" leads to `/conversas` |
 | `/lojas` | The page for stores: tone for stores, the report of doubts, the pilot with a control group, the pilot request |
-| `/conversas` | The app (below). The first visit of an account shows a four-step tour (`src/conversas/Onboarding.tsx`); "Rever o tour da tone" in the profile shows it again |
+| `/conversas` | The app (below): one chat with the tone. The first visit of an account shows a four-step tour (`src/conversas/Onboarding.tsx`); "Rever o tour" in the profile shows it again. `?em=<session>` opens the chat at that conversation, `?buscar=1` with the search open, `?perfil=1` with the profile open |
+| `/conversas/<id>` | A panel's conversation with `?painel=`; any other old conversation link redirects to `/conversas?em=<id>` |
+| `/conversas/perfil` | Redirects to `/conversas?perfil=1` |
 | `/marcas` | Redirects to `/lojas`, so old links and QR codes still land somewhere |
 | `/privacidade` | Plain-language data note |
 
@@ -20,7 +22,13 @@ What is measured (product analytics, cost, errors, session replay, feedback) and
 
 ## Conversations (`/conversas`)
 
-The person's side of tone, and its only client: sign in, conversations, new conversation, memory, the week's balance, and the agent's answers with research progress, decision board and watch drafts. Product pages open only on the person's click, in a new tab, and only store pages that do not pay.
+The person's side of tone, and its only client: sign in, the chat, memory, the week's balance, and the agent's answers with research progress, decision board and watch drafts. Product pages open only on the person's click, in a new tab, and only store pages that do not pay.
+
+- **One chat, like a messaging app** (15/11/2026, `src/conversas/Chat.tsx`, `Conversation.tsx`, `timeline.ts`). No list of conversations and no "new conversation": the person's sessions are drawn one after the other (`GET /api/chat/sessions`), as bubbles (theirs on the right, the tone's on the left; the agent's components full width), with a separator per day. The newest sessions load first and older ones as the person scrolls up (or with "Ver mensagens anteriores"). Under the hood a message after 6 hours without one (`SESSION_GAP_MS`) opens a new server session with no greeting (`silent`), so purchase situations, research and the decision board stay per session; the person only sees the day change. Only lines said in this visit are a live region, so loading history is not read aloud.
+- **Top bar**: home, the panels toggle on a phone, Feedback, **Buscar** (also Cmd/Ctrl+K) and the avatar with the person's initial. The panels column on the left is unchanged.
+- **Search** (`Search.tsx`): a folha that asks `GET /api/messages/search?q=` as the person types (250 ms pause). The server reads the person's last 3,000 messages of the chat (both sides, text only, accents and case ignored, `src/tone/shared/search.ts`) and returns up to 30, newest first, each with a snippet, its time and its place in the transcript; the web marks the words with the same rule. Arrows and Enter or a click take the chat there: the sessions down to it are read, the message is scrolled to, focused and ringed for 2.4 s.
+- **Profile** (`Profile.tsx`): no longer a tab or a page. The avatar opens it as a drawer at the trailing edge (a folha on a phone): memory, occasions ("Funcionou?", and a tap takes the chat to that conversation), connections, data, sessions, "Rever o tour", "Sair". Folhas trap Tab, close on Escape (only the top one) and give the focus back (`Sheet.tsx`).
+- **A panel's conversation** (`/conversas/<id>?painel=<watch>`) is still its own page, opened from the panel, with the same bubbles and composer.
 
 - **No tone credential in the browser's JavaScript.** The pages call this site's `/api/tone/*` (`src/app/api/tone/[...path]/route.ts`), a back end for front end (`src/lib/tone-bff.ts`): a closed list of API routes, the `tone_web` cookie and nothing else forwarded, changes only with `x-tone-web: 1` from this origin, and the API's cookie rewritten to this origin as `HttpOnly; SameSite=Strict; Path=/api/tone` (plus `Secure` over HTTPS).
 - **Same contracts as the server.** `src/tone/shared` is a generated copy of `packages/shared/src` from the `toneorg/server` repository, expected at `../server` (the commit is in each header and in `SOURCE`). After the contracts change there, run `npm run sync:shared -- ../server`; never edit the copy.

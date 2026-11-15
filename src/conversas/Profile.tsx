@@ -1,19 +1,25 @@
 "use client";
-// The person's own page on the web: who they are, what the tone knows about
-// them, and the keys to their data.
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useState } from "react";
-import { type Me, type Memory, memoryLabel, OWNED_CATEGORY } from "@/tone/shared";
-import { ToneWordmark } from "@/components/tone-logo";
+// The person's own corner of the web: who they are, what the tone knows about them, their
+// occasions and the keys to their data. Since 15/11/2026 it is not a tab: the avatar in the top
+// bar opens it as a drawer over the chat (a folha on a phone).
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import {
+  canRecordOutcome,
+  episodeLine,
+  type Me,
+  type Memory,
+  memoryLabel,
+  OUTCOME_LABELS,
+  OWNED_CATEGORY,
+  type PurchaseSituation,
+  type SituationOutcomeVerdict,
+  todayInBrazil,
+} from "@/tone/shared";
 import { track } from "./analytics";
 import { ApiError, api, peek } from "./api";
 import { AccessSessions } from "./AccessSessions";
 import { Connections } from "./Connections";
 import { Sheet, useSheetClose } from "./Sheet";
-import { Shell } from "./Shell";
-import { SignIn } from "./SignIn";
-import { startWelcomeChat } from "./welcome";
 
 const quiet =
   "press min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
@@ -111,54 +117,103 @@ function Confirm(props: { pending: NonNullable<Pending> }) {
   );
 }
 
-export function Profile() {
-  // Coming back from another screen, the last copy draws at once; the fresh one replaces it.
+/** A purchase situation; once something was chosen or the day passed, "did it work?" in one tap. */
+function SituationItem(props: { situation: PurchaseSituation; onChange: () => void; onOpen: (sessionId: string) => void }) {
+  const { situation } = props;
+  const [busy, setBusy] = useState(false);
+  const record = (verdict: SituationOutcomeVerdict) => {
+    setBusy(true);
+    void api
+      .recordOutcome(situation.id, verdict)
+      .then(() => {
+        track("situation_outcome_recorded", { verdict });
+        props.onChange();
+      })
+      .finally(() => setBusy(false));
+  };
+  return (
+    <li className="flex flex-col gap-2 text-small text-ink">
+      <button
+        type="button"
+        onClick={() => props.onOpen(situation.sessionId)}
+        className="min-h-11 text-start underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      >
+        {episodeLine(situation)}
+      </button>
+      {canRecordOutcome(situation, todayInBrazil()) ? (
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="sr-only">Funcionou?</legend>
+          {(Object.entries(OUTCOME_LABELS) as [SituationOutcomeVerdict, string][]).map(([verdict, label]) => (
+            <button key={verdict} type="button" className={quiet} disabled={busy} onClick={() => record(verdict)}>
+              {label}
+            </button>
+          ))}
+        </fieldset>
+      ) : null}
+    </li>
+  );
+}
+
+export function ProfileBody(props: {
+  /** The session ended or the person left: the chat goes back to the sign-in. */
+  onSignedOut: () => void;
+  /** "Rever o tour": the drawer closes and the tour opens. */
+  onTour: () => void;
+  /** "Responder perguntas rápidas": the welcome conversation starts in the chat. */
+  onWelcome: () => void;
+  /** An occasion: the chat goes to its conversation. */
+  onOpen: (sessionId: string) => void;
+}) {
+  const close = useSheetClose();
+  // The last copy draws at once; the fresh one replaces it.
   const [me, setMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
   const [memories, setMemories] = useState<Memory[]>(() => peek<Memory[]>("memories") ?? []);
-  const [state, setState] = useState<"loading" | "ready" | "signed_out" | "expired" | "error">(() =>
-    peek("me") && peek("memories") ? "ready" : "loading",
-  );
+  const [situations, setSituations] = useState<PurchaseSituation[]>(() => peek<PurchaseSituation[]>("situations") ?? []);
+  const [state, setState] = useState<"loading" | "ready" | "error">(() => (peek("me") && peek("memories") ? "ready" : "loading"));
   const [pending, setPending] = useState<Pending>(null);
   const [newFact, setNewFact] = useState("");
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const router = useRouter();
-  const [openingWelcome, setOpeningWelcome] = useState(false);
-  // Each change of `round` loads everything again (after signing in, deleting a note, retrying).
+  // Each change of `round` loads everything again (after deleting a note, retrying).
   const [round, setRound] = useState(0);
   const load = () => setRound((value) => value + 1);
+  const { onSignedOut } = props;
   useEffect(() => {
     let live = true;
-    Promise.all([api.me(), api.memories()])
-      .then(([person, notes]) => {
+    Promise.all([api.me(), api.memories(), api.situations().catch(() => [])])
+      .then(([person, notes, occasions]) => {
         if (!live) return;
         setMe(person);
         setMemories(notes);
+        setSituations(occasions);
         setState("ready");
       })
       .catch((error: unknown) => {
         if (!live) return;
-        setState((current) =>
-          error instanceof ApiError && error.status === 401 ? (current === "ready" ? "expired" : "signed_out") : "error",
-        );
+        if (error instanceof ApiError && error.status === 401) onSignedOut();
+        else setState("error");
       });
     return () => {
       live = false;
     };
-  }, [round]);
+  }, [round, onSignedOut]);
 
-  if (state === "loading") return <p className="px-5 py-12 text-small text-graphite">Carregando…</p>;
-  if (state === "signed_out" || state === "expired") return <SignIn expired={state === "expired"} onDone={load} />;
+  if (state === "loading")
+    return (
+      <p role="status" className="text-small text-graphite">
+        Carregando…
+      </p>
+    );
   if (state === "error" || !me)
     return (
-      <main id="conteudo" className="mx-auto max-w-md px-5 py-12">
+      <div className="flex flex-col gap-3">
         <p role="alert" className="text-body text-ink">
           Não consegui abrir o seu perfil agora.
         </p>
-        <button type="button" className={`${quiet} mt-4`} onClick={load}>
+        <button type="button" className={`${quiet} self-start`} onClick={load}>
           Tentar de novo
         </button>
-      </main>
+      </div>
     );
 
   /** Something the person tells the tone about themselves. "já tenho: X" goes to the light wardrobe. */
@@ -189,19 +244,6 @@ export function Profile() {
     }
   };
 
-  const welcome = async () => {
-    setOpeningWelcome(true);
-    setNotice(null);
-    try {
-      const href = await startWelcomeChat();
-      track("welcome_chat_started", { from: "profile", memories: memories.length });
-      router.push(href);
-    } catch (failure) {
-      setNotice(failure instanceof ApiError ? failure.message : "Não consegui abrir a conversa agora.");
-      setOpeningWelcome(false);
-    }
-  };
-
   const exportData = async () => {
     setNotice(null);
     try {
@@ -221,23 +263,26 @@ export function Profile() {
   const owned = memories.filter((memory) => memory.category === OWNED_CATEGORY);
   const rest = memories.filter((memory) => memory.category !== OWNED_CATEGORY);
   return (
-    <Shell me={me} current="perfil">
-      <main id="conteudo" className="flex flex-col gap-8 py-4">
-        <header className="flex flex-col gap-2">
-          <ToneWordmark className="h-6 w-auto text-ink" />
-          <h1 className="mt-2 display-sm font-display text-ink">Meu perfil</h1>
-          <p className="text-body text-ink" data-ph-mask>
-            {me.name}
-          </p>
-          <p className="text-small text-graphite" data-ph-mask>
-            {me.email}
-          </p>
+    <>
+      <div className="flex flex-col gap-8 pb-2">
+        <header className="flex items-center gap-3">
+          <span aria-hidden="true" className="grid size-13 shrink-0 place-items-center rounded-full bg-ink text-subheading text-on-ink" data-ph-mask>
+            {[...me.name.trim()][0]?.toLocaleUpperCase("pt-BR") ?? "?"}
+          </span>
+          <div className="flex min-w-0 flex-col">
+            <p className="truncate text-body font-medium text-ink" data-ph-mask>
+              {me.name}
+            </p>
+            <p className="truncate text-small text-graphite" data-ph-mask>
+              {me.email}
+            </p>
+          </div>
         </header>
 
         <section aria-labelledby="titulo-memoria" className="flex flex-col gap-3">
-          <h2 id="titulo-memoria" className="text-subheading text-ink">
+          <h3 id="titulo-memoria" className="text-subheading text-ink">
             O que eu sei sobre você
-          </h2>
+          </h3>
           <p className="text-small text-graphite">
             Tudo o que uso para te ajudar está aqui. Confirme o que for palpite e apague o que não quiser.
           </p>
@@ -248,7 +293,7 @@ export function Profile() {
               <MemoryList memories={rest} onChange={load} />
               {owned.length ? (
                 <>
-                  <h3 className="mt-2 text-ui text-ink">Você já tem</h3>
+                  <h4 className="mt-2 text-ui text-ink">Você já tem</h4>
                   <MemoryList memories={owned} onChange={load} />
                 </>
               ) : null}
@@ -266,7 +311,7 @@ export function Profile() {
                 value={newFact}
                 onChange={(event) => setNewFact(event.target.value)}
                 placeholder="ex.: tamanho de tênis: 40 · já tenho sandália dourada"
-                className="min-h-11 flex-1 rounded-input bg-paper px-4 text-body text-ink focus-visible:outline-2 focus-visible:outline-ink"
+                className="min-h-11 flex-1 rounded-input bg-surface px-4 text-body text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-ink"
               />
               <button type="submit" className={quiet} disabled={adding || !newFact.trim()} aria-label="Anotar">
                 {adding ? "Anotando…" : "Anotar"}
@@ -276,17 +321,47 @@ export function Profile() {
           <div className="flex flex-col gap-2">
             <p className="text-small text-graphite">Ou responda cinco perguntas rápidas, uma por vez, e eu anoto.</p>
             <div>
-              <button type="button" className={quiet} disabled={openingWelcome} onClick={() => void welcome()}>
-                {openingWelcome ? "Abrindo…" : "Responder perguntas rápidas"}
+              <button
+                type="button"
+                className={quiet}
+                onClick={() => {
+                  track("welcome_chat_started", { from: "profile", memories: memories.length });
+                  props.onWelcome();
+                  close();
+                }}
+              >
+                Responder perguntas rápidas
               </button>
             </div>
           </div>
         </section>
 
+        {situations.length > 0 ? (
+          <section aria-labelledby="titulo-ocasioes" className="flex flex-col gap-3">
+            <h3 id="titulo-ocasioes" className="text-subheading text-ink">
+              Ocasiões
+            </h3>
+            <p className="text-small text-graphite">Conte como foi cada uma: assim eu aprendo o que funciona para você.</p>
+            <ul className="flex flex-col gap-3" data-ph-mask>
+              {situations.map((situation) => (
+                <SituationItem
+                  key={situation.id}
+                  situation={situation}
+                  onChange={load}
+                  onOpen={(sessionId) => {
+                    props.onOpen(sessionId);
+                    close();
+                  }}
+                />
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         <section aria-labelledby="titulo-conexoes" className="flex flex-col gap-3">
-          <h2 id="titulo-conexoes" className="text-subheading text-ink">
+          <h3 id="titulo-conexoes" className="text-subheading text-ink">
             Conexões
-          </h2>
+          </h3>
           <p className="text-small text-graphite">
             Opcional. Conecte para eu conhecer melhor o que você compra e quando precisa. Você desconecta quando quiser.
           </p>
@@ -294,9 +369,9 @@ export function Profile() {
         </section>
 
         <section aria-labelledby="titulo-dados" className="flex flex-col gap-3">
-          <h2 id="titulo-dados" className="text-subheading text-ink">
+          <h3 id="titulo-dados" className="text-subheading text-ink">
             Seus dados
-          </h2>
+          </h3>
           <p className="text-small text-graphite">
             Baixe ou apague o que eu guardei, quando quiser. O que for apagado não volta.
           </p>
@@ -325,14 +400,17 @@ export function Profile() {
           </div>
           <AccessSessions ask={setPending} />
           <div className="mt-2 flex flex-wrap gap-2">
-            <Link href="/conversas?tour=1" className={`${quiet} inline-flex items-center`}>
-              Rever o tour
-            </Link>
             <button
               type="button"
               className={quiet}
-              onClick={() => void api.logout().finally(() => setState("signed_out"))}
+              onClick={() => {
+                props.onTour();
+                close();
+              }}
             >
+              Rever o tour
+            </button>
+            <button type="button" className={quiet} onClick={() => void api.logout().finally(onSignedOut)}>
               Sair
             </button>
             <button
@@ -346,7 +424,7 @@ export function Profile() {
                   run: async () => {
                     track("account_deleted");
                     await api.deleteAccount();
-                    setState("signed_out");
+                    onSignedOut();
                   },
                 })
               }
@@ -360,12 +438,22 @@ export function Profile() {
             </p>
           ) : null}
         </section>
-      </main>
+      </div>
       {pending ? (
         <Sheet title={pending.title} onClose={() => setPending(null)}>
           <Confirm pending={pending} />
         </Sheet>
       ) : null}
-    </Shell>
+    </>
+  );
+}
+
+/** The profile, opened from the avatar: a drawer at the trailing edge, a folha on a phone. */
+export function ProfileSheet(props: Parameters<typeof ProfileBody>[0] & { onClose: () => void; aside?: ReactNode }) {
+  const { onClose, aside, ...body } = props;
+  return (
+    <Sheet title="Seu perfil" placement="side" closeButton aside={aside} onClose={onClose}>
+      <ProfileBody {...body} />
+    </Sheet>
   );
 }

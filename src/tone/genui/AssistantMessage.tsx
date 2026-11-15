@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@dcdd90760914 (packages/genui-react/src/AssistantMessage.tsx). Não edite aqui.
+// Gerado de toneorg/server@b3447d8df18a (packages/genui-react/src/AssistantMessage.tsx). Não edite aqui.
 // An answer of the assistant: its text in a bubble, and each OpenUI Lang block
 // drawn with the library, progressively while it streams. The library comes
 // from the same definitions the server teaches the model (packages/shared/src/genui.ts).

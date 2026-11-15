@@ -4,6 +4,8 @@
 import posthog from "posthog-js";
 import {
   AccessSession,
+  ChatSession,
+  MessageMatch,
   AgentEvent,
   ConnectionStatus,
   type ConnectionProvider,
@@ -212,6 +214,13 @@ export const api = {
   recordOutcome: async (id: string, verdict: SituationOutcomeVerdict) =>
     PurchaseSituation.parse(await send(`situations/${id}/outcome`, "POST", { verdict })),
   sessions: () => cached("sessions", async () => SessionSummary.array().parse(await call("sessions"))),
+  /** The sessions of the single chat, newest first; read fresh, the newest one grows with each turn. */
+  chatSessions: async () => ChatSession.array().parse(await call("chat/sessions")),
+  /** Messages of the single chat with every word of `query`, newest first. */
+  searchMessages: async (query: string, signal?: AbortSignal) =>
+    MessageMatch.array().parse(await call(`messages/search?q=${encodeURIComponent(query)}`, { signal })),
+  /** The next session of the single chat, opened under the hood with no greeting. */
+  silentSession: async () => (await send("sessions", "POST", { site: null, silent: true })) as { sessionId: string },
   /** With `watchId`, a conversation of that panel: it stays in the panel, out of the conversation list. */
   newSession: async (onboarding = false, watchId?: string) =>
     (await send("sessions", "POST", { site: null, onboarding, ...(watchId ? { watchId } : {}) })) as {

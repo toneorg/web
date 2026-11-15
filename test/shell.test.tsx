@@ -1,4 +1,5 @@
-// T16: the web app's frame, the person's panels and what the research can do here.
+// T16: the web app's frame (since 15/11/2026 a messaging app: one chat, the search and the
+// avatar in the top bar), the person's panels and what the research can do here.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { BudgetStatement, Me, ResearchRunState, WatchResult } from "../src/tone/shared";
@@ -7,8 +8,8 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined })
 const { researchNote } = await import("../src/conversas/Conversation");
 const { lowestOf, weekLeftPercent } = await import("../src/conversas/Panels");
 const { ResearchRun } = await import("../src/conversas/ResearchRun");
-const { Shell } = await import("../src/conversas/Shell");
-const { Home } = await import("../src/conversas/Home");
+const { Shell, initialOf, isSearchShortcut } = await import("../src/conversas/Shell");
+const { Chat } = await import("../src/conversas/Chat");
 const { api, forgetCached } = await import("../src/conversas/api");
 
 const me = (remoteStores?: string[]): Me => ({
@@ -51,25 +52,38 @@ const result = (matches: { priceText: string; amount: number | null }[]): WatchR
 describe("moldura da web (T16)", () => {
   it("tem barra de cima, painéis à esquerda e o trabalho no meio", () => {
     const html = renderToStaticMarkup(
-      <Shell me={me()} current="conversas">
+      <Shell me={me()} onSearch={() => undefined} onProfile={() => undefined}>
         <p>conversa</p>
       </Shell>,
     );
-    expect(html).toContain('aria-current="page"');
     expect(html).toContain('aria-label="Seus painéis"');
     expect(html).toContain("Seus painéis");
     expect(html).toContain("conversa");
-    // The person's own page, where their data lives, is a section of the top bar.
-    expect(html).toMatch(/href="\/conversas\/perfil"[^>]*>Perfil</);
+    // No tabs any more: the search and the avatar (the person's initial) open their folhas.
+    expect(html).not.toContain('aria-label="Seções"');
+    expect(html).toMatch(/aria-label="Buscar nas mensagens"[^>]*>/);
+    expect(html).toMatch(/aria-haspopup="dialog" aria-expanded="false" aria-label="Seu perfil"/);
+    expect(html).toContain(">A<");
   });
 
-  it("o perfil fica marcado na barra quando está aberto", () => {
+  it("fora da conversa, a busca e o avatar levam à conversa com a folha aberta", () => {
     const html = renderToStaticMarkup(
-      <Shell me={me()} current="perfil">
-        <p>perfil</p>
+      <Shell me={me()}>
+        <p>painel</p>
       </Shell>,
     );
-    expect(html).toMatch(/aria-current="page"[^>]*href="\/conversas\/perfil"/);
+    expect(html).toContain('href="/conversas?buscar=1"');
+    expect(html).toContain('href="/conversas?perfil=1"');
+  });
+
+  it("a inicial do avatar e o atalho da busca", () => {
+    expect(initialOf("ana souza")).toBe("A");
+    expect(initialOf("  élio")).toBe("É");
+    expect(initialOf("")).toBe("?");
+    expect(isSearchShortcut({ key: "k", metaKey: true, ctrlKey: false, altKey: false, shiftKey: false })).toBe(true);
+    expect(isSearchShortcut({ key: "K", metaKey: false, ctrlKey: true, altKey: false, shiftKey: false })).toBe(true);
+    expect(isSearchShortcut({ key: "k", metaKey: false, ctrlKey: false, altKey: false, shiftKey: false })).toBe(false);
+    expect(isSearchShortcut({ key: "k", metaKey: true, ctrlKey: false, altKey: false, shiftKey: true })).toBe(false);
   });
 
   it("o uso da semana é uma porcentagem: US$ 1 por semana é o uso cheio", () => {
@@ -95,26 +109,17 @@ describe("moldura da web (T16)", () => {
     expect(researchNote(me(["mercadolivre.com.br", "dior.com"]))).toBeNull();
   });
 
-  it("a Home não fala de extensão", async () => {
+  it("a conversa única não tem lista de conversas nem fala de extensão", async () => {
     forgetCached();
-    const session = {
-      id: "s1",
-      title: "Fone para correr",
-      site: null,
-      category: null,
-      onboarding: false,
-      startedAt: "2026-11-10T12:00:00.000Z",
-      lastAt: "2026-11-10T12:00:00.000Z",
-      messages: 2,
-    };
-    vi.stubGlobal("fetch", async (url: string) =>
-      Response.json(String(url).endsWith("/me") ? me() : String(url).endsWith("/sessions") ? [session] : []),
-    );
-    await Promise.all([api.me(), api.sessions()]);
-    const html = renderToStaticMarkup(<Home />);
+    vi.stubGlobal("fetch", async (url: string) => Response.json(String(url).endsWith("/me") ? me() : []));
+    await api.me();
+    const html = renderToStaticMarkup(<Chat />);
     vi.unstubAllGlobals();
     forgetCached();
-    expect(html).toContain("Fone para correr");
+    expect(html).toContain('id="mensagem"');
+    expect(html).toContain("já dá para escrever");
+    expect(html).not.toContain("Suas conversas");
+    expect(html).not.toContain("Nova conversa");
     expect(html).not.toMatch(/extensão/i);
   });
 

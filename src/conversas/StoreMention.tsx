@@ -121,9 +121,10 @@ export function ChosenStores({
 }
 
 /** A message of the person, with the stores picked with @ for it as they were typed ("@Dior …"). */
-export function UserMessage(props: { text: string; stores?: readonly string[]; options?: readonly StoreOption[] }) {
+export function UserMessage(props: { text: string; stores?: readonly string[]; options?: readonly StoreOption[]; className?: string }) {
   return (
-    <p className="self-end rounded-panel bg-ink px-4 py-3 text-body text-on-ink">
+    <p className={props.className ?? "self-end rounded-panel bg-ink px-4 py-3 text-body text-on-ink"}>
+      <span className="sr-only">Você: </span>
       {props.stores?.map((domain) => (
         <span key={domain} className="font-medium">
           @{labelOf(props.options, domain)}{" "}
