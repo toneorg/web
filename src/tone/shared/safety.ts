@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@760dde3c1730 (packages/shared/src/safety.ts). Não edite aqui.
+// Gerado de toneorg/server@7ce7e4a891db (packages/shared/src/safety.ts). Não edite aqui.
 // RNF11: the agent never pays. This is enforced in code and not left to the
 // model: no checkout address is opened or linked, whatever the model asked.
 
@@ -39,6 +39,9 @@ export const IMAGE_HOSTS = [
   "ssl-images-amazon.com",
   "images-amazon.com",
   "mlstatic.com",
+  // Magalu's photo CDN and Shein's, from the stores read through Oxylabs.
+  "mlcdn.com.br",
+  "ltwebstatic.com",
   // Store CDNs of the stores read from their own search (VTEX stores, KaBuM).
   "vtexassets.com",
   "vteximg.com.br",

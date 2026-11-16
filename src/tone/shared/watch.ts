@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@760dde3c1730 (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/server@7ce7e4a891db (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -40,6 +40,8 @@ export const INDEX_STORES = [
   "pontofrio.com.br",
   "extra.com.br",
   "apple.com",
+  // 16/11/2026: read through Oxylabs (Brazilian store only, br.shein.com); not in Google Shopping.
+  "shein.com",
 ] as const;
 
 /**
