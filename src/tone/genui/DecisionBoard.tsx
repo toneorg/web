@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@b3447d8df18a (packages/genui-react/src/DecisionBoard.tsx). Não edite aqui.
+// Gerado de toneorg/server@760dde3c1730 (packages/genui-react/src/DecisionBoard.tsx). Não edite aqui.
 // T08: the decision board. The model writes only the decision id; the data
 // comes from the server with its evidence, and every button is the panel's:
 // it changes the decision as the person, opens a store page, or asks the agent.
@@ -190,7 +190,7 @@ function Candidate(props: {
               className="btn outline sm"
               onClick={() => onChange([{ type: "shortlist", candidateId: candidate.id, reason: "Escolha da pessoa" }])}
             >
-              Na lista curta
+              Pôr na lista curta
             </button>
           ) : null}
           {row.state !== "discarded" ? (

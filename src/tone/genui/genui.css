@@ -1,4 +1,4 @@
-/* Gerado de toneorg/server@b3447d8df18a (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/server@760dde3c1730 (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -19,6 +19,62 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Focus (DESIGN.md, Acessibilidade): 2 px ink ring, 2 px away. Named here because a page's own
+   ring in currentColor vanishes on a solid button, whose text is onInk. */
+:where(.genui, .card, .callout, .picked, .answer-rating, .rating-panel)
+:is(button, a, summary, select, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--tone-ink);
+  outline-offset: 2px;
+}
+
+/* Rows of a list, meta lines and notices: the pieces the components share with the page.
+   They lived in the extension's panel styles; the web loads only this file. */
+.list {
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-raised);
+  border-radius: var(--tone-radius-panel);
+  overflow: hidden;
+}
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--tone-space-md);
+  min-height: 60px;
+  padding: 10px var(--tone-space-xs) 10px var(--tone-space-lg);
+  border-bottom: 1px solid var(--tone-rule);
+}
+.list-row:last-child {
+  border-bottom: 0;
+}
+.list-row .body {
+  flex: 1;
+  min-width: 0;
+}
+.value {
+  font: 500 15px / 20px var(--tone-font-sans);
+  overflow-wrap: anywhere;
+}
+.value.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.meta {
+  margin: 0;
+  font: 400 13px / 18px var(--tone-font-sans);
+  color: var(--tone-graphite);
+}
+.notice {
+  margin: 0;
+  font: 400 14px / 20px var(--tone-font-sans);
+  color: var(--tone-graphite);
+}
+.notice.error {
+  font-weight: 500;
+  color: var(--tone-alert);
 }
 
 /* Buttons (components/button.md, neutral ground) */
@@ -98,6 +154,10 @@
   background: var(--tone-ink);
   color: var(--tone-on-ink);
 }
+.icon-btn.outline {
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-raised);
+}
 .icon-btn.solid:disabled {
   background: var(--tone-rule);
   color: var(--tone-graphite);
@@ -138,7 +198,7 @@
   box-shadow: var(--tone-shadow-raised);
   border-radius: var(--tone-radius-card);
   padding: var(--tone-space-xl);
-  animation: rise var(--tone-duration-rise) var(--tone-ease-soft) both;
+  animation: genui-rise var(--tone-duration-rise) var(--tone-ease-soft) both;
 }
 .card h3 {
   margin: 0 0 var(--tone-space-lg);
@@ -154,13 +214,16 @@
   flex-direction: column;
   gap: var(--tone-space-md);
 }
+/* A product: a surface of its own inside the card, so the photo (store photos are shot on white)
+   and the text sit on one ground; a sunken fill made the lower half a grey slab. */
 .product {
   display: grid;
   grid-template-columns: 76px 1fr;
   gap: var(--tone-space-md);
   padding: var(--tone-space-md);
   border-radius: var(--tone-radius-panel);
-  background: var(--tone-sunken);
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-raised);
 }
 .thumb {
   width: 76px;
@@ -182,21 +245,68 @@
   font: 600 17px / 23px var(--tone-font-sans);
   font-variant-numeric: tabular-nums;
 }
+/* Reasons: a small dot hung in the margin, so the text lines up with the title above it. */
 .reasons {
   margin: 0;
-  padding-left: 18px;
+  padding: 0;
+  list-style: none;
   font: 400 14px / 20px var(--tone-font-sans);
 }
+.reasons li {
+  position: relative;
+  padding-inline-start: 12px;
+}
+.reasons li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
 .caveat {
-  margin-top: var(--tone-space-xs);
+  margin: 0;
   font: 400 14px / 20px var(--tone-font-sans);
   color: var(--tone-graphite);
 }
+.product-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--tone-space-sm);
+}
+/* One row: the store link takes the room, picking and turning down are 44 px icons beside it. */
 .product .actions {
   grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--tone-space-sm);
+}
+.product .actions > :where(.btn) {
+  flex: 1 0 auto;
+}
+/* A narrow slide (the phone, the side panel) keeps the row: the link drops its icon first. */
+.product {
+  container-type: inline-size;
+}
+@container (max-width: 260px) {
+  .product .actions > .btn {
+    padding-inline: var(--tone-space-md);
+  }
+  .product .actions > .btn svg {
+    display: none;
+  }
+}
+.product-note,
+.product-reject {
+  flex-basis: 100%;
+  margin: 0;
+}
+.product-note:focus-visible {
+  outline-offset: 4px;
 }
 .tag {
   display: inline-block;
@@ -206,9 +316,13 @@
   background: var(--tone-ink);
   color: var(--tone-on-ink);
 }
+/* The quiet tag is a sunken chip, so its shape shows on a card; on a sunken block it turns surface. */
 .tag.quiet {
-  background: var(--tone-surface);
+  background: var(--tone-sunken);
   color: var(--tone-ink);
+}
+.list.flat :where(.tag.quiet) {
+  background: var(--tone-surface);
 }
 
 /* Comparison */
@@ -495,7 +609,7 @@ fieldset.field legend {
   display: grid;
   grid-auto-flow: column;
   /* The next card peeks in the narrow panel; on the wider web, cards keep the panel's width. */
-  grid-auto-columns: min(78%, 18rem);
+  grid-auto-columns: min(84%, 17.5rem);
   gap: var(--tone-space-sm);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
@@ -504,24 +618,33 @@ fieldset.field legend {
   padding: 0 var(--tone-space-xl) var(--tone-space-xs);
   scroll-padding: 0 var(--tone-space-xl);
 }
+/* A slide: the photo across the top, edge to edge, then the text and one row of actions
+   pinned to the bottom, so cards of different lengths end on the same line. */
 .product.slide {
   grid-template-columns: 1fr;
-  align-content: start;
+  grid-template-rows: auto 1fr auto;
   gap: 0;
   padding: 0;
+  overflow: hidden;
   scroll-snap-align: start;
 }
 .product.slide .thumb {
   width: 100%;
   height: auto;
   aspect-ratio: 4 / 3;
-  border-radius: var(--tone-radius-panel) var(--tone-radius-panel) 0 0;
+  border-radius: 0;
+  padding: var(--tone-space-md);
+  outline: 0;
+  border-bottom: 1px solid var(--tone-rule);
+}
+.product.slide div.thumb {
+  background: var(--tone-sunken);
 }
 .product.slide .product-body {
-  padding: var(--tone-space-lg) var(--tone-space-lg) 0;
+  padding: var(--tone-space-md) var(--tone-space-lg) 0;
 }
 .product.slide .actions {
-  padding: var(--tone-space-md) var(--tone-space-sm) var(--tone-space-sm) var(--tone-space-lg);
+  padding: var(--tone-space-md) var(--tone-space-lg) var(--tone-space-lg);
 }
 .carousel-hint {
   margin: var(--tone-space-md) 0 0;
@@ -883,10 +1006,42 @@ fieldset.field legend {
 }
 
 /* Decisions */
+/* Segmented (components/selection.md, bench): sunken rail, the chosen segment raised. */
+.segmented {
+  display: flex;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: var(--tone-space-xs);
+  border-radius: var(--tone-radius-full);
+  background: var(--tone-sunken);
+}
+.segmented button {
+  min-height: var(--tone-touch);
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--tone-radius-full);
+  background: transparent;
+  font: 500 15px / 20px var(--tone-font-sans);
+  color: var(--tone-graphite);
+  cursor: pointer;
+  transition: background-color var(--tone-duration-fast) var(--tone-ease-soft);
+}
+.segmented button[aria-pressed="true"],
+.segmented button[aria-selected="true"] {
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-raised);
+  color: var(--tone-ink);
+  font-weight: 600;
+}
 .segmented.compact {
   align-self: flex-start;
   display: inline-flex;
-  margin-bottom: var(--tone-space-md);
+  margin: var(--tone-space-sm) 0 var(--tone-space-md);
+}
+.segmented.compact button {
+  padding: 0 var(--tone-space-lg);
+  font-size: 14px;
 }
 .scenarios {
   display: flex;
@@ -1375,13 +1530,20 @@ fieldset.field legend {
   gap: var(--tone-space-md);
 }
 .path {
-  border-radius: var(--tone-radius-tile);
+  border-radius: var(--tone-radius-panel);
   background: var(--tone-sunken);
   padding: var(--tone-space-lg);
 }
 .path.first {
   background: var(--tone-surface);
   box-shadow: var(--tone-shadow-raised);
+}
+/* On a sunken path the rows turn surface, so they still read as a group. */
+.path:not(.first) .list.flat {
+  background: var(--tone-surface);
+}
+.path:not(.first) .list.flat :where(.tag.quiet) {
+  background: var(--tone-sunken);
 }
 .path .list {
   margin: var(--tone-space-sm) 0;
@@ -1442,6 +1604,13 @@ fieldset.field legend {
     animation: none;
   }
 }
+/* The link and what it is ("vídeo, publi") on one line; the kind wraps under it only when it must. */
+.reviews .review-sources li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--tone-space-xs);
+}
 .reviews .review-group > ul > li + li {
   margin-top: var(--tone-space-md);
   padding-top: var(--tone-space-md);
@@ -1449,17 +1618,32 @@ fieldset.field legend {
 }
 .review-sources {
   display: flex;
-  flex-wrap: wrap;
-  column-gap: var(--tone-space-md);
+  flex-direction: column;
+  margin-top: var(--tone-space-xs);
 }
-.review-sources a,
-.review-videos a {
+.review-sources a {
   display: inline-flex;
   align-items: center;
   gap: var(--tone-space-xs);
-  min-height: 44px;
+  min-height: var(--tone-touch);
   color: var(--tone-ink);
   text-underline-offset: 3px;
+}
+/* A read source: its title as a block link (the mark at the end of the text, not in a column of
+   its own), then what it is, under it. */
+.review-videos a {
+  display: block;
+  padding-block: 2px;
+  color: var(--tone-ink);
+  text-underline-offset: 3px;
+}
+.review-videos svg {
+  display: inline-block;
+  margin-inline-start: var(--tone-space-xs);
+  vertical-align: -2px;
+}
+.review-source-meta {
+  display: block;
 }
 .review-sides {
   display: grid;
@@ -1729,6 +1913,10 @@ html:has(.rating-sheet[open]) {
 .scale-pips .pip {
   width: 14px;
 }
+/* The scale has no words beside it on screen: its empty pips are drawn at 3:1 (control). */
+.scale-pips .pip:not(.on) {
+  background: var(--tone-control);
+}
 .compare-cards {
   display: none;
   margin: 0;
@@ -1737,14 +1925,16 @@ html:has(.rating-sheet[open]) {
   flex-direction: column;
   gap: var(--tone-space-md);
 }
+/* Each option a raised surface; the one for the person carries the ink ring of a chosen thing
+   and its tag. On sunken, the empty pips of a scale fell under 1.2:1 and the scale stopped reading. */
 .compare-card {
   padding: var(--tone-space-lg);
   border-radius: var(--tone-radius-panel);
-  background: var(--tone-sunken);
-}
-.compare-card.recommended {
   background: var(--tone-surface);
   box-shadow: var(--tone-shadow-raised);
+}
+.compare-card.recommended {
+  box-shadow: inset 0 0 0 2px var(--tone-ink);
 }
 .compare-card-head {
   display: flex;
@@ -1762,6 +1952,9 @@ html:has(.rating-sheet[open]) {
   margin: 0;
   display: flex;
   flex-direction: column;
+}
+.compare-cards dl > div:last-child {
+  border-bottom: 0;
 }
 .compare-cards dl > div {
   display: grid;
@@ -1808,7 +2001,7 @@ html:has(.rating-sheet[open]) {
   border-radius: var(--tone-radius-panel);
   background: var(--tone-surface);
   box-shadow: var(--tone-shadow-raised);
-  animation: rise var(--tone-duration-rise) var(--tone-ease-soft) both;
+  animation: genui-rise var(--tone-duration-rise) var(--tone-ease-soft) both;
 }
 .callout p {
   margin: 0;
@@ -1829,5 +2022,34 @@ html:has(.rating-sheet[open]) {
 @media (prefers-reduced-motion: reduce) {
   .callout {
     animation: none;
+  }
+}
+
+/* The staged entrance (DESIGN.md, Movimento), defined here so the components do not depend
+   on the page having one; and the dot of a research run. */
+@keyframes genui-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(4px);
+  }
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+  .btn:active,
+  .choice:active,
+  .option:active {
+    transform: none;
   }
 }

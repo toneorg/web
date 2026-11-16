@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@b3447d8df18a (packages/genui-react/src/Reviews.tsx). Não edite aqui.
+// Gerado de toneorg/server@760dde3c1730 (packages/genui-react/src/Reviews.tsx). Não edite aqui.
 // Síntese de reviews: what reviews say, as tone read them (spec 2026-11-03):
 // YouTube videos and, since 15/11/2026, blogs, Reddit threads and buyers'
 // reviews in stores. Every point names its sources and opens them (the video
@@ -53,6 +53,16 @@ function ratingText(source: ReviewSource): string | null {
   return `nota ${rating.format(source.rating)}${count}`;
 }
 
+/** The mark of a link that opens in a new tab, said to the screen reader as well. */
+function NewTab() {
+  return (
+    <>
+      <Icon name="external" size={14} stroke={1.5} />
+      <span className="visually-hidden"> (abre em nova aba)</span>
+    </>
+  );
+}
+
 interface Lookup {
   claims: Map<string, ReviewClaim>;
   videos: Map<string, ReviewVideo>;
@@ -77,9 +87,9 @@ function SourceLink(props: { claim: ReviewClaim } & Lookup) {
           title={claim.quote ?? claim.summary}
         >
           {video?.channel ?? "YouTube"} aos {clock(claim.atSeconds)}
-          <Icon name="external" size={14} stroke={1.5} />
+          <NewTab />
         </a>
-        <span className="small muted"> · {marks.join(", ")}</span>
+        <span className="small muted">({marks.join(", ")})</span>
       </li>
     );
   }
@@ -96,9 +106,9 @@ function SourceLink(props: { claim: ReviewClaim } & Lookup) {
         title={claim.quote ?? claim.summary}
       >
         {sourceName(page)}
-        <Icon name="external" size={14} stroke={1.5} />
+        <NewTab />
       </a>
-      <span className="small muted"> · {KIND[page.kind]}</span>
+      <span className="small muted">({KIND[page.kind]})</span>
     </li>
   );
 }
@@ -144,8 +154,12 @@ export function sourcesSummary(run: Pick<ReviewRunState, "videos" | "sources">):
 
 function moreLabel(synthesis: NonNullable<ReviewRunState["synthesis"]>, sources: number): string {
   const parts = [
-    synthesis.cautions.length ? `${synthesis.cautions.length} cuidados` : null,
-    synthesis.products.length ? `${synthesis.products.length} modelos citados` : null,
+    synthesis.cautions.length
+      ? `${synthesis.cautions.length} ${synthesis.cautions.length === 1 ? "cuidado" : "cuidados"}`
+      : null,
+    synthesis.products.length
+      ? `${synthesis.products.length} ${synthesis.products.length === 1 ? "modelo citado" : "modelos citados"}`
+      : null,
     `${sources} ${sources === 1 ? "fonte" : "fontes"}`,
   ];
   return parts.filter(Boolean).join(", ");
@@ -317,10 +331,9 @@ export function ReviewSynthesisCard(props: {
                       onClick={() => props.onOpen?.(video.id)}
                     >
                       {video.title}
+                      <NewTab />
                     </a>
-                    <span className="muted">
-                      {" "}
-                      ·{" "}
+                    <span className="muted review-source-meta">
                       {[
                         "vídeo",
                         video.channel,
@@ -341,10 +354,10 @@ export function ReviewSynthesisCard(props: {
                       onClick={() => props.onOpen?.(page.id)}
                     >
                       {page.title}
+                      <NewTab />
                     </a>
-                    <span className="muted">
-                      {" "}
-                      · {[KIND[page.kind], sourceName(page), ratingText(page)].filter(Boolean).join(" · ")}
+                    <span className="muted review-source-meta">
+                      {[KIND[page.kind], sourceName(page), ratingText(page)].filter(Boolean).join(" · ")}
                     </span>
                   </li>
                 ))}

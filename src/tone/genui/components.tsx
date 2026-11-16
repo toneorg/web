@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@b3447d8df18a (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@760dde3c1730 (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -11,7 +11,7 @@ import {
   OUTCOME_CHECK_PREFIX,
   OUTCOME_LABELS,
 } from "@/tone/shared";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { DecisionBoardLoader } from "./DecisionBoard";
 import { brl } from "./format";
 import { type Answer, dataOf, listOf, safeImage, useHost } from "./host";
@@ -114,21 +114,31 @@ function ProductCard(props: { product: ProductData; slide?: boolean }) {
   const host = useHost();
   const [rejecting, setRejecting] = useState(false);
   const [rejected, setRejected] = useState<RejectReason | null>(null);
+  // The reason buttons go away once one is chosen: focus moves to the note that replaces them.
+  const noted = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (rejected) noted.current?.focus();
+  }, [rejected]);
   const reasons = strings(product.reasons);
   const price = num(product.price);
+  const title = text(product.title);
+  const stars = num(product.rating);
+  const reviews = num(product.reviews);
   return (
     <article className={props.slide ? "product slide" : "product"}>
       <Thumb src={product.image} />
       <div className="product-body">
         {product.badge ? <span className="tag">{product.badge}</span> : null}
-        <div className="title">{text(product.title)}</div>
-        <div className="price">{brl(price)}</div>
-        {num(product.rating) !== null ? (
-          <div className="small muted">
-            Nota {rating(num(product.rating) as number)}
-            {num(product.reviews) ? ` · ${count(num(product.reviews) as number)} avaliações` : ""}
-          </div>
-        ) : null}
+        <div className="title">{title}</div>
+        <div className="product-price">
+          <span className="price">{brl(price)}</span>
+          {stars !== null ? (
+            <span className="small muted tabular">
+              Nota {rating(stars)}
+              {reviews ? ` · ${count(reviews)} avaliações` : ""}
+            </span>
+          ) : null}
+        </div>
         {reasons.length > 0 ? (
           <ul className="reasons">
             {reasons.map((reason) => (
@@ -136,27 +146,32 @@ function ProductCard(props: { product: ProductData; slide?: boolean }) {
             ))}
           </ul>
         ) : null}
-        {product.caveat ? <div className="caveat">Atenção: {product.caveat}</div> : null}
+        {product.caveat ? <p className="caveat">Atenção: {product.caveat}</p> : null}
       </div>
       {host.actionable ? (
         <div className="actions">
-          <OpenButton url={text(product.url)} title={text(product.title)} />
+          <OpenButton url={text(product.url)} title={title} />
           <PickButton product={product} />
-          {rejected ? (
-            <span className="small muted">Anotado: {REJECT_REASONS[rejected].toLowerCase()}</span>
-          ) : host.interactive ? (
+          {host.interactive && !rejected ? (
             <button
               type="button"
-              className="btn ghost sm"
+              className="icon-btn outline"
+              aria-label={`Não curti ${title}`}
+              title="Não curti"
               aria-expanded={rejecting}
               onClick={() => setRejecting(!rejecting)}
             >
-              <Icon name="thumbDown" size={16} /> Não curti
+              <Icon name="thumbDown" size={20} />
             </button>
           ) : null}
+          {rejected ? (
+            <p className="small muted product-note" ref={noted} tabIndex={-1}>
+              Anotado: {REJECT_REASONS[rejected].toLowerCase()}
+            </p>
+          ) : null}
           {rejecting && !rejected ? (
-            <fieldset className="field">
-              <legend className="visually-hidden">Por quê?</legend>
+            <fieldset className="field product-reject">
+              <legend className="small muted">Por que não curtiu?</legend>
               <div className="choices">
                 {(Object.keys(REJECT_REASONS) as RejectReason[]).map((reason) => (
                   <button
@@ -166,7 +181,7 @@ function ProductCard(props: { product: ProductData; slide?: boolean }) {
                     onClick={() => {
                       setRejected(reason);
                       setRejecting(false);
-                      host.act({ type: "reject", url: text(product.url), title: text(product.title), reason });
+                      host.act({ type: "reject", url: text(product.url), title, reason });
                     }}
                   >
                     {REJECT_REASONS[reason]}
@@ -181,7 +196,10 @@ function ProductCard(props: { product: ProductData; slide?: boolean }) {
   );
 }
 
-/** Takes the product to the composer, to ask about it or see its videos; a second tap lets it go. */
+/**
+ * Takes the product to the composer, to ask about it or see its videos; a second tap lets it go.
+ * An icon next to "Ver na loja", so the card keeps one row of actions; the name stays and the state is pressed.
+ */
 function PickButton(props: { product: ProductData }) {
   const host = useHost();
   const url = text(props.product.url);
@@ -191,8 +209,10 @@ function PickButton(props: { product: ProductData }) {
   return (
     <button
       type="button"
-      className={picked ? "btn solid sm" : "btn outline sm"}
+      className={picked ? "icon-btn solid" : "icon-btn outline"}
       aria-pressed={picked}
+      aria-label={`Selecionar ${title} para perguntar sobre ele`}
+      title={picked ? "Selecionado: toque de novo para tirar da conversa" : "Selecionar para perguntar sobre ele"}
       onClick={() =>
         host.act({
           type: "pick",
@@ -202,7 +222,7 @@ function PickButton(props: { product: ProductData }) {
         })
       }
     >
-      <Icon name={picked ? "check" : "plus"} size={16} /> {picked ? "Selecionado" : "Selecionar"}
+      <Icon name={picked ? "check" : "plus"} size={20} />
     </button>
   );
 }
@@ -228,7 +248,9 @@ const ProductCarousel: ComponentRenderer<{ title: string; products: unknown }> =
           ))}
         </div>
       )}
-      {products.length > 1 ? <p className="small muted carousel-hint">Arraste para ver os {products.length}.</p> : null}
+      {products.length > 1 ? (
+        <p className="small muted carousel-hint">Role para o lado para ver as {products.length} opções.</p>
+      ) : null}
     </section>
   );
 };
@@ -1008,18 +1030,20 @@ const DecisionSimulator: ComponentRenderer<{ question: string; scenarios: unknow
   return (
     <section className="card" aria-label={text(props.question)}>
       <p className="question">{text(props.question)}</p>
-      <div className="segmented compact" role="tablist" aria-label="Ordenar por">
+      {/* Two orders of the same list: pressed buttons in a group, not tabs (there is no tab panel). */}
+      <fieldset className="segmented compact">
+        <legend className="visually-hidden">Ordenar por</legend>
         {(
           [
             ["cost", "Menor custo"],
             ["risk", "Menor risco"],
           ] as const
         ).map(([key, label]) => (
-          <button key={key} type="button" role="tab" aria-selected={by === key} onClick={() => setBy(key)}>
+          <button key={key} type="button" aria-pressed={by === key} onClick={() => setBy(key)}>
             {label}
           </button>
         ))}
-      </div>
+      </fieldset>
       <ol className="scenarios">
         {ordered.map((scenario, index) => {
           const risk = RISK[scenario.risk] ?? RISK.medio;
