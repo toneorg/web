@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@7ce7e4a891db (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@557acb62cb2f (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -232,6 +232,9 @@ const Product: ComponentRenderer<ProductData> = ({ props }) => <ProductCard prod
 
 const ProductCarousel: ComponentRenderer<{ title: string; products: unknown }> = ({ props }) => {
   const products = listOf<ProductData>(props.products);
+  // A list with no product (named from another block, 16/11/2026) would be a bare title: drawn as nothing,
+  // and the server asks the model to write the block again.
+  if (!products.length) return null;
   return (
     <section className="card" aria-label={text(props.title)}>
       <h3>{text(props.title)}</h3>

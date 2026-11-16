@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@7ce7e4a891db (packages/shared/src/research-execution.ts). Não edite aqui.
+// Gerado de toneorg/server@557acb62cb2f (packages/shared/src/research-execution.ts). Não edite aqui.
 import * as z from "zod";
 import { evaluateRequirements, ResearchIntent, ResearchResult } from "./research";
 
@@ -10,6 +10,18 @@ export const ResearchRequest = z
       .optional()
       .describe(
         "Até três domínios relevantes do catálogo configurado para leitura direta; [] quando nenhum for adequado. Separado do escopo explícito da pessoa, que prevalece e pode ter mais lojas.",
+      ),
+    /**
+     * Other ways to search the same request (synonyms, color names, cut, style). Store searches that
+     * rank by words (Shein through a web search) read each one and pool the results, so a request with
+     * a color or a style is not left to whatever the first wording happens to bring.
+     */
+    queryVariants: z
+      .array(z.string().trim().min(2).max(100))
+      .max(4)
+      .optional()
+      .describe(
+        "Até quatro outras formas de buscar o mesmo pedido, em português, como a pessoa escreveria na loja: sinônimos, nomes da cor (off white, marfim, creme), corte, gola, tecido, estilo. Use sempre em roupa, calçado e acessório; omita em produto com modelo exato (iPhone 18, Sauvage EDP).",
       ),
     intent: ResearchIntent.extend({
       query: z.string().trim().min(1).max(200),

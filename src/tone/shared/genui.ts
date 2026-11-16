@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@7ce7e4a891db (packages/shared/src/genui.ts). Não edite aqui.
+// Gerado de toneorg/server@557acb62cb2f (packages/shared/src/genui.ts). Não edite aqui.
 // The components the agent draws in the panel, in OpenUI Lang (openui.com).
 // One definition, two consumers: the server turns it into the instructions the
 // model reads and checks what the model wrote; the panel gives each component
@@ -563,8 +563,10 @@ export interface CheckedProgram {
   ok: boolean;
   /** Component names used, root included. */
   components: string[];
-  /** Products the program shows, for the funnel. */
-  products: { title: string; url: string; price: number | null }[];
+  /** Products the program shows, for the funnel; claims is what the card says of it (reasons, caveat, badge). */
+  products: { title: string; url: string; price: number | null; claims?: string }[];
+  /** Product lists (carousel, matrix) left with no product: drawn, they would show only their title. */
+  emptyLists: string[];
   /** Questions it asks, with where each answer is kept. */
   questions: { question: string; memoryKey: string }[];
   errors: string[];
@@ -587,6 +589,7 @@ export function checkProgram(code: string): CheckedProgram {
   const components: string[] = [];
   const products: CheckedProgram["products"] = [];
   const questions: CheckedProgram["questions"] = [];
+  const emptyLists: string[] = [];
   const visit = (value: unknown) => {
     if (Array.isArray(value)) {
       for (const item of value) visit(item);
@@ -608,12 +611,26 @@ export function checkProgram(code: string): CheckedProgram {
         questions.push({ question: String(props.statement ?? ""), memoryKey: String(props.memoryKey ?? "") });
       if (name === "OutcomeCheck")
         questions.push({ question: String(props.question ?? ""), memoryKey: String(props.situationId ?? "") });
-      if (name === "Product" || name === "ShortlistItem")
+      if (name === "Product" || name === "ShortlistItem") {
+        const claims = [
+          ...(Array.isArray(props.reasons) ? props.reasons.map(String) : []),
+          typeof props.caveat === "string" ? props.caveat : "",
+          typeof props.badge === "string" ? props.badge : "",
+        ]
+          .filter(Boolean)
+          .join(" | ");
         products.push({
           title: String(props.title ?? ""),
           url: String(props.url ?? ""),
           price: typeof props.price === "number" ? props.price : null,
+          ...(claims ? { claims } : {}),
         });
+      }
+      if (
+        (name === "ProductCarousel" || name === "ComparisonMatrix") &&
+        !(Array.isArray(props.products) && props.products.some((item) => item && typeof item === "object"))
+      )
+        emptyLists.push(name);
       if (name === "PreferenceChips" || name === "VisualChoice" || name === "QuizStep")
         questions.push({ question: String(props.question ?? ""), memoryKey: String(props.memoryKey ?? "") });
       for (const child of Object.values(props)) visit(child);
@@ -624,5 +641,6 @@ export function checkProgram(code: string): CheckedProgram {
     ...result.meta.errors.map((error) => error.message),
     ...result.meta.unresolved.map((name) => `referência sem definição: ${name}`),
   ];
-  return { ok: result.root !== null && errors.length === 0, components, products, questions, errors };
+  for (const name of emptyLists) errors.push(`${name} sem nenhum produto definido`);
+  return { ok: result.root !== null && errors.length === 0, components, products, questions, emptyLists, errors };
 }

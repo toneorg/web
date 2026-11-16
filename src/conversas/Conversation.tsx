@@ -93,6 +93,9 @@ const uid = () => `w${Date.now().toString(36)}${(++counter).toString(36)}`;
  * One line of a saved conversation as this page draws it. With `index`, its key is its place in the
  * session's transcript (`lineKey`), which is what a search result points at.
  */
+/** A click on Parar this soon after sending is the second click of a double click on Enviar. */
+const STOP_GRACE_MS = 700;
+
 export function itemsOf(item: TranscriptItem, session = "", index?: number): Item[] {
   const line = { id: index === undefined ? uid() : lineKey(session, index), session, old: true as const, ...(item.at ? { at: item.at } : {}) };
   if (item.kind === "user") return [{ ...line, kind: "user", text: item.text, ...(item.stores?.length ? { stores: item.stores } : {}) }];
@@ -229,6 +232,9 @@ export function Conversation(props: {
     if (brought) setPicked(brought);
   }, [liveId]);
   const controller = useRef<AbortController | null>(null);
+  // When the running turn started: Parar takes the place of Enviar under the pointer, and on 16/11/2026
+  // a double click on Enviar stopped the turn 160 ms after it began (the person sent it again).
+  const turnStartedAt = useRef(0);
   const bottom = useRef<HTMLDivElement>(null);
   const top = useRef<HTMLDivElement>(null);
 
@@ -503,6 +509,7 @@ export function Conversation(props: {
     async (input: TurnInput, session: string) => {
       const abort = new AbortController();
       controller.current = abort;
+      turnStartedAt.current = performance.now();
       setBusy(true);
       let assistant: string | null = null;
       const started = performance.now();
@@ -811,6 +818,8 @@ export function Conversation(props: {
   }, [outbox, state, busy, send, runTurn, onOutboxSent]);
 
   const stop = () => {
+    // The second click of a double click on Enviar lands here: not a request to stop.
+    if (performance.now() - turnStartedAt.current < STOP_GRACE_MS) return;
     controller.current?.abort();
     setItems((list) => [
       ...list,
