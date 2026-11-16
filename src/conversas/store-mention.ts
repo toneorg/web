@@ -9,7 +9,6 @@ export interface Mention {
 }
 
 const MAX_QUERY = 30;
-const MAX_OPTIONS = 8;
 
 const fold = (value: string) =>
   value
@@ -29,7 +28,10 @@ export function mentionAt(text: string, caret: number): Mention | null {
   return { start: at, query };
 }
 
-/** Stores whose name or domain holds the term, names starting with it first; picked ones left out. */
+/**
+ * Stores whose name or domain holds the term, names starting with it first; picked ones left out.
+ * All of them: the list scrolls, and a cap hid every store after the first letters (Fast Shop, Shein).
+ */
 export function filterStores(stores: readonly StoreOption[], query: string, picked: readonly string[]): StoreOption[] {
   const term = fold(query);
   const compact = term.replace(/ /g, "");
@@ -40,8 +42,7 @@ export function filterStores(stores: readonly StoreOption[], query: string, pick
       (a, b) =>
         Number(fold(b.label).startsWith(term)) - Number(fold(a.label).startsWith(term)) ||
         a.label.localeCompare(b.label, "pt-BR"),
-    )
-    .slice(0, MAX_OPTIONS);
+    );
 }
 
 /** The text without the "@term", and where the caret goes. */

@@ -130,6 +130,13 @@ async function readSessions(sessions: ChatSession[]): Promise<Item[]> {
 const FIRST_LINES = 16;
 const FIRST_SESSIONS = 3;
 
+/**
+ * To the end of the page at once. The html scrolls smoothly (globals.css), and a chat that opens
+ * must already be on its newest message, not animate down from the top. The end of the document,
+ * not the last line, so the last line sits above the sticky composer instead of under it.
+ */
+const toEnd = () => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
+
 /** Where "←" goes from a panel's conversation: back to its panel. */
 export function backLink(panelId: string | null, panelTitle: string | null): { href: string; label: string } {
   return panelId
@@ -343,7 +350,7 @@ export function Conversation(props: {
     anchor.current = null;
     // Reading the newest lines: older ones coming in above do not move the view off the bottom.
     if (atBottom.current) {
-      bottom.current?.scrollIntoView({ block: "end" });
+      toEnd();
       return;
     }
     const element = document.querySelector<HTMLElement>(`[data-line="${CSS.escape(kept.id)}"]`);
@@ -395,7 +402,7 @@ export function Conversation(props: {
     const frame = requestAnimationFrame(() => {
       const element = document.querySelector<HTMLElement>(`[data-line="${CSS.escape(line.id)}"]`);
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      element?.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      element?.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
       element?.focus({ preventScroll: true });
       setFound(line.id);
       onArrived?.(true);
@@ -462,8 +469,19 @@ export function Conversation(props: {
   }, []);
   const lastId = tail?.id;
   useEffect(() => {
-    if (atBottom.current) bottom.current?.scrollIntoView({ block: "end" });
+    if (atBottom.current) toEnd();
   }, [lastId, growth]);
+  // Lines that grow after they are drawn (a research card, reviews, photos loading) keep the
+  // bottom in view while the person is reading the newest message.
+  useEffect(() => {
+    const content = bottom.current?.parentElement;
+    if (!content) return;
+    const observer = new ResizeObserver(() => {
+      if (atBottom.current) toEnd();
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [state]);
 
   const fold = useCallback(
     (event: Extract<AgentEvent, { type: "progress" | "research_result" }>, session: string) =>

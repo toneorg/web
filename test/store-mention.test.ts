@@ -29,6 +29,18 @@ describe("menção de loja com @", () => {
     // The name starting with the words comes first.
     expect(filterStores(stores, "s", [])[0]?.domain).toBe("sephora.com.br");
   });
+  it("lista todas as lojas só com o @, não só as primeiras do alfabeto", () => {
+    const many: StoreOption[] = [
+      ...stores,
+      ...["Amazon Brasil", "Americanas", "Apple", "C&A", "Carrefour", "Casas Bahia", "Fast Shop", "Shein"].map(
+        (label) => ({ domain: `${label.toLowerCase().replace(/\W/g, "")}.com.br`, label, reading: "index" as const }),
+      ),
+    ];
+    const labels = filterStores(many, "", []).map((s) => s.label);
+    expect(labels).toHaveLength(many.length);
+    expect(labels).toContain("Fast Shop");
+    expect(labels).toContain("Shein");
+  });
   it("troca o @termo pela loja: o texto fica sem a menção e o cursor no lugar dela", () => {
     expect(pickStore("perfume @sep para mim", { start: 8, query: "sep" })).toEqual({
       text: "perfume para mim",
