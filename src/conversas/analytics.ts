@@ -38,6 +38,9 @@ export type WebEvent =
   | "conversation_turn_failed"
   | "conversation_turn_stopped"
   | "conversation_reply_selected"
+  // The menu of a message (right click, long press): role only, never the text.
+  | "message_copied"
+  | "message_reply_started"
   | "product_picked"
   | "product_unpicked"
   | "store_mentioned"

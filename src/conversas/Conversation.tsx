@@ -34,6 +34,7 @@ import {
   type Watch,
   type WatchResult,
   watchTitle,
+  type ReplyTo,
 } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { since, track } from "./analytics";
@@ -45,6 +46,7 @@ import { takePicked } from "./picked-handoff";
 import { PhotoPicker, PhotoReference, usePhoto } from "./PhotoReference";
 import { ResearchRun } from "./ResearchRun";
 import { Shell } from "./Shell";
+import { MessageMenu, messageMenuHandlers } from "./MessageMenu";
 import { ChosenStores, StoreOptions, UserMessage } from "./StoreMention";
 import { filterStores, type Mention, mentionAt, pickStore } from "./store-mention";
 import { SignIn } from "./SignIn";
@@ -57,9 +59,17 @@ type Line = { id: string; session: string; at?: string; old?: true };
 export type Item = Line &
   (
     /** `stores`: the stores picked with @ for this message, drawn with it. */
-    | { kind: "user"; text: string; stores?: string[] }
+    /** `replyTo`: the message it answers, drawn above it. `messageId`: the stored message, for Responder. */
+    | { kind: "user"; text: string; stores?: string[]; replyTo?: ReplyTo; messageId?: string }
     /** `turn` is the turn it answers, for the thumbs under it; the greeting has none. */
-    | { kind: "assistant"; text: string; streaming?: boolean; turn?: number; rating?: AnswerRatingValue | null }
+    | {
+        kind: "assistant";
+        text: string;
+        streaming?: boolean;
+        turn?: number;
+        rating?: AnswerRatingValue | null;
+        messageId?: string;
+      }
     /** `saved`: read back from the conversation, so it is not announced again as it loads. */
     | { kind: "notice"; text: string; error?: boolean; saved?: boolean }
     /** A frame saved in an old conversation, drawn by the same components as an answer. */
@@ -96,12 +106,41 @@ const uid = () => `w${Date.now().toString(36)}${(++counter).toString(36)}`;
 /** A click on Parar this soon after sending is the second click of a double click on Enviar. */
 const STOP_GRACE_MS = 700;
 
+/** The words of a message as the person reads them: an answer without its component blocks. */
+function messageText(item: Extract<Item, { kind: "user" | "assistant" }>): string {
+  if (item.kind === "user") return item.text;
+  return splitAnswer(item.text)
+    .flatMap((part) => (part.kind === "text" ? [part.text] : []))
+    .join("\n\n")
+    .trim();
+}
+
 export function itemsOf(item: TranscriptItem, session = "", index?: number): Item[] {
   const line = { id: index === undefined ? uid() : lineKey(session, index), session, old: true as const, ...(item.at ? { at: item.at } : {}) };
-  if (item.kind === "user") return [{ ...line, kind: "user", text: item.text, ...(item.stores?.length ? { stores: item.stores } : {}) }];
+  if (item.kind === "user")
+    return [
+      {
+        ...line,
+        kind: "user",
+        text: item.text,
+        ...(item.stores?.length ? { stores: item.stores } : {}),
+        ...(item.replyTo ? { replyTo: item.replyTo } : {}),
+        ...(item.messageId ? { messageId: item.messageId } : {}),
+      },
+    ];
   // Why a message was left without an answer (the model failed, the balance ran out).
   if (item.kind === "notice") return [{ ...line, kind: "notice", error: true, saved: true, text: item.text }];
-  if (item.kind === "assistant") return [{ ...line, kind: "assistant", text: item.text, turn: item.turn, rating: item.rating ?? null }];
+  if (item.kind === "assistant")
+    return [
+      {
+        ...line,
+        kind: "assistant",
+        text: item.text,
+        turn: item.turn,
+        rating: item.rating ?? null,
+        ...(item.messageId ? { messageId: item.messageId } : {}),
+      },
+    ];
   const media = item.component.name === MEDIA_COMPONENT ? ProductMedia.safeParse(item.component.props) : null;
   if (media?.success) return [{ ...line, kind: "media", media: media.data }];
   const code = savedFrameCode(item.component);
@@ -225,6 +264,17 @@ export function Conversation(props: {
   const [busy, setBusy] = useState(false);
   /** The product picked from a component: it goes with every message until the person lets it go. */
   const [picked, setPicked] = useState<PickedProduct | null>(null);
+  /** The message the next one answers ("Responder" in a message's menu), shown above the composer. */
+  const [reply, setReply] = useState<ReplyTo | null>(null);
+  /** The menu of a message (right click, long press): which message, and where. */
+  const [menuFor, setMenuFor] = useState<{ id: string; at: { x: number; y: number } } | null>(null);
+  /** "Copiado" for a moment after Copiar, said to the screen reader too. */
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
   // "Perguntar" on a panel's page brings the product along, once.
   useEffect(() => {
     if (!liveId) return;
@@ -615,13 +665,14 @@ export function Conversation(props: {
   );
 
   /** A line said now by the person, in `session`. */
-  const said = (session: string, text: string, stores: string[] = []): Item => ({
+  const said = (session: string, text: string, stores: string[] = [], replyTo?: ReplyTo): Item => ({
     id: uid(),
     session,
     at: new Date().toISOString(),
     kind: "user",
     text,
     ...(stores.length ? { stores } : {}),
+    ...(replyTo ? { replyTo } : {}),
   });
   /** Opening the next session failed: the message stays in the field, and the chat says why. */
   const unopened = (error: unknown) => {
@@ -649,10 +700,13 @@ export function Conversation(props: {
       setMention(null);
       // The picked product goes with this message, then the bar lets it go: the person used it.
       if (picked) setPicked(null);
+      const replyTo = reply ?? undefined;
+      setReply(null);
       atBottom.current = true;
-      setItems((list) => [...list, said(session, trimmed, stores)]);
+      setItems((list) => [...list, said(session, trimmed, stores, replyTo)]);
       track("conversation_message_sent", {
         with_product: Boolean(picked),
+        ...(replyTo ? { reply: replyTo.role } : {}),
         length: trimmed.length,
         turn: items.filter((item) => item.kind === "user" && item.session === session).length + 1,
       });
@@ -662,12 +716,13 @@ export function Conversation(props: {
           text: trimmed,
           ...(picked ? { product: picked } : {}),
           ...(stores.length ? { stores } : {}),
+          ...(replyTo ? { replyTo } : {}),
         },
         session,
       );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [busy, items, picked, runTurn, state, chosenStores, ensureSession],
+    [busy, items, picked, runTurn, state, chosenStores, ensureSession, reply],
   );
 
   /** "Buscar parecidos": the message goes with the photo, so the agent can compare it with the candidates. */
@@ -857,6 +912,12 @@ export function Conversation(props: {
         return;
       }
     }
+    // Escape lets go of the message being answered.
+    if (event.key === "Escape" && reply) {
+      event.preventDefault();
+      setReply(null);
+      return;
+    }
     // Enter sends, Shift+Enter breaks the line; while composing an accent (IME) Enter is the IME's.
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
@@ -899,6 +960,49 @@ export function Conversation(props: {
       ),
     );
   };
+  // The menu of a message: Copiar, Responder and, on an answer, the thumbs of its turn.
+  const menuItem = menuFor ? items.find((item) => item.id === menuFor.id) : undefined;
+  const menuMessage = menuItem && (menuItem.kind === "user" || menuItem.kind === "assistant") ? menuItem : null;
+  const closeMenu = () => {
+    // The focus goes back to the message the menu came from.
+    if (menuFor) document.querySelector<HTMLElement>(`[data-line="${CSS.escape(menuFor.id)}"]`)?.focus({ preventScroll: true });
+    setMenuFor(null);
+  };
+  const copyMessage = async (item: Extract<Item, { kind: "user" | "assistant" }>) => {
+    try {
+      await navigator.clipboard.writeText(messageText(item));
+      setCopied(true);
+      track("message_copied", { role: item.kind });
+    } catch {
+      // Without clipboard permission the text can still be selected by hand: nothing to say.
+    }
+  };
+  const replyToMessage = (item: Extract<Item, { kind: "user" | "assistant" }>) => {
+    setReply({
+      sessionId: item.session,
+      ...(item.messageId ? { messageId: item.messageId } : {}),
+      role: item.kind,
+      text: (messageText(item) || "(componentes)").slice(0, 600),
+    });
+    track("message_reply_started", { role: item.kind, old: Boolean(item.old) });
+    requestAnimationFrame(() => box.current?.focus());
+  };
+  /** The line a reply quotes, when it is loaded: a tap on the quote goes there. */
+  const quoted = (target: ReplyTo) =>
+    items.find(
+      (item) =>
+        item.kind === target.role &&
+        ((target.messageId && item.messageId === target.messageId) ||
+          (item.session === target.sessionId && messageText(item).startsWith(target.text.slice(0, 60)))),
+    );
+  const goToLine = (id: string) => {
+    const element = document.querySelector<HTMLElement>(`[data-line="${CSS.escape(id)}"]`);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    atBottom.current = false;
+    element?.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
+    element?.focus({ preventScroll: true });
+    setFound(id);
+  };
   // An answer's buttons work only on the last answer, while its session is still the one going on.
   const stillGoing = live.current ? !startsNewSession(live.current.lastAt) || Boolean(panel) : false;
   const hostFor = (item: Item): ProgramHost => ({
@@ -938,17 +1042,28 @@ export function Conversation(props: {
   const draw = (item: Item, index: number) => {
     const day = days.get(index);
     const mark = found === item.id ? "found" : "";
-    const line = (children: ReactNode, className = "") => (
-      <div key={item.id} data-line={item.id} tabIndex={-1} className={`scroll-mt-24 scroll-mb-40 rounded-panel focus:outline-none ${mark} ${className}`}>
+    const line = (children: ReactNode, className = "", handlers: object = {}) => (
+      <div key={item.id} data-line={item.id} tabIndex={-1} className={`scroll-mt-24 scroll-mb-40 rounded-panel focus:outline-none ${mark} ${className}`} {...handlers}>
         {children}
       </div>
     );
+    const menuHandlers = messageMenuHandlers((at) => setMenuFor({ id: item.id, at }));
     let body: ReactNode;
-    if (item.kind === "user")
+    if (item.kind === "user") {
+      const answered = item.replyTo ? quoted(item.replyTo) : undefined;
       body = line(
-        <UserMessage text={item.text} stores={item.stores} options={me?.stores} className={`${bubble} rounded-ee-tag bg-ink text-on-ink`} />,
+        <UserMessage
+          text={item.text}
+          stores={item.stores}
+          options={me?.stores}
+          quote={item.replyTo ? { ...item.replyTo, onOpen: answered ? () => goToLine(answered.id) : undefined } : undefined}
+          // The page's selection is ink on on-ink, the bubble's own colors: inverted here, or a selection is invisible.
+          className={`${bubble} rounded-ee-tag bg-ink text-on-ink selection:bg-on-ink selection:text-ink [-webkit-touch-callout:none]`}
+        />,
         `ms-auto ${bubbleWidth}`,
+        menuHandlers,
       );
+    }
     else if (item.kind === "notice")
       body = line(
         <p
@@ -968,7 +1083,11 @@ export function Conversation(props: {
         <div className="flex flex-col items-start gap-2">
           {splitAnswer(item.text).map((part, at) =>
             part.kind === "text" ? (
-              <p key={at} className={`${bubble} ${bubbleWidth} rounded-es-tag bg-surface text-ink shadow-raised`}>
+              <p
+                key={at}
+                className={`${bubble} ${bubbleWidth} rounded-es-tag bg-surface text-ink shadow-raised [-webkit-touch-callout:none]`}
+                {...(item.streaming ? {} : menuHandlers)}
+              >
                 {at === 0 ? <span className="sr-only">tone: </span> : null}
                 {part.text}
               </p>
@@ -1018,6 +1137,46 @@ export function Conversation(props: {
           }}
         />
       ) : null}
+      <p role="status" className={copied ? "text-small text-graphite" : "sr-only"}>
+        {copied ? "Mensagem copiada." : ""}
+      </p>
+      {menuMessage && menuFor ? (
+        <MessageMenu
+          at={menuFor.at}
+          onClose={() => closeMenu()}
+          onCopy={() => void copyMessage(menuMessage)}
+          onReply={() => replyToMessage(menuMessage)}
+          rating={
+            menuMessage.kind === "assistant" && menuMessage.turn
+              ? {
+                  value: menuMessage.rating ?? null,
+                  onRate: (value) => void rate(menuMessage.session, menuMessage.turn ?? 0, value),
+                }
+              : null
+          }
+        />
+      ) : null}
+      {reply ? (
+        <div className="flex items-center gap-2 rounded-panel bg-surface py-1 pe-1 ps-4 shadow-raised">
+          <div className="min-w-0 flex-1 border-s-2 border-ink py-1.5 ps-3">
+            <p className="text-caption font-medium text-graphite">{reply.role === "assistant" ? "Respondendo à tone" : "Respondendo à sua mensagem"}</p>
+            <p className="line-clamp-2 text-small text-ink">{reply.text}</p>
+          </div>
+          <button
+            type="button"
+            aria-label="Cancelar a resposta"
+            onClick={() => {
+              setReply(null);
+              box.current?.focus();
+            }}
+            className="press grid size-11 shrink-0 place-items-center rounded-full text-ink hover:bg-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+      ) : null}
       <PhotoReference state={photo} busy={busy} onSearch={(reference) => void searchWithPhoto(reference)} />
       <ChosenStores
         stores={me?.stores ?? []}
@@ -1055,7 +1214,9 @@ export function Conversation(props: {
           aria-activedescendant={listOpen ? `lojas-mencao-${Math.min(activeStore, storeOptions.length - 1)}` : undefined}
           enterKeyHint="send"
           placeholder={
-            state === "loading"
+            reply
+              ? "Responder à mensagem"
+              : state === "loading"
               ? "Carregando… já dá para escrever"
               : me?.stores?.length
                 ? "Mensagem · @ para lojas"

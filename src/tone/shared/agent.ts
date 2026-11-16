@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@557acb62cb2f (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@c05254edc8f8 (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -28,6 +28,20 @@ export const PickedProduct = z.object({
 });
 export type PickedProduct = z.infer<typeof PickedProduct>;
 
+/**
+ * The message a person answers by "Responder": where it is (session and, when the screen knows it,
+ * the stored message id) and what it said, so the server reads that part of the conversation again.
+ */
+export const ReplyTo = z.object({
+  sessionId: z.string().min(1).max(60),
+  /** The stored message (`messageId` of a transcript line); missing for a line said in this visit. */
+  messageId: z.string().min(1).max(30).optional(),
+  role: z.enum(["user", "assistant"]),
+  /** The text as the screen shows it, cut: the quote drawn with the reply, and the key when there is no id. */
+  text: z.string().min(1).max(600),
+});
+export type ReplyTo = z.infer<typeof ReplyTo>;
+
 export const TurnInput = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("message"),
@@ -42,6 +56,8 @@ export const TurnInput = z.discriminatedUnion("type", [
     watchId: z.string().min(1).max(60).optional(),
     /** Stores picked with @ in the composer: this message's searches look only there. */
     stores: z.array(z.string().min(3).max(80)).max(10).optional(),
+    /** The message this one answers ("Responder" on a message). */
+    replyTo: ReplyTo.optional(),
   }),
   z.object({
     type: z.literal("ui_answer"),
@@ -100,11 +116,16 @@ export const TranscriptItem = z.discriminatedUnion("kind", [
     text: z.string(),
     /** The stores picked with @ for this message (domains), drawn with it again when it is reopened. */
     stores: z.array(z.string()).optional(),
+    /** The message it answered, drawn above it as a quote. */
+    replyTo: ReplyTo.optional(),
+    /** The stored message, for "Responder" (see ReplyTo). */
+    messageId: z.string().optional(),
     at: SaidAt,
   }),
   z.object({
     kind: z.literal("assistant"),
     text: z.string(),
+    messageId: z.string().optional(),
     /** The turn it answers (how many messages the person had sent); the greeting has none. */
     turn: z.number().int().min(1).optional(),
     /** The thumb the person gave this turn, if any. */

@@ -123,9 +123,41 @@ export function ChosenStores({
 }
 
 /** A message of the person, with the stores picked with @ for it as they were typed ("@Dior …"). */
-export function UserMessage(props: { text: string; stores?: readonly string[]; options?: readonly StoreOption[]; className?: string }) {
+export function UserMessage(props: {
+  text: string;
+  stores?: readonly string[];
+  options?: readonly StoreOption[];
+  className?: string;
+  /** The message this one answers ("Responder"); `onOpen` goes to it when it is loaded. */
+  quote?: { role: "user" | "assistant"; text: string; onOpen?: () => void };
+}) {
+  const quote = props.quote;
+  const quoteBody = quote ? (
+    <>
+      <span className="block text-caption font-medium">{quote.role === "assistant" ? "tone" : "Você"}</span>
+      <span className="line-clamp-2 block whitespace-normal">{quote.text}</span>
+    </>
+  ) : null;
+  const quoteClass = "mb-2 block w-full border-s-2 border-on-ink ps-3 text-start text-small opacity-80";
   return (
     <p className={props.className ?? "self-end rounded-panel bg-ink px-4 py-3 text-body text-on-ink"}>
+      {quote ? (
+        quote.onOpen ? (
+          <button
+            type="button"
+            onClick={quote.onOpen}
+            aria-label={`Ir para a mensagem respondida: ${quote.text.slice(0, 80)}`}
+            className={`${quoteClass} rounded-e-tag hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-ink`}
+          >
+            {quoteBody}
+          </button>
+        ) : (
+          <span className={quoteClass}>
+            <span className="sr-only">Em resposta a: </span>
+            {quoteBody}
+          </span>
+        )
+      ) : null}
       <span className="sr-only">Você: </span>
       {props.stores?.map((domain) => (
         <span key={domain} className="font-medium">
