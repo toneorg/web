@@ -3,17 +3,18 @@
 // time, the invite code (made for one e-mail) opens the onboarding: name,
 // password and the consent. A forgotten password goes by e-mail: the link
 // (?redefinir=TOKEN) opens the step that sets a new one.
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { type InviteInfo, PASSWORD_MIN } from "@/tone/shared";
 import { track } from "./analytics";
 import { ApiError, api } from "./api";
+import { field as baseField } from "./ui";
 
-const field =
-  "min-h-13 w-full rounded-input border border-rule bg-surface px-4 text-body text-ink focus-visible:outline-2 focus-visible:outline-ink aria-invalid:outline-2 aria-invalid:outline-alert read-only:bg-sunken read-only:text-graphite";
+const field = `${baseField} read-only:bg-sunken read-only:text-graphite`;
 const primary =
   "min-h-13 rounded-full bg-ink px-7 text-ui text-on-ink disabled:bg-rule disabled:text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+// The text of a quiet link lines up with the fields' edge; its padding stays for the touch area.
 const quiet =
-  "min-h-11 self-start rounded-full px-4 text-ui text-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ink";
+  "-ms-4 min-h-11 self-start rounded-full px-4 text-ui text-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ink";
 const label = "text-body font-medium text-ink";
 
 /** What the test collects and why. */
@@ -24,7 +25,7 @@ const CONSENT = [
   "Na web, como você usa as telas: cliques, erros e uma gravação da tela com o texto que você digita e as conversas mascarados.",
   "Serve só para testar o produto, e só a equipe da tone que conduz o teste vê.",
   "Os textos são processados por provedores de modelos de IA (OpenRouter e TypeSafe) para gerar as respostas.",
-  "Eu nunca pago nem finalizo uma compra. Você vê, corrige e apaga tudo em “Você”, quando quiser.",
+  "Eu nunca pago nem finalizo uma compra. Você vê, corrige e apaga tudo em “Seu perfil”, quando quiser.",
 ];
 
 type Step = "signin" | "invite" | "onboarding" | "forgot" | "sent" | "reset";
@@ -81,6 +82,7 @@ export function SignIn(props: {
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const frame = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (linked && !resetToken) track("invite_link_opened");
@@ -131,6 +133,8 @@ export function SignIn(props: {
         reason: failure instanceof ApiError ? "api" : "validation",
       });
       setError(failure instanceof ApiError || failure instanceof Error ? failure.message : "Não deu certo. Tente de novo.");
+      // The keyboard goes back to the first field to fix.
+      requestAnimationFrame(() => frame.current?.querySelector<HTMLElement>('form [aria-invalid="true"]')?.focus());
     } finally {
       setBusy(false);
     }
@@ -142,6 +146,7 @@ export function SignIn(props: {
   const Title = props.embedded ? "h2" : "h1";
   return (
     <Frame
+      ref={frame}
       id={props.embedded ? "entrar" : "conteudo"}
       aria-labelledby="entrar-titulo"
       className={props.embedded ? "flex w-full flex-col gap-6" : "mx-auto flex w-full max-w-md flex-col gap-6 px-5 py-12"}
@@ -160,6 +165,8 @@ export function SignIn(props: {
           className="flex flex-col gap-3"
           onSubmit={(event) =>
             void run(event, async () => {
+              if (!email.includes("@")) throw new Error("Digite o e-mail da sua conta.");
+              if (!password) throw new Error("Digite sua senha.");
               await api.signIn(email, password);
               track("sign_in_completed", { method: "password" });
               props.onDone();
@@ -174,7 +181,7 @@ export function SignIn(props: {
             Senha
           </label>
           <input id="senha" type="password" className={field} autoComplete="current-password" value={password} aria-invalid={invalid} aria-describedby={described} onChange={(event) => setPassword(event.target.value)} />
-          <button type="submit" className={primary} disabled={busy || !email.includes("@") || !password}>
+          <button type="submit" className={primary} disabled={busy}>
             {busy ? "Entrando…" : "Entrar"}
           </button>
           <button type="button" className={quiet} onClick={() => go("forgot")}>
@@ -186,6 +193,7 @@ export function SignIn(props: {
           className="flex flex-col gap-3"
           onSubmit={(event) =>
             void run(event, async () => {
+              if (!email.includes("@")) throw new Error("Digite o e-mail da sua conta.");
               await api.forgotPassword(email.trim());
               track("password_reset_requested");
               go("sent");
@@ -208,7 +216,7 @@ export function SignIn(props: {
             aria-describedby={described ?? "esqueci-dica"}
             onChange={(event) => setEmail(event.target.value)}
           />
-          <button type="submit" className={primary} disabled={busy || !email.includes("@")}>
+          <button type="submit" className={primary} disabled={busy}>
             {busy ? "Enviando…" : "Enviar link"}
           </button>
         </form>
@@ -278,7 +286,7 @@ export function SignIn(props: {
               aria-describedby={described}
               onChange={(event) => setConfirmation(event.target.value)}
             />
-            <button type="submit" className={primary} disabled={busy || !password || !confirmation}>
+            <button type="submit" className={primary} disabled={busy}>
               {busy ? "Salvando…" : "Salvar senha e entrar"}
             </button>
           </form>
@@ -288,6 +296,7 @@ export function SignIn(props: {
           className="flex flex-col gap-3"
           onSubmit={(event) =>
             void run(event, async () => {
+              if (code.trim().length < 4) throw new Error("Digite o código que veio no convite.");
               const info = await api.invite(code);
               track("invite_checked", { existing_account: Boolean(info.existing) });
               setInvite(info);
@@ -303,7 +312,7 @@ export function SignIn(props: {
             O convite vale para o e-mail que o recebeu e serve uma vez, para criar a sua conta.
           </p>
           <input id="convite" className={field} autoComplete="off" value={code} aria-invalid={invalid} aria-describedby={described ?? "convite-dica"} onChange={(event) => setCode(event.target.value.toUpperCase())} />
-          <button type="submit" className={primary} disabled={busy || code.trim().length < 4}>
+          <button type="submit" className={primary} disabled={busy}>
             {busy ? "Conferindo…" : "Continuar"}
           </button>
         </form>
@@ -312,6 +321,8 @@ export function SignIn(props: {
           className="flex flex-col gap-3"
           onSubmit={(event) =>
             void run(event, async () => {
+              if (!invite?.existing && !name.trim()) throw new Error("Digite seu nome.");
+              if (!email.includes("@")) throw new Error("Digite seu e-mail.");
               if (password.length < PASSWORD_MIN) throw new Error(`A senha precisa de ${PASSWORD_MIN} caracteres ou mais.`);
               if (password !== confirmation) throw new Error("As duas senhas não são iguais.");
               if (!consent) throw new Error("Para testar, é preciso aceitar o termo.");
@@ -376,10 +387,10 @@ export function SignIn(props: {
             </ul>
           </section>
           <label className="flex min-h-11 items-center gap-3 text-ui text-ink">
-            <input type="checkbox" className="size-5 accent-ink" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
+            <input type="checkbox" className="size-6 shrink-0 accent-ink" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
             Li e aceito participar do teste nessas condições.
           </label>
-          <button type="submit" className={primary} disabled={busy || (!invite?.existing && !name.trim()) || !email || !password}>
+          <button type="submit" className={primary} disabled={busy}>
             {busy ? "Criando…" : invite?.existing ? "Salvar senha e entrar" : "Criar conta e entrar"}
           </button>
         </form>

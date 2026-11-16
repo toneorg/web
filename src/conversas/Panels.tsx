@@ -295,7 +295,7 @@ export function Panels(props: { me: Me }) {
     <>
       <section aria-labelledby="titulo-paineis" className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 id="titulo-paineis" className="text-subheading text-ink">
+          <h2 id="titulo-paineis" tabIndex={-1} className="text-subheading text-ink focus:outline-none">
             Seus painéis
           </h2>
           <button
@@ -342,11 +342,11 @@ export function Panels(props: { me: Me }) {
       {budget ? (
         <section aria-labelledby="titulo-saldo" className="flex flex-col gap-3 rounded-card bg-surface p-5 shadow-raised">
           <h2 id="titulo-saldo" className="text-subheading text-ink">
-            Uso da tone
+            Uso da semana
           </h2>
-          <p className="text-small text-graphite">Nesta semana ainda restam</p>
-          <p className="display-sm font-display text-ink tabular-nums">
-            {leftPercent}% <span className="text-ui text-graphite">do uso</span>
+          <p className="flex items-baseline gap-2">
+            <span className="display-sm font-display text-ink tabular-nums">{leftPercent}%</span>
+            <span className="text-small text-graphite">ainda disponível</span>
           </p>
           <span
             className="bar"
@@ -359,7 +359,7 @@ export function Panels(props: { me: Me }) {
             <span className="fill ink" style={{ width: `${leftPercent}%` }} />
           </span>
           <p className="text-caption text-graphite">
-            {usd(budget.availableUsd)} de {usd(budget.weeklyCapUsd)} nesta semana
+            <span className="tabular-nums">{usd(budget.availableUsd)}</span> de <span className="tabular-nums">{usd(budget.weeklyCapUsd)}</span>
           </p>
         </section>
       ) : null}

@@ -102,16 +102,18 @@ export function ChosenStores({
       <span className="text-small text-graphite">Buscar só em</span>
       <ul className="flex flex-wrap gap-2">
         {chosen.map((domain) => (
-          <li key={domain} className="flex min-h-11 items-center gap-2 rounded-full bg-surface pl-3 shadow-raised">
+          <li key={domain} className="flex min-h-11 items-center gap-2 rounded-full bg-surface ps-3 shadow-raised">
             <StoreLogo domain={domain} label={label(domain)} />
             <span className="text-ui text-ink">{label(domain)}</span>
             <button
               type="button"
               onClick={() => onRemove(domain)}
               aria-label={`Tirar ${label(domain)} da busca`}
-              className="flex size-11 items-center justify-center rounded-full text-ui text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="press flex size-11 items-center justify-center rounded-full text-graphite hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
-              <span aria-hidden="true">×</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M7 7l10 10M17 7 7 17" />
+              </svg>
             </button>
           </li>
         ))}

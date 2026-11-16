@@ -2,7 +2,7 @@
 // The person's own corner of the web: who they are, what the tone knows about them, their
 // occasions and the keys to their data. Since 15/11/2026 it is not a tab: the avatar in the top
 // bar opens it as a drawer over the chat (a folha on a phone).
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import {
   canRecordOutcome,
   episodeLine,
@@ -20,11 +20,11 @@ import { ApiError, api, peek } from "./api";
 import { AccessSessions } from "./AccessSessions";
 import { Connections } from "./Connections";
 import { Sheet, useSheetClose } from "./Sheet";
+import { initialOf } from "./Shell";
+import { dangerButton, field, outlineButton } from "./ui";
 
-const quiet =
-  "press min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-const danger =
-  "press min-h-11 rounded-full bg-surface px-4 text-ui text-alert shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+const quiet = outlineButton;
+const danger = dangerButton;
 const small =
   "press min-h-11 rounded-full px-3 text-caption text-graphite focus-visible:outline-2 focus-visible:outline-ink";
 
@@ -173,7 +173,10 @@ export function ProfileBody(props: {
   const [pending, setPending] = useState<Pending>(null);
   const [newFact, setNewFact] = useState("");
   const [adding, setAdding] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Each answer next to the control that asked for it: the note's under its field, the file's under "Seus dados".
+  const [factNotice, setFactNotice] = useState<string | null>(null);
+  const [dataNotice, setDataNotice] = useState<string | null>(null);
+  const factField = useRef<HTMLInputElement>(null);
   // Each change of `round` loads everything again (after deleting a note, retrying).
   const [round, setRound] = useState(0);
   const load = () => setRound((value) => value + 1);
@@ -220,9 +223,13 @@ export function ProfileBody(props: {
   const addFact = async (event: FormEvent) => {
     event.preventDefault();
     const text = newFact.trim();
-    if (!text || adding) return;
+    if (adding) return;
+    if (!text) {
+      factField.current?.focus();
+      return;
+    }
     setAdding(true);
-    setNotice(null);
+    setFactNotice(null);
     try {
       const owned = /^(j[aá] )?tenho:?\s+(.+)$/i.exec(text);
       if (owned?.[2]) {
@@ -235,17 +242,17 @@ export function ProfileBody(props: {
         track("memory_added", { kind: rest.length ? "key_value" : "note" });
       }
       setNewFact("");
-      setNotice("Anotei.");
+      setFactNotice("Anotei.");
       load();
     } catch (failure) {
-      setNotice(failure instanceof ApiError ? failure.message : "Não consegui anotar agora.");
+      setFactNotice(failure instanceof ApiError ? failure.message : "Não consegui anotar agora. Tente de novo.");
     } finally {
       setAdding(false);
     }
   };
 
   const exportData = async () => {
-    setNotice(null);
+    setDataNotice(null);
     try {
       const data = await api.exportData();
       const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
@@ -256,7 +263,7 @@ export function ProfileBody(props: {
       URL.revokeObjectURL(url);
       track("data_exported");
     } catch (failure) {
-      setNotice(failure instanceof ApiError ? failure.message : "Não consegui preparar o arquivo agora.");
+      setDataNotice(failure instanceof ApiError ? failure.message : "Não consegui preparar o arquivo agora. Tente de novo.");
     }
   };
 
@@ -264,10 +271,10 @@ export function ProfileBody(props: {
   const rest = memories.filter((memory) => memory.category !== OWNED_CATEGORY);
   return (
     <>
-      <div className="flex flex-col gap-8 pb-2">
+      <div className="flex flex-col gap-10 pb-2">
         <header className="flex items-center gap-3">
           <span aria-hidden="true" className="grid size-13 shrink-0 place-items-center rounded-full bg-ink text-subheading text-on-ink" data-ph-mask>
-            {[...me.name.trim()][0]?.toLocaleUpperCase("pt-BR") ?? "?"}
+            {initialOf(me.name)}
           </span>
           <div className="flex min-w-0 flex-col">
             <p className="truncate text-body font-medium text-ink" data-ph-mask>
@@ -303,20 +310,28 @@ export function ProfileBody(props: {
             <label htmlFor="novo-fato" className="text-ui text-ink">
               Quer me contar algo?
             </label>
+            <p id="novo-fato-dica" className="text-small text-graphite">
+              Um fato por vez, como “tamanho de tênis: 40” ou “já tenho: sandália dourada”.
+            </p>
             <div className="flex items-center gap-2">
               <input
+                ref={factField}
                 id="novo-fato"
                 type="text"
                 maxLength={200}
                 value={newFact}
                 onChange={(event) => setNewFact(event.target.value)}
-                placeholder="ex.: tamanho de tênis: 40 · já tenho sandália dourada"
-                className="min-h-11 flex-1 rounded-input bg-surface px-4 text-body text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-ink"
+                aria-describedby="novo-fato-dica"
+                placeholder="tamanho de tênis: 40"
+                className={`${field} min-w-0 flex-1`}
               />
-              <button type="submit" className={quiet} disabled={adding || !newFact.trim()} aria-label="Anotar">
+              <button type="submit" className={`${quiet} shrink-0`} disabled={adding}>
                 {adding ? "Anotando…" : "Anotar"}
               </button>
             </div>
+            <p role="status" className="text-small text-graphite empty:hidden">
+              {factNotice}
+            </p>
           </form>
           <div className="flex flex-col gap-2">
             <p className="text-small text-graphite">Ou responda cinco perguntas rápidas, uma por vez, e eu anoto.</p>
@@ -398,8 +413,17 @@ export function ProfileBody(props: {
               Apagar o que sei sobre você
             </button>
           </div>
+          <p role="status" className="text-small text-graphite empty:hidden">
+            {dataNotice}
+          </p>
+        </section>
+
+        <section aria-labelledby="titulo-conta" className="flex flex-col gap-3">
+          <h3 id="titulo-conta" className="text-subheading text-ink">
+            Sua conta
+          </h3>
           <AccessSessions ask={setPending} />
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               className={quiet}
@@ -413,6 +437,15 @@ export function ProfileBody(props: {
             <button type="button" className={quiet} onClick={() => void api.logout().finally(onSignedOut)}>
               Sair
             </button>
+          </div>
+        </section>
+
+        <section aria-labelledby="titulo-apagar-conta" className="flex flex-col gap-3">
+          <h3 id="titulo-apagar-conta" className="text-subheading text-ink">
+            Apagar a conta
+          </h3>
+          <p className="text-small text-graphite">Apaga conversas, anotações, conexões e eventos. Não dá para desfazer.</p>
+          <div>
             <button
               type="button"
               className={danger}
@@ -432,11 +465,6 @@ export function ProfileBody(props: {
               Apagar minha conta
             </button>
           </div>
-          {notice ? (
-            <p role="status" className="text-small text-graphite">
-              {notice}
-            </p>
-          ) : null}
         </section>
       </div>
       {pending ? (

@@ -130,8 +130,10 @@ export function Sheet(props: {
       >
         {/* The handle and the title stay put; only the body scrolls, inside the rounded corners
             (10/11/2026: the whole folha scrolled, with the bar outside its edge). */}
-        <div className="flex shrink-0 flex-col gap-4 px-5 pb-3 pt-3">
-          <div aria-hidden="true" className={`h-1 w-9 self-center rounded-full bg-edge ${props.placement === "side" ? "sm:invisible" : ""}`} />
+        <div className="flex shrink-0 flex-col gap-4 px-5 pb-3 pt-3 sm:pt-5">
+          {/* The handle only where the folha rises from the bottom (a phone); on a wider screen it is a
+              dialog or a drawer, and a handle there promised a drag that does nothing. */}
+          <div aria-hidden="true" className="h-1 w-9 self-center rounded-full bg-edge sm:hidden" />
           <div className="flex items-center justify-between gap-3">
             <h2 className="display-sm text-ink">{props.title}</h2>
             <div className="flex shrink-0 items-center gap-2">

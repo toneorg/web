@@ -71,7 +71,7 @@ describe("conexões Google no perfil", () => {
   it("explica quando o servidor não tem o Google ativo (503)", async () => {
     startConnection.mockRejectedValue(new ApiError("indisponível", 503));
     await expect(connect("gmail")).rejects.toThrow(
-      "ainda não estão ativas neste servidor",
+      "ainda não estão ativas",
     );
   });
 
@@ -112,7 +112,8 @@ describe("conexões Google no perfil", () => {
     expect(html).toContain("3 compras lidas");
     expect(html).toContain("Ler Gmail de novo");
     expect(html).toContain("Desconectar Gmail");
-    expect(html).toContain("ainda não está disponível neste servidor");
+    expect(html).toContain("Ainda não está disponível para conectar.");
+    expect(html).not.toContain("Conectar Agenda");
   });
 
   it("lists purchases read from e-mail", () => {

@@ -3,7 +3,7 @@
 // and the person's avatar on the trailing one), the person's panels on the left, unchanged, and
 // one continuous chat in the middle. The profile is no longer a tab: the avatar opens it.
 import Link from "next/link";
-import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Me } from "@/tone/shared";
 import { track } from "./analytics";
 import { FeedbackButton } from "./Feedback";
@@ -67,7 +67,21 @@ export function Shell(props: {
   children: ReactNode;
 }) {
   // On a phone the panels open above the work, on request; on a wide screen they are always on the left.
+  // On a phone the panels and the chat take turns: the chat sits at the bottom of a long page, so
+  // panels opened above it were drawn out of sight (15/11/2026). Opening them hides the chat and
+  // starts the page at the top; closing them goes back to the newest message.
   const [panelsOpen, setPanelsOpen] = useState(false);
+  const panelsHeading = useRef<HTMLElement>(null);
+  const togglePanels = () => {
+    const next = !panelsOpen;
+    setPanelsOpen(next);
+    requestAnimationFrame(() => {
+      if (next) {
+        window.scrollTo({ top: 0, behavior: "instant" });
+        panelsHeading.current?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
+      } else window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
+    });
+  };
   const { onSearch } = props;
   // The shortcut's name, once the page knows the keyboard: ⌘K on a Mac, Ctrl K elsewhere (none on the server).
   const shortcut = useSyncExternalStore(
@@ -102,12 +116,7 @@ export function Shell(props: {
   const avatar = `press grid size-11 shrink-0 place-items-center rounded-full bg-ink text-subheading text-on-ink ${ring}`;
   return (
     <div className="flex min-h-dvh flex-col">
-      <a
-        href="#conteudo"
-        className="sr-only z-20 rounded-full bg-ink px-4 py-2 text-ui text-on-ink focus:not-sr-only focus:fixed focus:start-4 focus:top-3"
-      >
-        Ir para o conteúdo
-      </a>
+      {/* The skip link is the root layout's ("Pular para o conteúdo"): one is enough. */}
       <header className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-paper/90 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur md:px-6">
         <div className="flex items-center gap-2">
           <Link href="/" aria-label="Início da tone" className={round}>
@@ -118,7 +127,7 @@ export function Shell(props: {
             aria-expanded={panelsOpen}
             aria-controls="paineis"
             aria-label="Painéis"
-            onClick={() => setPanelsOpen((open) => !open)}
+            onClick={togglePanels}
             className={`press grid size-11 shrink-0 place-items-center rounded-full shadow-raised md:hidden ${panelsOpen ? "bg-ink text-on-ink" : "bg-surface text-ink"} ${ring}`}
           >
             <PanelsIcon />
@@ -171,11 +180,12 @@ export function Shell(props: {
         <aside
           id="paineis"
           aria-label="Seus painéis"
+          ref={panelsHeading}
           className={`${panelsOpen ? "flex" : "hidden"} flex-col gap-4 pb-6 md:sticky md:top-20 md:flex md:max-h-[calc(100dvh-6rem)] md:self-start md:overflow-y-auto`}
         >
           {props.me ? <Panels me={props.me} /> : null}
         </aside>
-        <div className="flex min-w-0 flex-col">{props.children}</div>
+        <div className={`${panelsOpen ? "max-md:hidden" : ""} flex min-w-0 flex-col`}>{props.children}</div>
       </div>
     </div>
   );

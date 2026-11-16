@@ -5,9 +5,10 @@
 // replay of the moment). If the server cannot take it, it goes to PostHog from here.
 import { usePathname } from "next/navigation";
 import posthog from "posthog-js";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { track } from "./analytics";
 import { Sheet, useSheetClose } from "./Sheet";
+import { solidButton, textArea } from "./ui";
 
 export const FEEDBACK_KINDS = [
   { value: "bug", label: "Algo deu errado", hint: "O que você fez, o que esperava e o que aconteceu." },
@@ -43,13 +44,19 @@ function FeedbackForm(props: { sessionId: string | null }) {
   const path = usePathname();
   const [kind, setKind] = useState<FeedbackKind>("bug");
   const [message, setMessage] = useState("");
-  const [state, setState] = useState<"writing" | "sending" | "sent" | "failed">("writing");
+  const [state, setState] = useState<"writing" | "empty" | "sending" | "sent" | "failed">("writing");
+  const box = useRef<HTMLTextAreaElement>(null);
   const hint = FEEDBACK_KINDS.find((item) => item.value === kind)?.hint;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const text = message.trim();
-    if (!text || state === "sending") return;
+    if (state === "sending") return;
+    if (!text) {
+      setState("empty");
+      box.current?.focus();
+      return;
+    }
     setState("sending");
     try {
       const via = await sendFeedback(kind, text, path, props.sessionId);
@@ -108,14 +115,24 @@ function FeedbackForm(props: { sessionId: string | null }) {
         </label>
         <textarea
           id="feedback-texto"
+          ref={box}
           rows={5}
           maxLength={MAX}
           value={message}
-          onChange={(event) => setMessage(event.target.value)}
+          onChange={(event) => {
+            setMessage(event.target.value);
+            if (state === "empty") setState("writing");
+          }}
           placeholder={hint}
-          aria-describedby="feedback-dica"
-          className="resize-none rounded-input bg-surface px-4 py-3 text-body text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-ink"
+          aria-invalid={state === "empty" ? true : undefined}
+          aria-describedby={state === "empty" ? "feedback-vazio feedback-dica" : "feedback-dica"}
+          className={textArea}
         />
+        {state === "empty" ? (
+          <p id="feedback-vazio" role="alert" className="text-ui font-medium text-alert">
+            Escreva o que aconteceu antes de enviar.
+          </p>
+        ) : null}
         <p id="feedback-dica" className="text-caption text-graphite">
           Vai com a página em que você está e a gravação da tela deste momento (com o texto mascarado), para a equipe
           entender o que aconteceu.
@@ -129,15 +146,15 @@ function FeedbackForm(props: { sessionId: string | null }) {
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="submit"
-          disabled={!message.trim() || state === "sending"}
-          className="press min-h-11 rounded-full bg-ink px-5 text-ui text-on-ink disabled:bg-rule disabled:text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          disabled={state === "sending"}
+          className={solidButton}
         >
           {state === "sending" ? "Enviando…" : "Enviar feedback"}
         </button>
         <button
           type="button"
           onClick={close}
-          className="min-h-11 rounded-full px-4 text-ui text-ink focus-visible:outline-2 focus-visible:outline-ink"
+          className="press min-h-11 rounded-full px-4 text-ui text-ink hover:bg-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
           Cancelar
         </button>

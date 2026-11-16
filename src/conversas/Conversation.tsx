@@ -49,6 +49,7 @@ import { ChosenStores, StoreOptions, UserMessage } from "./StoreMention";
 import { filterStores, type Mention, mentionAt, pickStore } from "./store-mention";
 import { SignIn } from "./SignIn";
 import { type ChatTarget, dayLabel, dayStarts, lineKey, startsNewSession } from "./timeline";
+import { outlineButton } from "./ui";
 import { WELCOME_FIRST } from "./welcome";
 
 /** Where a line belongs and when it was said. `old`: read from the server, not said in this visit. */
@@ -841,7 +842,7 @@ export function Conversation(props: {
     return (
       <main id="conteudo" className="mx-auto max-w-md px-5 py-12">
         <p className="text-body text-ink">Esta conversa não existe ou é de outra conta.</p>
-        <Link href="/conversas" className="mt-4 inline-block text-ui text-ink underline">
+        <Link href="/conversas" className={`${outlineButton} mt-4 inline-flex items-center`}>
           Voltar para a conversa
         </Link>
       </main>
@@ -852,7 +853,7 @@ export function Conversation(props: {
         <p role="alert" className="text-body text-ink">
           Não consegui abrir a conversa agora.
         </p>
-        <button type="button" className="mt-4 min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised" onClick={load}>
+        <button type="button" className={`${outlineButton} mt-4`} onClick={load}>
           Tentar de novo
         </button>
       </main>

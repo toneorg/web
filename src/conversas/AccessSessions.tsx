@@ -4,11 +4,11 @@
 import { useEffect, useState } from "react";
 import type { AccessSession } from "@/tone/shared";
 import { api } from "./api";
+import { outlineButton } from "./ui";
 
-const quiet =
-  "press min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-const danger =
-  "press min-h-11 rounded-full bg-surface px-4 text-ui text-alert shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50";
+const quiet = outlineButton;
+/** Other places shown before "Ver todos": a long list of identical rows buried the rest of the profile. */
+const FIRST_OTHERS = 3;
 
 type Ask = {
   title: string;
@@ -23,7 +23,7 @@ const day = (iso: string) =>
 
 /** What the person recognizes: when it started and when it was last used. */
 const describe = (session: AccessSession) =>
-  `Entrou em ${day(session.createdAt)}${session.lastUsedAt ? ` · usada em ${day(session.lastUsedAt)}` : ""}`;
+  `Entrou em ${day(session.createdAt)}${session.lastUsedAt ? ` · último uso em ${day(session.lastUsedAt)}` : ""}`;
 
 export const withoutSession = (list: AccessSession[], id: string) =>
   list.filter((entry) => entry.id !== id);
@@ -34,31 +34,39 @@ export function AccessSessionsView(props: {
   sessions: AccessSession[];
   onEnd: (session: AccessSession) => void;
 }) {
+  const [all, setAll] = useState(false);
+  // This device first, then the others; the red is kept for the confirmation, not for every row.
+  const ordered = [...props.sessions].sort((a, b) => Number(b.current) - Number(a.current));
+  const others = ordered.filter((session) => !session.current).length;
+  const shown = all ? ordered : ordered.slice(0, ordered.length - others + FIRST_OTHERS);
   return (
-    <ul className="flex flex-col gap-3">
-      {props.sessions.map((session) => (
-        <li
-          key={session.id}
-          className="flex flex-wrap items-center justify-between gap-2"
+    <>
+      <ul className="flex flex-col divide-y divide-rule rounded-panel bg-surface px-4 shadow-raised">
+        {shown.map((session) => (
+          <li key={session.id} className="flex min-h-15 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-ui text-ink">{session.current ? "Este aparelho" : "Outro aparelho"}</p>
+              <p className="text-small text-graphite tabular-nums">{describe(session)}</p>
+            </div>
+            {session.current ? null : (
+              <button type="button" className={`${quiet} px-4`} onClick={() => props.onEnd(session)}>
+                Encerrar
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {others > FIRST_OTHERS ? (
+        <button
+          type="button"
+          aria-expanded={all}
+          className="min-h-11 self-start text-ui text-ink underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          onClick={() => setAll((value) => !value)}
         >
-          <div className="min-w-0 flex-1">
-            <p className="text-ui text-ink">
-              {session.current ? "Este aparelho" : "Outro aparelho"}
-            </p>
-            <p className="text-small text-graphite">{describe(session)}</p>
-          </div>
-          {session.current ? null : (
-            <button
-              type="button"
-              className={danger}
-              onClick={() => props.onEnd(session)}
-            >
-              Encerrar
-            </button>
-          )}
-        </li>
-      ))}
-    </ul>
+          {all ? "Mostrar menos" : `Ver todos os ${others} outros aparelhos`}
+        </button>
+      ) : null}
+    </>
   );
 }
 
@@ -118,7 +126,7 @@ export function AccessSessions(props: { ask: (pending: Ask) => void }) {
         }}
       />
       {listed ? (
-        <h3 className="mt-2 text-ui text-ink">Onde você está conectado</h3>
+        <h4 className="text-ui text-ink">Onde sua conta está aberta</h4>
       ) : null}
       {listed ? (
         <AccessSessionsView

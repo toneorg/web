@@ -32,7 +32,7 @@ const PROVIDER: Record<
 };
 
 const NOT_ACTIVE =
-  "As conexões com o Google ainda não estão ativas neste servidor.";
+  "As conexões com o Google ainda não estão ativas. Tente de novo mais tarde.";
 
 export type Outcome = { tone: "ok" | "problem"; text: string } | null;
 
@@ -146,7 +146,7 @@ export function ConnectionsView(props: {
                     ? `${connection.items} ${info.read}${connection.lastSyncAt ? ` · lido em ${day(connection.lastSyncAt)}` : ""}`
                     : connection.available
                       ? info.what
-                      : `${info.name} ainda não está disponível neste servidor.`}
+                      : "Ainda não está disponível para conectar."}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -169,11 +169,12 @@ export function ConnectionsView(props: {
                       {`Desconectar ${info.name}`}
                     </button>
                   </>
-                ) : (
+                ) : !connection.available ? null : (
+                  // Unavailable: the line above says so, instead of a faded button that does nothing.
                   <button
                     type="button"
                     className={quiet}
-                    disabled={!connection.available || busy}
+                    disabled={busy}
                     onClick={() => props.onConnect(connection.provider)}
                   >
                     {busy ? "Abrindo o Google…" : `Conectar ${info.name}`}

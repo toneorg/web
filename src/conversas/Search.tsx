@@ -18,7 +18,7 @@ export function Highlighted(props: { text: string; query: string }): ReactNode {
   for (const [start, end] of ranges) {
     if (start > at) parts.push(props.text.slice(at, start));
     parts.push(
-      <mark key={start} className="rounded-sm bg-sunken font-semibold text-ink">
+      <mark key={start} className="rounded-tag bg-sunken font-semibold text-ink">
         {props.text.slice(start, end)}
       </mark>,
     );
@@ -94,8 +94,12 @@ function SearchBody(props: { onPick: (match: MessageMatch) => void }) {
         ? "Não consegui buscar agora. Confira a internet e tente de novo."
         : state.kind === "done"
           ? state.matches.length
-            ? `${state.matches.length === 30 ? "As 30 mais recentes" : state.matches.length === 1 ? "1 mensagem" : `${state.matches.length} mensagens`}`
-            : `Nenhuma mensagem com “${query.trim()}”.`
+            ? state.matches.length === 30
+              ? "30 mensagens, as mais recentes"
+              : state.matches.length === 1
+                ? "1 mensagem"
+                : `${state.matches.length} mensagens`
+            : `Nenhuma mensagem com “${query.trim()}”. Tente outra palavra.`
           : "Busque por uma palavra que você ou a tone disseram: um produto, uma loja, um tamanho.";
 
   return (

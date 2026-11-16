@@ -14,12 +14,12 @@ import { SearchDialog } from "./Search";
 import { Shell } from "./Shell";
 import { linkedReset, SignIn } from "./SignIn";
 import { type ChatTarget, targetFromSearch } from "./timeline";
+import { outlineButton } from "./ui";
 import { dismissWelcome, WELCOME_MEMORY_FLOOR, welcomeDismissed } from "./welcome";
 
 const primary =
   "press min-h-11 rounded-full bg-ink px-5 text-ui text-on-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-const quiet =
-  "press min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+const quiet = outlineButton;
 const tone = "max-w-[min(88%,38rem)] rounded-panel rounded-es-tag bg-surface px-4 py-2.5 text-body text-ink shadow-raised";
 
 /** The first name, for the greeting. */

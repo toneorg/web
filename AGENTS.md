@@ -19,7 +19,6 @@ The interface follows the tone design system, installed as `@toneorg/design` (gi
 
 ## Where this page still differs from the reference
 
-Checked on 2026-10-09 against v0.1.0. When you touch one of these, bring it to the reference and delete the line.
+Checked on 2026-11-15 against v0.1.0. When you touch one of these, bring it to the reference and delete the line.
 
-- Radii and text sizes are written as Tailwind built-ins and arbitrary values (`rounded-4xl`, `rounded-2xl`, `text-[0.9375rem]`), with the same sizes as the tokens. Use `rounded-tile`, `rounded-input` and `text-ui` when you touch the component.
-- The checkbox row is 36px tall; the system's touch target is 44.
+- The landing pages (`src/landing`, `src/app/page.tsx`, `src/app/lojas`) still write display text sizes as arbitrary values (`text-[1.5rem]`, `text-[1.0625rem]`). Use the type tokens when you touch them. The app (`src/conversas`) has none left.
