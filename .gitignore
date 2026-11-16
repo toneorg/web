@@ -44,3 +44,9 @@ next-env.d.ts
 /data
 !.env.example
 .env.local
+
+# Estado local de ferramentas de agente e resultados de teste
+/.claude/
+/.commandcode/
+/.superpowers/
+/test-results/
