@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ec69c6af51de (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@bfcce76fe9c9 (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -10,6 +10,9 @@ import {
   MEMORY_CHECK_PREFIX,
   OUTCOME_CHECK_PREFIX,
   OUTCOME_LABELS,
+  SENSITIVE_CONSENT,
+  SENSITIVE_CONSENT_ANSWERS,
+  SENSITIVE_CONSENT_PREFIX,
 } from "@/tone/shared";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { DecisionBoardLoader } from "./DecisionBoard";
@@ -1195,14 +1198,21 @@ const SolutionSet: ComponentRenderer<{ situation: string; paths: unknown; note?:
 };
 
 /** One question, fixed answers, sent once: the shape both checks share. */
-function OneTapQuestion(props: { question: string; memoryKey: string; options: readonly string[]; lead?: string }) {
+function OneTapQuestion(props: {
+  question: string;
+  memoryKey: string;
+  options: readonly string[];
+  lead?: string;
+  /** Drawn in place of the question, which still goes with the answer (short, as the turn takes it). */
+  children?: ReactNode;
+}) {
   const host = useHost();
   const canAnswer = useCanAnswer();
   const [picked, setPicked] = useState<string | null>(null);
   return (
     <section className="card" aria-label={props.question}>
       {props.lead ? <p className="small muted">{props.lead}</p> : null}
-      <p className="question">{props.question}</p>
+      {props.children ?? <p className="question">{props.question}</p>}
       <div className="choices">
         {props.options.map((option) => (
           <button
@@ -1246,6 +1256,25 @@ const OutcomeCheck: ComponentRenderer<{ situationId: string; question: string }>
     options={Object.values(OUTCOME_LABELS)}
   />
 );
+
+/**
+ * The specific consent for sensitive data (LGPD, art. 11, I). The text is the server's, by purpose,
+ * never the model's wording: what the person agrees to is the version the server records.
+ */
+const SensitiveConsent: ComponentRenderer<{ purpose: string; text: string }> = ({ props }) => {
+  const consent = SENSITIVE_CONSENT[props.purpose as keyof typeof SENSITIVE_CONSENT] ?? SENSITIVE_CONSENT.beleza_tom;
+  const purpose = props.purpose in SENSITIVE_CONSENT ? props.purpose : "beleza_tom";
+  return (
+    <OneTapQuestion
+      lead="Dado sensível"
+      question="Permissão para guardar tom e subtom"
+      memoryKey={`${SENSITIVE_CONSENT_PREFIX}${purpose}`}
+      options={SENSITIVE_CONSENT_ANSWERS}
+    >
+      <p>{consent.text}</p>
+    </OneTapQuestion>
+  );
+};
 
 // ---- Coming back --------------------------------------------------------------
 
@@ -1403,6 +1432,7 @@ export const RENDERERS: Record<string, ComponentRenderer<never>> = {
   SolutionSet,
   MemoryCheck,
   OutcomeCheck,
+  SensitiveConsent,
   PreferenceChips,
   VisualChoice,
   ProductQuiz,

@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ec69c6af51de (packages/shared/src/memory-keys.ts). Não edite aqui.
+// Gerado de toneorg/server@bfcce76fe9c9 (packages/shared/src/memory-keys.ts). Não edite aqui.
 /**
  * Canonical memory keys the server turns into search constraints. Lists are comma separated;
  * the budget is a number in BRL. Older keys ("roupa.marca_evitada") are matched by `memoryKeyKind`.
@@ -45,4 +45,18 @@ export function memoryKeyKind(key: string): { category: string; kind: MemoryKeyK
   if (segment(suffix, "tamanho")) return { category, kind: "size" };
   if (segment(suffix, "orcamento")) return { category, kind: "budget" };
   return null;
+}
+
+/**
+ * Keys that may reveal racial or ethnic origin (LGPD, art. 5º, II): skin tone, undertone, personal
+ * coloring and skin type. They are saved only with the person's specific consent (art. 11, I), and
+ * never as an inference. Any key under `beleza.pele.` counts too.
+ */
+export const SENSITIVE_KEYS = ["beleza.tom", "beleza.subtom", "beleza.coloracao", "beleza.tipo_de_pele"] as const;
+const SENSITIVE_PREFIX = "beleza.pele.";
+
+/** Whether a memory key is sensitive data, whatever its accents or case. */
+export function isSensitiveKey(key: string): boolean {
+  const folded = fold(key).trim();
+  return (SENSITIVE_KEYS as readonly string[]).includes(folded) || folded.startsWith(SENSITIVE_PREFIX);
 }

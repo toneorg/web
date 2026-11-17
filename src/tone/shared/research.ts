@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ec69c6af51de (packages/shared/src/research.ts). Não edite aqui.
+// Gerado de toneorg/server@bfcce76fe9c9 (packages/shared/src/research.ts). Não edite aqui.
 import * as z from "zod";
 import { isCheckoutUrl } from "./safety";
 

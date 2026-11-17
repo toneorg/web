@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ec69c6af51de (packages/shared/src/tracking.ts). Não edite aqui.
+// Gerado de toneorg/server@bfcce76fe9c9 (packages/shared/src/tracking.ts). Não edite aqui.
 // The events the web records for the test week (requisitos §4). Each one is
 // small and typed, so the dashboard can count them without guessing.
 import * as z from "zod";

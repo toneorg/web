@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ec69c6af51de (packages/shared/src/decision.ts). Não edite aqui.
+// Gerado de toneorg/server@bfcce76fe9c9 (packages/shared/src/decision.ts). Não edite aqui.
 // T08: the state of a purchase decision, kept between turns and surfaces.
 // Criteria say who set them (the person or the agent); an agent's inference is
 // never a confirmed requirement until the person says so. Candidates are copies
