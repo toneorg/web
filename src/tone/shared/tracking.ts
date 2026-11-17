@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@c05254edc8f8 (packages/shared/src/tracking.ts). Não edite aqui.
+// Gerado de toneorg/server@ec69c6af51de (packages/shared/src/tracking.ts). Não edite aqui.
 // The events the web records for the test week (requisitos §4). Each one is
 // small and typed, so the dashboard can count them without guessing.
 import * as z from "zod";
@@ -39,9 +39,15 @@ export const TrackEvent = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("recommendation_rejected"),
-    url: z.string(),
-    title: z.string(),
+    url: z.string().max(2000),
+    title: z.string().max(300),
     reason: z.enum(["preco", "estilo", "qualidade", "tamanho", "outro"]),
+    offerId: z.string().max(80).nullable().optional(),
+    runId: z.string().max(80).nullable().optional(),
+    /** The card of the answer, or the discard of the decision board. */
+    origin: z.enum(["card", "decision"]).optional(),
+    /** The offer's image, kept only for a style rejection (the taste layer). */
+    image: z.string().max(2000).nullable().optional(),
   }),
   z.object({ type: z.literal("product_viewed"), url: z.string(), title: z.string(), price: z.number().nullable() }),
   z.object({

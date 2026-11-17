@@ -1,4 +1,4 @@
-toneorg/server@c05254edc8f877faca8170461c0c314d6784a375
+toneorg/server@ec69c6af51de6ce5ed7f6eb45859de786da5e10b
 agent.ts
 answer-rating.ts
 api.ts
@@ -7,6 +7,7 @@ decision.ts
 genui.ts
 index.ts
 media.ts
+memory-keys.ts
 memory-label.ts
 page.ts
 photo.ts
