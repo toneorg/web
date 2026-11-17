@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@bfcce76fe9c9 (packages/shared/src/memory-keys.ts). Não edite aqui.
+// Gerado de toneorg/server@cf946ede5c80 (packages/shared/src/memory-keys.ts). Não edite aqui.
 /**
  * Canonical memory keys the server turns into search constraints. Lists are comma separated;
  * the budget is a number in BRL. Older keys ("roupa.marca_evitada") are matched by `memoryKeyKind`.
@@ -50,13 +50,23 @@ export function memoryKeyKind(key: string): { category: string; kind: MemoryKeyK
 /**
  * Keys that may reveal racial or ethnic origin (LGPD, art. 5º, II): skin tone, undertone, personal
  * coloring and skin type. They are saved only with the person's specific consent (art. 11, I), and
- * never as an inference. Any key under `beleza.pele.` counts too.
+ * never as an inference.
  */
 export const SENSITIVE_KEYS = ["beleza.tom", "beleza.subtom", "beleza.coloracao", "beleza.tipo_de_pele"] as const;
 const SENSITIVE_PREFIX = "beleza.pele.";
+/** Under these categories, a key that starts with one of these words is sensitive ("beleza.tom.verao"). */
+const SENSITIVE_CATEGORIES = new Set(["beleza", "maquiagem"]);
+const SENSITIVE_START = /^(tom|subtom|coloracao|tipo_de_pele)($|[._])/;
+/** Anywhere in a key, even at the top level ("tom_de_pele", from "tom de pele: médio"). */
+const SENSITIVE_PART = /^(tom_de_pele|cor_da_pele)($|_)/;
 
-/** Whether a memory key is sensitive data, whatever its accents or case. */
+/** Whether a memory key is sensitive data, whatever its accents, case or spaces. */
 export function isSensitiveKey(key: string): boolean {
-  const folded = fold(key).trim();
-  return (SENSITIVE_KEYS as readonly string[]).includes(folded) || folded.startsWith(SENSITIVE_PREFIX);
+  const folded = fold(key)
+    .trim()
+    .replace(/[^a-z0-9._]+/g, "_");
+  if ((SENSITIVE_KEYS as readonly string[]).includes(folded) || folded.startsWith(SENSITIVE_PREFIX)) return true;
+  const [category = "", ...rest] = folded.split(".");
+  if (SENSITIVE_CATEGORIES.has(category) && SENSITIVE_START.test(rest.join("."))) return true;
+  return folded.split(".").some((part) => SENSITIVE_PART.test(part));
 }
