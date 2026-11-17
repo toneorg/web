@@ -25,7 +25,7 @@ import {
   type WatchRule,
 } from "@/tone/shared";
 import { track } from "./analytics";
-import { api, trackClick } from "./api";
+import { api, trackClick, trackRejected } from "./api";
 
 /** Stores whose product photos and pages the web may show or link: the server index's (shared list). */
 export const STORE_HOSTS: string[] = [...INDEX_STORES, "mercadolibre.com"];
@@ -124,6 +124,26 @@ function announceWatches<T>(watch: T): T {
   return watch;
 }
 
+/** "Não curti": the server keeps the rejection, the chat gets the phrase, the analytics the reason only. */
+export function rejectProduct(
+  sessionId: string,
+  action: Extract<GenUIAction, { type: "reject" }>,
+  say: (text: string) => void,
+) {
+  track("recommendation_rejected_clicked", { reason: action.reason });
+  if (!(action.reason in REJECT_REASONS)) return;
+  const { offerId, runId } = action as { offerId?: string; runId?: string };
+  trackRejected({
+    sessionId,
+    url: action.url,
+    title: action.title,
+    reason: action.reason,
+    ...(offerId ? { offerId } : {}),
+    ...(runId ? { runId } : {}),
+  });
+  say(`Não curti "${action.title}". Motivo: ${REJECT_REASONS[action.reason as RejectReason].toLowerCase()}.`);
+}
+
 /** The web's side of the components: what each button does, and where decisions and watches live. */
 function useWebHost(host: ProgramHost): GenUIHost {
   const { sessionId, interactive, answer, say, picked, pick } = host;
@@ -158,9 +178,7 @@ function useWebHost(host: ProgramHost): GenUIHost {
         openStore(sessionId, action.url, action.title, action.where ?? { source: "generated_ui" }, extraHosts);
         return;
       case "reject":
-        track("recommendation_rejected_clicked", { reason: action.reason });
-        if (action.reason in REJECT_REASONS)
-          say(`Não curti "${action.title}". Motivo: ${REJECT_REASONS[action.reason as RejectReason].toLowerCase()}.`);
+        rejectProduct(sessionId, action, say);
         return;
       case "say":
         say(action.text);

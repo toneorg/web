@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@c05254edc8f8 (packages/shared/src/research.ts). Não edite aqui.
+// Gerado de toneorg/server@ec69c6af51de (packages/shared/src/research.ts). Não edite aqui.
 import * as z from "zod";
 import { isCheckoutUrl } from "./safety";
 
@@ -135,6 +135,15 @@ export const ResearchOffer = z.object({
   /** Algorithmic compatibility with the query, not confirmation of stock or authenticity. */
   identityMatch: z.enum(["compatible", "unconfirmed", "conflict"]).optional(),
   listingSignals: ListingSignals.optional(),
+  /** The server's quality filter (apps/server research/quality.ts); absent before the search ends. */
+  quality: z
+    .object({
+      verdict: z.enum(["ok", "suspeita", "reprovada"]),
+      reasons: z.array(
+        z.enum(["preco_improvavel", "replica", "vendedor_sem_reputacao", "loja_evitada", "marca_evitada"]),
+      ),
+    })
+    .optional(),
   assessments: z
     .array(RequirementAssessment)
     .refine((values) => uniqueIdentifiers(values.map((entry) => entry.requirementId)), "Avaliações repetidas."),

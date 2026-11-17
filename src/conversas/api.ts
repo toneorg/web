@@ -311,6 +311,29 @@ export function trackClick(sessionId: string | null, url: string, title: string,
   }).catch(() => undefined);
 }
 
+/**
+ * "Não curti" on a product: the server keeps the reason, sets the offer aside for the rest of the
+ * conversation and counts it in the profile. Fire and forget, like the click: a failure never
+ * stops the chat phrase that goes with it.
+ */
+export function trackRejected(rejection: {
+  sessionId: string | null;
+  url: string;
+  title: string;
+  reason: string;
+  offerId?: string | null;
+  runId?: string | null;
+}) {
+  const { sessionId, ...event } = rejection;
+  void fetch("/api/tone/events", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-tone-web": "1" },
+    credentials: "same-origin",
+    keepalive: true,
+    body: JSON.stringify({ sessionId, events: [{ type: "recommendation_rejected", ...event }] }),
+  }).catch(() => undefined);
+}
+
 /** Posts a turn and hands each server-sent event, validated, to `onEvent`. */
 export async function streamTurn(
   sessionId: string,

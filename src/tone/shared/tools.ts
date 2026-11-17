@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@c05254edc8f8 (packages/shared/src/tools.ts). Não edite aqui.
+// Gerado de toneorg/server@ec69c6af51de (packages/shared/src/tools.ts). Não edite aqui.
 // The tools the agent can call. They all run on the server: tone researches the
 // stores from there and never drives a store page; a store opens only when the
 // person clicks its link. One zod schema per tool is both the validation and the
@@ -141,7 +141,7 @@ export const ServerTools = {
         .string()
         .max(60)
         .describe(
-          "Chave estável, ex.: 'pulso.largura_cm', 'relogio.estilo', 'roupa.tamanho'. Com condição, inclua a condição na chave: 'roupa.cores.trabalho', 'calcado.salto.casamento'.",
+          "Chave estável, ex.: 'pulso.largura_cm', 'relogio.estilo'. Para o que muda a busca use as chaves canônicas '<categoria>.tamanho', '.cores_desejadas', '.cores_evitadas', '.orcamento_max' (número em reais), '.marcas_preferidas', '.marcas_evitadas', '.lojas_evitadas' (e 'geral.lojas_evitadas'), listas separadas por vírgula. Com condição, inclua a condição na chave: 'roupa.cores.trabalho', 'calcado.salto.casamento'.",
         ),
       value: z.string().max(200),
       category: z.string().max(30).describe("Categoria: relogio, roupa, eletronicos, beleza, geral..."),
