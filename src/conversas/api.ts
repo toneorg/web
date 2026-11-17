@@ -8,6 +8,9 @@ import {
   MessageMatch,
   AgentEvent,
   ConnectionStatus,
+  Consent,
+  type ConsentPurpose,
+  NeedsConsent,
   type ConnectionProvider,
   type AnswerRatedEvent,
   DecisionState,
@@ -45,6 +48,8 @@ export class ApiError extends Error {
   ) {
     super(message, options);
   }
+  /** The server wants the person's specific consent before saving this (409): its text, to show. */
+  consent?: NeedsConsent;
 }
 
 /** A failed call, for the health dashboard. Not being signed in yet is not a failure. */
@@ -69,10 +74,13 @@ async function call(path: string, init: RequestInit = {}): Promise<unknown> {
   }
   const body = (await response.json().catch(() => null)) as { error?: string } | null;
   if (!response.ok) {
+    const consent = NeedsConsent.safeParse(body);
     failed(path, method, response.status);
     // The host answers a body that is too big with a page, not JSON.
     const fallback = response.status === 413 ? "A foto é grande demais para enviar." : `Erro ${response.status}`;
-    throw new ApiError(body?.error ?? fallback, response.status);
+    const refused = new ApiError(body?.error ?? fallback, response.status);
+    if (consent.success) refused.consent = consent.data;
+    throw refused;
   }
   return body;
 }
@@ -202,6 +210,10 @@ export const api = {
   confirmMemory: async (id: string) => Memory.parse(await send(`memories/${id}/confirm`, "POST", {})),
   /** Something the person wrote about themselves ("tamanho de tênis: 40 · já tenho sandália dourada"). */
   addMemory: (key: string, value: string, category: string) => send("memories", "POST", { key, value, category }),
+  /** The specific consents that stand (skin tone and coloring). */
+  consents: async () => Consent.array().parse(await call("consents")),
+  /** Takes the permission back: the server deletes the sensitive notes it covered. */
+  revokeConsent: (purpose: ConsentPurpose) => send(`consents/${purpose}`, "DELETE"),
   /** Every note about the person, gone; the conversations stay. */
   deleteAllMemories: () => send("memories", "DELETE"),
   /** The whole record of the account, as JSON, for the person to keep. */

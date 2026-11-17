@@ -44,6 +44,9 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["memories", "m1"])).toBe("/api/memories/m1");
     expect(upstreamPath(["memories", "m1", "confirm"])).toBe("/api/memories/m1/confirm");
     expect(upstreamPath(["memories", "m1", "other"])).toBeNull();
+    expect(upstreamPath(["consents"])).toBe("/api/consents");
+    expect(upstreamPath(["consents", "beleza_tom"])).toBe("/api/consents/beleza_tom");
+    expect(upstreamPath(["consents", "beleza_tom", "x"])).toBeNull();
     expect(upstreamPath(["me", "export"])).toBe("/api/me/export");
     expect(upstreamPath(["me"])).toBe("/api/me");
   });
