@@ -17,6 +17,8 @@ const ALLOWED: RegExp[] = [
   // The list, one note (read, correct, delete) and the confirmation of a guess.
   /^memories(\/[^/]+(\/confirm)?)?$/,
   /^purchases$/,
+  // Specific consent for sensitive data: the ones that stand, and taking one back.
+  /^consents(\/[^/]+)?$/,
   // Purchase situations: the list on the home page and how each one went afterwards.
   /^situations$/,
   /^situations\/[^/]+\/outcome$/,

@@ -5,6 +5,8 @@
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import {
   canRecordOutcome,
+  type Consent,
+  isSensitiveKey,
   episodeLine,
   type Me,
   type Memory,
@@ -19,6 +21,7 @@ import { track } from "./analytics";
 import { ApiError, api, peek } from "./api";
 import { AccessSessions } from "./AccessSessions";
 import { Connections } from "./Connections";
+import { consentRefusal, SENSITIVE_PURPOSE, SensitiveDataView } from "./SensitiveData";
 import { Sheet, useSheetClose } from "./Sheet";
 import { initialOf } from "./Shell";
 import { dangerButton, field, outlineButton } from "./ui";
@@ -168,6 +171,7 @@ export function ProfileBody(props: {
   // The last copy draws at once; the fresh one replaces it.
   const [me, setMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
   const [memories, setMemories] = useState<Memory[]>(() => peek<Memory[]>("memories") ?? []);
+  const [consents, setConsents] = useState<Consent[]>([]);
   const [situations, setSituations] = useState<PurchaseSituation[]>(() => peek<PurchaseSituation[]>("situations") ?? []);
   const [state, setState] = useState<"loading" | "ready" | "error">(() => (peek("me") && peek("memories") ? "ready" : "loading"));
   const [pending, setPending] = useState<Pending>(null);
@@ -183,12 +187,13 @@ export function ProfileBody(props: {
   const { onSignedOut } = props;
   useEffect(() => {
     let live = true;
-    Promise.all([api.me(), api.memories(), api.situations().catch(() => [])])
-      .then(([person, notes, occasions]) => {
+    Promise.all([api.me(), api.memories(), api.situations().catch(() => []), api.consents().catch(() => [])])
+      .then(([person, notes, occasions, given]) => {
         if (!live) return;
         setMe(person);
         setMemories(notes);
         setSituations(occasions);
+        setConsents(given);
         setState("ready");
       })
       .catch((error: unknown) => {
@@ -245,7 +250,7 @@ export function ProfileBody(props: {
       setFactNotice("Anotei.");
       load();
     } catch (failure) {
-      setFactNotice(failure instanceof ApiError ? failure.message : "Não consegui anotar agora. Tente de novo.");
+      setFactNotice(consentRefusal(failure) ?? (failure instanceof ApiError ? failure.message : "Não consegui anotar agora. Tente de novo."));
     } finally {
       setAdding(false);
     }
@@ -267,8 +272,12 @@ export function ProfileBody(props: {
     }
   };
 
-  const owned = memories.filter((memory) => memory.category === OWNED_CATEGORY);
-  const rest = memories.filter((memory) => memory.category !== OWNED_CATEGORY);
+  // Sensitive notes have their own section while the consent stands.
+  // Also the ones saved before the consent existed: they stay out of use until the person decides.
+  const sensitive = memories.filter((memory) => isSensitiveKey(memory.key));
+  const general = memories.filter((memory) => !isSensitiveKey(memory.key));
+  const owned = general.filter((memory) => memory.category === OWNED_CATEGORY);
+  const rest = general.filter((memory) => memory.category !== OWNED_CATEGORY);
   return (
     <>
       <div className="flex flex-col gap-10 pb-2">
@@ -350,6 +359,23 @@ export function ProfileBody(props: {
             </div>
           </div>
         </section>
+
+        <SensitiveDataView
+          consents={consents}
+          memories={sensitive}
+          onRevoke={() =>
+            setPending({
+              title: "Apagar e retirar a permissão?",
+              text: "Apago o tom, o subtom, a coloração e o tipo de pele que guardei, e deixo de guardar. Da próxima vez, peço de novo.",
+              confirm: "Apagar e retirar permissão",
+              run: async () => {
+                await api.revokeConsent(SENSITIVE_PURPOSE);
+                track("consent_revoked", { purpose: SENSITIVE_PURPOSE });
+                load();
+              },
+            })
+          }
+        />
 
         {situations.length > 0 ? (
           <section aria-labelledby="titulo-ocasioes" className="flex flex-col gap-3">

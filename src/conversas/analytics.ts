@@ -83,6 +83,7 @@ export type WebEvent =
   | "memory_confirmed"
   | "memory_deleted"
   | "memories_cleared"
+  | "consent_revoked"
   | "data_exported"
   | "account_deleted"
   | "watch_muted_by_link"

@@ -41,6 +41,20 @@ const sections: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
+    title: "Se você contou o seu tom de pele ou a sua coloração à tone",
+    body: (
+      <>
+        Tom, subtom, coloração e tipo de pele também podem revelar origem racial, dado sensível
+        pela LGPD (art. 5º, II). A tone só os guarda na memória depois que você diz sim a um
+        pedido específico, para uma finalidade: recomendar maquiagem (art. 11, I). Se você
+        escolher &ldquo;Só nesta conversa&rdquo;, o valor vale só naquela conversa, não vai para
+        a memória e some em até 24 horas. A tone nunca adivinha esses dados. No perfil, em &ldquo;Dados
+        sensíveis&rdquo;, você vê o que foi guardado e apaga tudo retirando a permissão. Não
+        analisamos a cor da pele por imagem.
+      </>
+    ),
+  },
+  {
     title: "Se você pediu um piloto para a sua loja",
     body: (
       <>

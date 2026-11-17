@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ec69c6af51de (packages/shared/src/genui.ts). Não edite aqui.
+// Gerado de toneorg/server@cf946ede5c80 (packages/shared/src/genui.ts). Não edite aqui.
 // The components the agent draws in the panel, in OpenUI Lang (openui.com).
 // One definition, two consumers: the server turns it into the instructions the
 // model reads and checks what the model wrote; the panel gives each component
@@ -355,6 +355,12 @@ export const OutcomeCheck = define(
   z.object({ situationId: text(60), question: text(120) }),
 );
 
+export const SensitiveConsent = define(
+  "SensitiveConsent",
+  "Pede a permissão específica para guardar tom de pele, subtom, coloração ou tipo de pele, que são dados sensíveis. Use só quando o servidor disser que falta a permissão, uma vez por conversa. purpose: beleza_tom. text: o texto que o servidor mandou, sem mudar. A pessoa responde Pode guardar ou Só nesta conversa.",
+  z.object({ purpose: z.enum(["beleza_tom"]), text: text(200) }),
+);
+
 export const DecisionBoard = define(
   "DecisionBoard",
   "O quadro da decisão desta conversa, guardado com update_decision: critérios, candidatas com o atendimento de cada critério e a evidência, condições de preço, lista curta e descartes. decisionId: o id devolvido por update_decision. Os dados vêm do servidor: não escreva preços, candidatas nem conclusões aqui.",
@@ -397,6 +403,7 @@ const BLOCKS = [
   PreferenceMemory,
   MemoryCheck,
   OutcomeCheck,
+  SensitiveConsent,
   WristFit,
 ];
 
@@ -447,6 +454,7 @@ export const QUESTION_COMPONENTS = new Set([
   "TradeoffSliders",
   "MemoryCheck",
   "OutcomeCheck",
+  "SensitiveConsent",
 ]);
 
 /** Components that put products in front of the person, for the funnel (requisitos §4). */
@@ -466,7 +474,7 @@ const COMPONENT_GROUPS = [
   },
   { name: "Explicar e comparar opções", components: ["Comparison", "Callout"] },
   { name: "Perguntar", components: ["PreferenceChips", "VisualChoice", "ProductQuiz", "TradeoffSliders"] },
-  { name: "Aprender com a pessoa", components: ["MemoryCheck", "OutcomeCheck"] },
+  { name: "Aprender com a pessoa", components: ["MemoryCheck", "OutcomeCheck", "SensitiveConsent"] },
   {
     name: "Avaliar um produto",
     components: ["ProductVerdict", "EvidenceCards", "ReviewInsights", "SentimentBreakdown"],
@@ -611,6 +619,8 @@ export function checkProgram(code: string): CheckedProgram {
         questions.push({ question: String(props.statement ?? ""), memoryKey: String(props.memoryKey ?? "") });
       if (name === "OutcomeCheck")
         questions.push({ question: String(props.question ?? ""), memoryKey: String(props.situationId ?? "") });
+      if (name === "SensitiveConsent")
+        questions.push({ question: "Permissão para dado sensível", memoryKey: String(props.purpose ?? "") });
       if (name === "Product" || name === "ShortlistItem") {
         const claims = [
           ...(Array.isArray(props.reasons) ? props.reasons.map(String) : []),
