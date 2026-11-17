@@ -16,10 +16,10 @@ export const standingConsent = (consents: Consent[]) =>
 /** What the profile says when the server will not save a sensitive note without the permission. */
 export function consentRefusal(failure: unknown): string | null {
   if (!(failure instanceof ApiError) || !failure.consent) return null;
-  return `Não guardei. ${failure.consent.text} Me responda na conversa e eu guardo.`;
+  return `Não guardei. ${failure.consent.text} Conte na conversa e eu peço sua permissão.`;
 }
 
-/** Shown only with the consent standing; otherwise nothing. */
+/** Shown with the consent standing, or when sensitive notes exist without it (saved before the consent); otherwise nothing. */
 export function SensitiveDataView(props: {
   consents: Consent[];
   /** The sensitive notes, already filtered. */
@@ -27,16 +27,22 @@ export function SensitiveDataView(props: {
   onRevoke: () => void;
 }) {
   const consent = standingConsent(props.consents);
-  if (!consent) return null;
+  if (!consent && props.memories.length === 0) return null;
   return (
     <section aria-labelledby="titulo-sensiveis" className="flex flex-col gap-3">
       <h3 id="titulo-sensiveis" className="text-subheading text-ink">
         Dados sensíveis
       </h3>
-      <p className="text-small text-graphite">
-        Tom de pele e coloração são dados sensíveis. Guardo com a sua permissão, só para:{" "}
-        {SENSITIVE_CONSENT[SENSITIVE_PURPOSE].purpose.toLowerCase()}.
-      </p>
+      {consent ? (
+        <p className="text-small text-graphite">
+          Tom de pele e coloração são dados sensíveis. Guardo com a sua permissão, só para:{" "}
+          {SENSITIVE_CONSENT[SENSITIVE_PURPOSE].purpose.toLowerCase()}.
+        </p>
+      ) : (
+        <p className="text-small text-graphite">
+          Guardei isto antes de pedir a sua permissão. Sem ela, eu não uso: você pode apagar.
+        </p>
+      )}
       {props.memories.length === 0 ? (
         <p className="text-small text-graphite">Nada guardado por enquanto.</p>
       ) : (
@@ -50,7 +56,7 @@ export function SensitiveDataView(props: {
       )}
       <div>
         <button type="button" className={dangerButton} onClick={props.onRevoke}>
-          Apagar e retirar permissão
+          {consent ? "Apagar e retirar permissão" : "Apagar"}
         </button>
       </div>
     </section>

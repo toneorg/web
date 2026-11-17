@@ -21,7 +21,7 @@ import { track } from "./analytics";
 import { ApiError, api, peek } from "./api";
 import { AccessSessions } from "./AccessSessions";
 import { Connections } from "./Connections";
-import { consentRefusal, SENSITIVE_PURPOSE, SensitiveDataView, standingConsent } from "./SensitiveData";
+import { consentRefusal, SENSITIVE_PURPOSE, SensitiveDataView } from "./SensitiveData";
 import { Sheet, useSheetClose } from "./Sheet";
 import { initialOf } from "./Shell";
 import { dangerButton, field, outlineButton } from "./ui";
@@ -273,9 +273,9 @@ export function ProfileBody(props: {
   };
 
   // Sensitive notes have their own section while the consent stands.
-  const consented = standingConsent(consents) !== undefined;
-  const sensitive = consented ? memories.filter((memory) => isSensitiveKey(memory.key)) : [];
-  const general = consented ? memories.filter((memory) => !isSensitiveKey(memory.key)) : memories;
+  // Also the ones saved before the consent existed: they stay out of use until the person decides.
+  const sensitive = memories.filter((memory) => isSensitiveKey(memory.key));
+  const general = memories.filter((memory) => !isSensitiveKey(memory.key));
   const owned = general.filter((memory) => memory.category === OWNED_CATEGORY);
   const rest = general.filter((memory) => memory.category !== OWNED_CATEGORY);
   return (
@@ -366,7 +366,7 @@ export function ProfileBody(props: {
           onRevoke={() =>
             setPending({
               title: "Apagar e retirar a permissão?",
-              text: "Apago o tom, o subtom e a coloração que guardei, e deixo de guardar. Da próxima vez, peço de novo.",
+              text: "Apago o tom, o subtom, a coloração e o tipo de pele que guardei, e deixo de guardar. Da próxima vez, peço de novo.",
               confirm: "Apagar e retirar permissão",
               run: async () => {
                 await api.revokeConsent(SENSITIVE_PURPOSE);

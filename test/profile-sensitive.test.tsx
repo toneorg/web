@@ -39,6 +39,16 @@ describe("seção Dados sensíveis do perfil", () => {
     expect(revoked).toBe("");
   });
 
+  it("com linhas antigas e sem consentimento aparece, avisa que não usa e oferece Apagar", () => {
+    const html = renderToStaticMarkup(
+      <SensitiveDataView consents={[]} memories={[memory("beleza.tom", "médio")]} onRevoke={() => undefined} />,
+    );
+    expect(html).toContain("Dados sensíveis");
+    expect(html).toContain("antes de pedir a sua permissão");
+    expect(html).toContain(">Apagar<");
+    expect(html).not.toContain("retirar permissão");
+  });
+
   it("com consentimento lista o que foi guardado, a finalidade e o botão", () => {
     const html = renderToStaticMarkup(
       <SensitiveDataView consents={[granted]} memories={[memory("beleza.tom", "médio"), memory("beleza.subtom", "quente")]} onRevoke={() => undefined} />,
@@ -76,6 +86,7 @@ describe("seção Dados sensíveis do perfil", () => {
     expect(failure).toBeInstanceOf(ApiError);
     expect(consentRefusal(failure)).toContain(text);
     expect(consentRefusal(failure)).toContain("Não guardei");
+    expect(consentRefusal(failure)).toContain("Conte na conversa e eu peço sua permissão.");
     expect(consentRefusal(new Error("x"))).toBeNull();
   });
 });
