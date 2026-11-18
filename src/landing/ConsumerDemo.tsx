@@ -2,7 +2,7 @@
 // The opening demo of the home page: a person asks for a chair, tone reads and
 // compares, and answers with the why and what the other option gives up. It plays
 // the steps of the product, not a decoration (DESIGN.md: movement with a motive).
-import { CheckMark } from "./icons";
+import { BellIcon, CheckMark } from "./icons";
 import { useSequence } from "./motion";
 
 const REASONS = [
@@ -64,7 +64,7 @@ export function ConsumerDemo() {
                 {REASONS.map((reason, index) =>
                   shows(5 + index) ? (
                     <li key={reason} className="step-in flex items-start gap-2.5 text-small text-ink">
-                      <span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-ink text-on-ink">
+                      <span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-accent text-on-accent">
                         <CheckMark className="size-2.5" />
                       </span>
                       {reason}
@@ -82,6 +82,32 @@ export function ConsumerDemo() {
           ) : null}
         </div>
       </div>
+      {/* After the answer: she keeps watching the price. A satellite over the window's corner, wide screens only. */}
+      <div
+        aria-hidden
+        className={`absolute -bottom-20 -left-10 hidden w-60 flex-col gap-2 rounded-panel bg-surface p-4 shadow-[var(--shadow-raised),0_18px_40px_-18px_var(--color-scrim)] transition-[opacity,translate] duration-300 ease-soft lg:flex ${
+          shows(7) ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+        }`}
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-7 place-items-center rounded-full bg-accent-soft text-accent-text">
+            <BellIcon className="size-3.5" />
+          </span>
+          <p className="text-caption font-medium text-ink">De olho no preço</p>
+        </div>
+        <svg viewBox="0 0 200 40" className="h-9 w-full overflow-visible text-accent">
+          <defs>
+            <linearGradient id="demo-watch" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stopColor="currentColor" stopOpacity="0.25" />
+              <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d="M0 12 L40 14 L80 10 L120 16 L160 15 L200 30 L200 40 L0 40 Z" fill="url(#demo-watch)" />
+          <path d="M0 12 L40 14 L80 10 L120 16 L160 15 L200 30" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="200" cy="30" r="3.5" fill="currentColor" />
+        </svg>
+        <p className="text-caption text-graphite">Avisa se baixar de R$ 1.300.</p>
+      </div>
       {/* The same story for screen readers, once. */}
       <p className="sr-only">
         Exemplo: a pessoa pede uma cadeira para trabalhar 8 horas por dia, com 1,85 m, dor nas costas e até R$ 1.500. A tone
@@ -97,7 +123,7 @@ function Progress({ done, children }: { done: boolean; children: React.ReactNode
   return (
     <p className="step-in flex items-center gap-2 text-caption text-graphite">
       {done ? (
-        <CheckMark className="size-3.5 text-ink" />
+        <CheckMark className="size-3.5 text-accent-text" />
       ) : (
         <span className="inline-flex w-3.5 justify-center gap-0.5">
           {[0, 1, 2].map((i) => (

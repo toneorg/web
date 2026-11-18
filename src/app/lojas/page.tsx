@@ -107,11 +107,12 @@ export default function Stores() {
       <main id="conteudo" className="flex-1">
         {/* Abertura */}
         <section aria-labelledby="titulo" className="relative overflow-hidden">
-          <div aria-hidden className="dot-grid pointer-events-none absolute inset-x-0 top-0 h-[44rem] opacity-70" />
+          <div aria-hidden className="glow-warm pointer-events-none absolute inset-0" />
+          <div aria-hidden className="dot-grid pointer-events-none absolute inset-x-0 top-0 h-[44rem] opacity-50" />
           <Container className="relative flex flex-col items-center gap-14 pt-14 pb-20 text-center sm:pt-20 lg:pt-24 lg:pb-28">
             <div className="flex flex-col items-center gap-7">
               <Eyebrow className="rise">
-                <span className="size-1.5 rounded-full bg-ink" aria-hidden />
+                <span className="size-1.5 rounded-full bg-accent" aria-hidden />
                 Piloto aberto para 5 marcas
               </Eyebrow>
               <h1 id="titulo" className="rise display-lg max-w-5xl text-ink [--i:1]">
@@ -141,7 +142,10 @@ export default function Stores() {
           <Container className="grid divide-y divide-rule md:grid-cols-3 md:divide-x md:divide-y-0">
             {STATS.map((stat) => (
               <div key={stat.value} className="reveal flex flex-col gap-3 py-10 md:px-8 md:first:ps-0 md:last:pe-0">
-                <p className="display-lg text-ink tabular-nums">{stat.value}</p>
+                <p className="display-lg text-ink tabular-nums">
+                  {stat.value.replace("%", "")}
+                  <span className="text-accent-text">%</span>
+                </p>
                 <p className="max-w-xs text-body text-graphite">{stat.label}</p>
               </div>
             ))}
@@ -162,7 +166,7 @@ export default function Stores() {
               {["Funciona no meu notebook?", "Veste justo ou largo?", "Tem perfume?"].map((asked, index) => (
                 <li
                   key={asked}
-                  className={`reveal max-w-sm rounded-panel bg-surface px-5 py-4 shadow-raised ${index === 1 ? "self-end" : index === 2 ? "self-center" : ""}`}
+                  className={`reveal max-w-sm rounded-panel px-5 py-4 shadow-raised ${index === 1 ? "self-end bg-accent-soft" : index === 2 ? "self-center bg-surface" : "bg-surface"}`}
                 >
                   <q className="font-display text-[1.5rem] leading-snug text-ink italic">{asked}</q>
                 </li>
@@ -174,12 +178,12 @@ export default function Stores() {
         {/* Como funciona */}
         <section id="como-funciona" aria-labelledby="como" className="border-t border-rule bg-surface py-24 sm:py-32">
           <Container className="flex flex-col gap-14">
-            <SectionHead id="como" eyebrow="Como funciona" title="No seu site, com o seu catálogo." />
+            <SectionHead id="como" title="No seu site, com o seu catálogo." />
             <ol className="grid gap-4 md:grid-cols-3">
               {STEPS.map(({ icon: Icon, title, body }, index) => (
                 <li key={title} className="reveal flex flex-col gap-8 rounded-card bg-paper p-7">
                   <div className="flex items-center justify-between">
-                    <span className="grid size-12 place-items-center rounded-full bg-surface text-ink shadow-raised">
+                    <span className="grid size-12 place-items-center rounded-full bg-accent-soft text-accent-text">
                       <Icon className="size-5" />
                     </span>
                     <span className="font-display text-[2rem] leading-none text-edge tabular-nums">0{index + 1}</span>
@@ -197,37 +201,42 @@ export default function Stores() {
         {/* Relatório de dúvidas */}
         <section id="relatorio" aria-labelledby="relatorio-titulo" className="py-24 sm:py-32">
           <Container className="grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-16">
-            <SectionHead id="relatorio-titulo" eyebrow="Relatório de dúvidas" title="Cada pergunta vira um dado sobre a sua loja.">
+            <SectionHead id="relatorio-titulo" title="Cada pergunta vira um dado sobre a sua loja.">
               Você descobre quais informações faltam nas fichas, quais produtos geram mais dúvida e quais objeções aparecem
               antes da desistência. Tudo agregado: você vê padrões, não pessoas.
             </SectionHead>
-            <div className="reveal rounded-card bg-surface p-3 shadow-raised ring-4 ring-ink/5">
-              <div className="flex items-center justify-between px-4 pt-3 pb-4">
-                <p className="text-subheading text-ink">Esta semana</p>
-                <span className="rounded-tag bg-sunken px-2 py-0.5 text-caption font-semibold text-ink">1.284 conversas</span>
-              </div>
-              <ul className="flex flex-col gap-1">
-                {QUESTIONS.map((item, index) => (
-                  <li key={item.q} className="flex flex-col gap-2.5 rounded-panel px-4 py-3.5 even:bg-paper">
-                    <div className="flex items-baseline justify-between gap-4">
-                      <q className="font-display text-[1.25rem] leading-snug text-ink italic">{item.q}</q>
-                      <span className="shrink-0 text-small text-graphite tabular-nums">{item.n} pessoas</span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-sunken">
-                      <div
-                        className="fill-in h-full rounded-full bg-ink"
-                        style={{ width: `${(item.n / max) * 100}%`, ["--i" as string]: index }}
-                      />
-                    </div>
-                    <p className="text-caption text-graphite">{item.gap}</p>
-                  </li>
-                ))}
-              </ul>
-              <div className="m-1 mt-3 flex items-start gap-3 rounded-panel bg-ink p-4 text-on-ink">
-                <SparkIcon className="mt-0.5 size-4 shrink-0" />
-                <p className="text-small">
-                  <span className="font-semibold">Sugestão:</span> acrescente “sem fragrância” às fichas de 14 produtos.
-                </p>
+            <div className="reveal relative isolate">
+              <div aria-hidden className="glow-warm pointer-events-none absolute -inset-16 -z-10 opacity-80 [mask-image:radial-gradient(closest-side,black_55%,transparent)]" />
+              <div className="rounded-card bg-surface p-3 shadow-raised ring-4 ring-ink/5">
+                <div className="flex items-center justify-between px-4 pt-3 pb-4">
+                  <p className="text-subheading text-ink">Esta semana</p>
+                  <span className="rounded-tag bg-sunken px-2 py-0.5 text-caption font-semibold text-ink">
+                    1.284 conversas
+                  </span>
+                </div>
+                <ul className="flex flex-col gap-1">
+                  {QUESTIONS.map((item, index) => (
+                    <li key={item.q} className="flex flex-col gap-2.5 rounded-panel px-4 py-3.5 even:bg-paper">
+                      <div className="flex items-baseline justify-between gap-4">
+                        <q className="font-display text-[1.25rem] leading-snug text-ink italic">{item.q}</q>
+                        <span className="shrink-0 text-small text-graphite tabular-nums">{item.n} pessoas</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-sunken">
+                        <div
+                          className="fill-in h-full rounded-full bg-accent"
+                          style={{ width: `${(item.n / max) * 100}%`, ["--i" as string]: index }}
+                        />
+                      </div>
+                      <p className="text-caption text-graphite">{item.gap}</p>
+                    </li>
+                  ))}
+                </ul>
+                <div className="m-1 mt-3 flex items-start gap-3 rounded-panel bg-accent-soft p-4 text-ink">
+                  <SparkIcon className="mt-0.5 size-4 shrink-0 text-accent-text" />
+                  <p className="text-small">
+                    <span className="font-semibold">Sugestão:</span> acrescente “sem fragrância” às fichas de 14 produtos.
+                  </p>
+                </div>
               </div>
             </div>
           </Container>
@@ -246,14 +255,16 @@ export default function Stores() {
                   ))}
                 </div>
               </div>
-              <div className="rounded-card bg-surface p-6 shadow-raised sm:p-7">
-                <p className="text-caption font-medium text-graphite">O que a tone diz</p>
-                <p className="mt-2 font-display text-[1.5rem] leading-snug text-ink">
-                  Eu começaria pelo Sérum A. Ele não tem fragrância, é o mais leve dos três e cabe no seu limite de R$ 150.
-                </p>
-                <p className="mt-3 text-small text-graphite">
-                  O B hidrata mais, mas pode pesar se a sua prioridade é oleosidade.
-                </p>
+              <div className="ring-warm rounded-card p-px">
+                <div className="rounded-[calc(var(--radius-card)-1px)] bg-surface p-6 sm:p-7">
+                  <p className="text-caption font-semibold text-accent-text">O que a tone diz</p>
+                  <p className="mt-2 font-display text-[1.5rem] leading-snug text-ink">
+                    Eu começaria pelo Sérum A. Ele não tem fragrância, é o mais leve dos três e cabe no seu limite de R$ 150.
+                  </p>
+                  <p className="mt-3 text-small text-graphite">
+                    O B hidrata mais, mas pode pesar se a sua prioridade é oleosidade.
+                  </p>
+                </div>
               </div>
             </div>
             <div className="order-1 lg:order-2">
@@ -272,7 +283,10 @@ export default function Stores() {
             <SectionHead id="produtos" title="Feita para produtos que exigem decisão." />
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {SEGMENTS.map((segment) => (
-                <li key={segment.name} className="reveal flex min-h-56 flex-col justify-between gap-8 rounded-card bg-surface p-7 shadow-raised">
+                <li
+                  key={segment.name}
+                  className="reveal flex min-h-56 flex-col justify-between gap-8 rounded-card bg-surface p-7 shadow-raised"
+                >
                   <p className="text-ui text-graphite">{segment.name}</p>
                   <q className="font-display text-[1.75rem] leading-[1.15] text-ink italic">{segment.asked}</q>
                 </li>
@@ -284,9 +298,10 @@ export default function Stores() {
         {/* Piloto */}
         <section id="piloto" aria-labelledby="piloto-titulo" className="pb-24 sm:pb-32">
           <Container>
-            <div className="reveal grid gap-12 rounded-tile bg-ink p-8 text-on-ink sm:p-12 lg:grid-cols-2 lg:gap-16 lg:p-16">
+            <div className="reveal relative isolate grid gap-12 overflow-hidden rounded-tile bg-ink p-8 text-on-ink sm:p-12 lg:grid-cols-2 lg:gap-16 lg:p-16">
+              <div aria-hidden className="glow-ink pointer-events-none absolute inset-0 -z-10" />
               <div className="flex flex-col gap-6">
-                <span className="text-caption font-medium text-on-ink/70">Piloto</span>
+                <span className="text-caption font-medium text-accent-on-ink">Piloto</span>
                 <h2 id="piloto-titulo" className="display-md">
                   A gente prova o ganho antes de você pagar.
                 </h2>
@@ -329,7 +344,7 @@ export default function Stores() {
               <ul className="flex flex-col gap-3">
                 {FIT.map((item) => (
                   <li key={item} className="flex items-center gap-3 text-body text-ink">
-                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-ink text-on-ink">
+                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent text-on-accent">
                       <CheckMark className="size-3" />
                     </span>
                     {item}
@@ -339,7 +354,7 @@ export default function Stores() {
             </div>
             <div className="reveal flex flex-col gap-8 rounded-card bg-paper p-8 sm:p-10">
               <div className="flex flex-col gap-4">
-                <ShieldIcon className="size-6 text-ink" />
+                <ShieldIcon className="size-6 text-accent-text" />
                 <h2 className="display-sm text-ink">A pessoa no controle. Você com os padrões.</h2>
               </div>
               <ul className="flex flex-col gap-3">
@@ -349,7 +364,7 @@ export default function Stores() {
                   "Nenhum dado é vendido. Nunca.",
                 ].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-body text-ink">
-                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-ink text-on-ink">
+                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent text-on-accent">
                       <CheckMark className="size-3" />
                     </span>
                     {item}
@@ -373,8 +388,13 @@ export default function Stores() {
         </section>
 
         {/* Formulário */}
-        <section id="piloto-form" aria-labelledby="form-titulo" className="relative overflow-hidden border-t border-rule py-24 sm:py-32">
-          <div aria-hidden className="dot-grid pointer-events-none absolute inset-0 opacity-60" />
+        <section
+          id="piloto-form"
+          aria-labelledby="form-titulo"
+          className="relative overflow-hidden border-t border-rule py-24 sm:py-32"
+        >
+          <div aria-hidden className="glow-rise pointer-events-none absolute inset-0" />
+          <div aria-hidden className="dot-grid pointer-events-none absolute inset-0 opacity-40" />
           <Container className="relative grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
             <div className="reveal flex flex-col gap-6">
               <h2 id="form-titulo" className="display-md text-ink">
@@ -422,7 +442,7 @@ function PilotBar({
       </div>
       <div className="h-10 overflow-hidden rounded-full bg-on-ink/10">
         <div
-          className={`fill-in h-full rounded-full ${strong ? "bg-on-ink" : "bg-on-ink/40"}`}
+          className={`fill-in h-full rounded-full ${strong ? "bg-accent-on-ink" : "bg-on-ink/40"}`}
           style={{ width, ["--i" as string]: index }}
         />
       </div>

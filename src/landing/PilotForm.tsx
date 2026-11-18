@@ -64,7 +64,7 @@ export function PilotForm() {
   if (state === "done")
     return (
       <div role="status" className="step-in flex flex-col items-start gap-4 rounded-card bg-surface p-8 shadow-raised">
-        <span aria-hidden className="grid size-10 place-items-center rounded-full bg-ink text-on-ink">
+        <span aria-hidden className="grid size-10 place-items-center rounded-full bg-accent text-on-accent">
           <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 8.5l3.25 3.25L13 4.75" />
           </svg>
@@ -108,7 +108,7 @@ export function PilotForm() {
         <button
           type="submit"
           disabled={state === "sending"}
-          className="press inline-flex min-h-13 items-center justify-center rounded-full bg-ink px-7 text-[1.0625rem] font-medium text-on-ink hover:bg-ink-pressed disabled:bg-ink-disabled focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="press inline-flex min-h-13 items-center justify-center rounded-full bg-accent px-7 text-[1.0625rem] font-medium text-on-accent shadow-glow hover:bg-accent-pressed disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-text"
         >
           {state === "sending" ? "Enviando…" : "Quero um piloto"}
         </button>

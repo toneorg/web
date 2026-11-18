@@ -48,6 +48,21 @@ tone · Como funciona · Para lojas · **Entrar**
   - **Fone.** *"Quero um fone para o metrô e para chamadas no trabalho."* → **Eu começaria pelo Quieto 300.** O cancelamento de ruído é o mais forte da faixa e tem dois microfones por lado. *O Pulse custa menos, mas o microfone some em lugar barulhento.*
   - **Hidratante.** *"Pele sensível, quero algo leve e sem perfume."* → **Eu começaria pelo Gel Calma.** É sem fragrância, tem textura em gel e é o mais leve dos três. *O Creme Nutri hidrata mais, mas pode pesar no calor.*
 
+### Comparação (`#comparacao`)
+- Selo: Comparação
+- Título: **Por que não só perguntar ao ChatGPT?**
+- Texto: Um chat de uso geral sabe um pouco de tudo e responde para qualquer pessoa. A tone foi feita para uma coisa: ajudar você a escolher o que comprar, nas lojas onde você compra.
+- A mesma pergunta nos dois: *"Air fryer para 4 pessoas. Minha cozinha é pequena. Até R$ 600."*
+  - **Um chat de uso geral** (8 opções): Ótima pergunta! Aqui estão 8 excelentes opções de air fryer para você considerar: (lista que some) … A melhor escolha vai depender das suas necessidades e do seu orçamento.
+  - **A tone** (1 escolha e o porquê): Eu começaria pela **Compacta 5L**. R$ 549. Preço lido no Magalu hoje, às 9h. ✓ Cesto de 5 L: serve 4 pessoas. ✓ 28 cm de largura, a mais estreita das que servem 4. ✓ Dentro do seu limite. **Por que não a Duo 7L?** Cabe mais, mas tem 38 cm de largura e é a mais barulhenta nas avaliações. Ela avisa se o preço cair abaixo de R$ 500.
+- Tabela (um chat de uso geral · a tone):
+  - **A resposta:** Uma lista de opções boas para a maioria das pessoas. · Poucas opções, escolhidas pelo que você disse.
+  - **O que você perde:** Prós genéricos de cada modelo. A escolha fica com você. · Cada opção diz o que você abre mão ao escolhê-la.
+  - **O preço:** O que a busca encontrou, nem sempre o da loja agora. · Lido nas lojas brasileiras, com a fonte de cada valor.
+  - **Depois da resposta:** A conversa termina ali. · Ela acompanha o preço e avisa quando vale comprar.
+  - **Quem ganha com a compra:** Depende do modelo de negócio de cada empresa. · Ninguém. Nenhuma marca ou loja paga para aparecer.
+- O lado do chat geral descreve o formato de uma resposta típica, nunca um fato sobre uma empresa. O lado da tone só diz o que o produto faz.
+
 ### O que mais ela faz
 - **Lembra do que importa para você.** Seu tamanho, o que você evita, as marcas que já te decepcionaram. Você vê tudo o que ela lembra e apaga quando quiser.
 - **Acompanha o preço e avisa quando vale.** Escolheu, mas não é a hora? Ela fica de olho e te avisa.

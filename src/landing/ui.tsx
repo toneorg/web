@@ -1,6 +1,7 @@
 // Pieces shared by the two public pages: the frame, the section opening, the
 // buttons and the small marks. Neutral bench of the design system: paper, white
-// surfaces with the raised ring, ink for the one action.
+// surfaces with the raised ring, and the coral accent for the one action
+// (DESIGN.md, "Coral na ação").
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -48,7 +49,7 @@ export function SectionHead({
 type ButtonTone = "solid" | "outline" | "ghost";
 
 const tones: Record<ButtonTone, string> = {
-  solid: "bg-ink text-on-ink hover:bg-ink-pressed focus-visible:outline-ink",
+  solid: "bg-accent text-on-accent shadow-glow hover:bg-accent-pressed focus-visible:outline-accent-text",
   outline: "bg-surface text-ink shadow-raised hover:bg-paper focus-visible:outline-ink",
   ghost: "text-ink hover:bg-sunken focus-visible:outline-ink",
 };

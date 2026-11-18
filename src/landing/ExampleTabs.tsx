@@ -126,7 +126,7 @@ export function ExampleTabs() {
           <ul className="flex flex-col gap-2.5">
             {example.why.map((reason) => (
               <li key={reason} className="flex items-start gap-3 text-body text-ink">
-                <span className="mt-1 grid size-5 shrink-0 place-items-center rounded-full bg-ink text-on-ink">
+                <span className="mt-1 grid size-5 shrink-0 place-items-center rounded-full bg-accent text-on-accent">
                   <CheckMark className="size-3" />
                 </span>
                 {reason}

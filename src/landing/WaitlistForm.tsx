@@ -45,7 +45,7 @@ export function WaitlistForm({ source, showSignIn = false }: { source: string; s
   if (state === "done")
     return (
       <p role="status" className="step-in flex min-h-13 items-center gap-3 rounded-full bg-surface px-5 text-body text-ink shadow-raised">
-        <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-ink text-on-ink">
+        <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-on-accent">
           <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 8.5l3.25 3.25L13 4.75" />
           </svg>
@@ -85,7 +85,7 @@ export function WaitlistForm({ source, showSignIn = false }: { source: string; s
         <button
           type="submit"
           disabled={state === "sending"}
-          className="press inline-flex min-h-11 shrink-0 items-center rounded-full bg-ink px-5 text-ui text-on-ink hover:bg-ink-pressed disabled:bg-ink-disabled focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="press inline-flex min-h-11 shrink-0 items-center rounded-full bg-accent px-5 text-ui text-on-accent shadow-glow hover:bg-accent-pressed disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-text"
         >
           {state === "sending" ? "Entrando na lista…" : "Entrar na lista"}
         </button>

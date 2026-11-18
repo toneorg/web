@@ -57,8 +57,8 @@
   }
 
   ::selection {
-    background: var(--color-ink);
-    color: var(--color-on-ink);
+    background: var(--color-accent-soft);
+    color: var(--color-ink);
   }
 
   [id] {
@@ -364,5 +364,76 @@
   @media (prefers-reduced-motion: reduce) {
     animation: none;
     opacity: 0.6;
+  }
+}
+
+/*
+  Warm light (DESIGN.md, "Coral na ação"): coral glows built from the tokens with
+  color-mix, never behind a skin swatch or a product photo. They sit on their own
+  absolutely placed layer, under the content.
+*/
+@utility glow-warm {
+  background:
+    radial-gradient(44rem 30rem at 80% 32%, color-mix(in oklab, var(--color-accent) 26%, transparent), transparent 70%),
+    radial-gradient(30rem 22rem at 98% 90%, var(--color-accent-soft), transparent 70%),
+    radial-gradient(40rem 28rem at 5% 0%, var(--color-surface), transparent 70%);
+}
+
+@utility glow-rise {
+  background:
+    radial-gradient(70% 80% at 50% 115%, color-mix(in oklab, var(--color-accent) 26%, transparent), transparent 70%),
+    linear-gradient(to bottom, transparent 30%, var(--color-accent-soft));
+}
+
+@utility glow-ink {
+  background-image:
+    radial-gradient(38rem 26rem at 100% 0%, color-mix(in oklab, var(--color-accent) 42%, transparent), transparent 70%),
+    radial-gradient(26rem 20rem at 0% 100%, color-mix(in oklab, var(--color-accent-on-ink) 16%, transparent), transparent 70%);
+}
+
+/* A 1px border that runs from coral into the rule: the panel that answers. */
+@utility ring-warm {
+  background: linear-gradient(
+    140deg,
+    var(--color-accent) 0%,
+    color-mix(in oklab, var(--color-accent) 35%, var(--color-accent-soft)) 40%,
+    var(--color-rule) 100%
+  );
+  box-shadow: 0 28px 60px -32px color-mix(in oklab, var(--color-accent) 55%, transparent);
+}
+
+/* Light running along the line between the steps: she is doing the work. 3.2 s a pass. */
+@keyframes travel {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
+@utility line-pulse {
+  background-image: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  background-size: 30% 100%;
+  background-repeat: no-repeat;
+  animation: travel 3.2s var(--ease-soft) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background-image: none;
+  }
+}
+
+/* A linked card lifts 2px under the pointer. */
+@utility lift {
+  transition-property: translate, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: var(--ease-soft);
+  &:hover {
+    translate: 0 -2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:hover {
+      translate: none;
+    }
   }
 }

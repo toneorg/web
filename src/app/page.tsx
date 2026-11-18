@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LandingFooter, LandingNav } from "@/landing/chrome";
+import { Comparison } from "@/landing/Comparison";
 import { ConsumerDemo } from "@/landing/ConsumerDemo";
 import { ExampleTabs } from "@/landing/ExampleTabs";
 import { Faq } from "@/landing/Faq";
@@ -99,6 +100,7 @@ export default function Home() {
         links={[
           { href: "#como-funciona", label: "Como funciona" },
           { href: "#porque", label: "O porquê" },
+          { href: "#comparacao", label: "Comparação" },
           { href: "/lojas", label: "Para lojas" },
         ]}
         secondary={{ href: "/conversas", label: "Entrar" }}
@@ -108,19 +110,20 @@ export default function Home() {
       <main id="conteudo" className="flex-1">
         {/* Abertura */}
         <section aria-labelledby="titulo" className="relative overflow-hidden">
-          <div aria-hidden className="dot-grid pointer-events-none absolute inset-x-0 top-0 h-[42rem] opacity-70" />
+          <div aria-hidden className="glow-warm pointer-events-none absolute inset-0" />
+          <div aria-hidden className="dot-grid pointer-events-none absolute inset-x-0 top-0 h-[42rem] opacity-50" />
           <Container className="relative grid gap-14 pt-14 pb-20 sm:pt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-10 lg:pt-24 lg:pb-28">
             <div id="lista" className="flex flex-col items-start gap-7">
               <Eyebrow className="rise">
-                <span className="size-1.5 rounded-full bg-ink" aria-hidden />
+                <span className="size-1.5 rounded-full bg-accent" aria-hidden />
                 Em teste fechado. Entre na lista de espera.
               </Eyebrow>
               <h1 id="titulo" className="rise display-lg text-ink [--i:1]">
                 Compre sem dúvida.
               </h1>
               <p className="rise lead max-w-lg text-graphite [--i:2]">
-                Conte o que você procura. A tone pesquisa nas lojas, compara por você e volta com poucas opções, cada uma
-                com o porquê. Você decide sabendo o que está escolhendo e o que está deixando de lado.
+                Conte o que você procura. A tone pesquisa nas lojas, compara por você e volta com poucas opções, cada uma com
+                o porquê. Você decide sabendo o que está escolhendo e o que está deixando de lado.
               </p>
               <div className="rise w-full [--i:3]">
                 <WaitlistForm source="home-abertura" showSignIn />
@@ -134,19 +137,18 @@ export default function Home() {
 
         {/* Por que isso importa */}
         <section aria-labelledby="importa" className="border-t border-rule bg-surface py-24 sm:py-32">
-          <Container className="flex flex-col gap-14">
-            <SectionHead id="importa" title="Comprar ficou fácil. Escolher, não." />
-            <ul className="grid gap-4 md:grid-cols-3">
-              {PAINS.map(({ icon: Icon, title, body }, index) => (
-                <li
-                  key={title}
-                  className="reveal flex flex-col gap-10 rounded-card bg-paper p-7"
-                  style={{ ["--i" as string]: index }}
-                >
-                  <span className="grid size-12 place-items-center rounded-full bg-surface text-ink shadow-raised">
+          <Container className="grid gap-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-20">
+            <div className="flex min-w-0 flex-col gap-10">
+              <SectionHead id="importa" title="Comprar ficou fácil. Escolher, não." />
+              <TabPile />
+            </div>
+            <ul className="flex flex-col divide-y divide-rule border-y border-rule">
+              {PAINS.map(({ icon: Icon, title, body }) => (
+                <li key={title} className="reveal flex gap-5 py-7">
+                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-accent-soft text-accent-text">
                     <Icon />
                   </span>
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2">
                     <h3 className="display-sm text-ink">{title}</h3>
                     <p className="text-body text-graphite">{body}</p>
                   </div>
@@ -159,12 +161,17 @@ export default function Home() {
         {/* Como funciona */}
         <section id="como-funciona" aria-labelledby="como" className="py-24 sm:py-32">
           <Container className="flex flex-col gap-14">
-            <SectionHead id="como" eyebrow="Como funciona" title="Você conta. Ela pesquisa. Você decide." />
+            <SectionHead id="como" title="Você conta. Ela pesquisa. Você decide." />
             <ol className="relative grid gap-4 md:grid-cols-3">
-              <span aria-hidden className="absolute top-[2.25rem] right-[16%] left-[16%] hidden h-px bg-edge md:block" />
+              <span aria-hidden className="absolute top-[2.25rem] right-[16%] left-[16%] hidden h-px bg-edge md:block">
+                <span className="line-pulse absolute inset-x-0 -top-px block h-[3px] rounded-full" />
+              </span>
               {STEPS.map((step, index) => (
-                <li key={step.title} className="reveal relative flex flex-col gap-5 rounded-card bg-surface p-7 shadow-raised">
-                  <span className="grid size-10 place-items-center rounded-full bg-ink text-ui text-on-ink tabular-nums">
+                <li
+                  key={step.title}
+                  className="reveal relative flex flex-col gap-5 rounded-card bg-surface p-7 shadow-raised"
+                >
+                  <span className="grid size-10 place-items-center rounded-full bg-accent-soft text-ui font-semibold text-accent-text ring-4 ring-surface tabular-nums">
                     {index + 1}
                   </span>
                   <h3 className="display-sm text-ink">{step.title}</h3>
@@ -178,18 +185,32 @@ export default function Home() {
         {/* O porquê */}
         <section id="porque" aria-labelledby="porque-titulo" className="border-t border-rule bg-surface py-24 sm:py-32">
           <Container className="flex flex-col gap-12">
-            <SectionHead id="porque-titulo" eyebrow="O porquê" title="Toda recomendação vem com o porquê.">
+            <SectionHead id="porque-titulo" title="Toda recomendação vem com o porquê.">
               Não é uma lista de “os 10 melhores”. É a escolha ligada ao que você disse, e o que você perde em cada
               alternativa. Se não fizer sentido, você vê exatamente onde discordar.
             </SectionHead>
-            <div className="reveal rounded-tile bg-paper p-3 sm:p-6">
-              <ExampleTabs />
+            <div className="reveal relative overflow-hidden rounded-tile bg-paper p-3 sm:p-6">
+              <div aria-hidden className="glow-warm pointer-events-none absolute inset-0 opacity-70" />
+              <div className="relative">
+                <ExampleTabs />
+              </div>
             </div>
           </Container>
         </section>
 
+        {/* Por que não um chat de uso geral */}
+        <section id="comparacao" aria-labelledby="comparacao-titulo" className="py-24 sm:py-32">
+          <Container className="flex flex-col gap-12">
+            <SectionHead id="comparacao-titulo" title="Por que não só perguntar ao ChatGPT?">
+              Um chat de uso geral sabe um pouco de tudo e responde para qualquer pessoa. A tone foi feita para uma coisa:
+              ajudar você a escolher o que comprar, nas lojas onde você compra.
+            </SectionHead>
+            <Comparison />
+          </Container>
+        </section>
+
         {/* O que mais ela faz */}
-        <section aria-labelledby="mais" className="py-24 sm:py-32">
+        <section aria-labelledby="mais" className="border-t border-rule bg-surface py-24 sm:py-32">
           <Container className="flex flex-col gap-14">
             <SectionHead id="mais" title="E depois da escolha, ela continua do seu lado." />
             <div className="grid gap-4 md:grid-cols-3">
@@ -200,7 +221,10 @@ export default function Home() {
               >
                 <div className="flex flex-wrap gap-2">
                   {["Calço 42", "Sem perfume", "Pele sensível", "Até R$ 300", "Prefere entrega rápida"].map((chip) => (
-                    <span key={chip} className="rounded-tag bg-surface px-2.5 py-1 text-caption font-semibold text-ink shadow-raised">
+                    <span
+                      key={chip}
+                      className="rounded-tag bg-surface px-2.5 py-1 text-caption font-semibold text-ink shadow-raised"
+                    >
                       {chip}
                     </span>
                   ))}
@@ -225,11 +249,12 @@ export default function Home() {
         </section>
 
         {/* Neutralidade */}
-        <section aria-labelledby="neutra" className="pb-24 sm:pb-32">
+        <section aria-labelledby="neutra" className="py-24 sm:py-32">
           <Container>
-            <div className="reveal grid gap-10 rounded-tile bg-ink p-8 text-on-ink sm:p-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16 lg:p-16">
+            <div className="reveal relative isolate grid gap-10 overflow-hidden rounded-tile bg-ink p-8 text-on-ink sm:p-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16 lg:p-16">
+              <div aria-hidden className="glow-ink pointer-events-none absolute inset-0 -z-10" />
               <div className="flex flex-col gap-6">
-                <span className="grid size-12 place-items-center rounded-full bg-on-ink/10">
+                <span className="grid size-12 place-items-center rounded-full bg-accent-on-ink/15 text-accent-on-ink">
                   <ShieldIcon className="size-6" />
                 </span>
                 <h2 id="neutra" className="display-lg">
@@ -244,7 +269,7 @@ export default function Home() {
                 <ul className="flex flex-col divide-y divide-on-ink/15 border-y border-on-ink/15">
                   {["Sem anúncio", "Sem comissão", "Sem ranking patrocinado", "Sem venda de dados"].map((item) => (
                     <li key={item} className="flex items-center gap-3 py-3.5 text-body">
-                      <CheckMark className="size-4 shrink-0" />
+                      <CheckMark className="size-4 shrink-0 text-accent-on-ink" />
                       {item}
                     </li>
                   ))}
@@ -282,7 +307,7 @@ export default function Home() {
           <Container>
             <Link
               href="/lojas"
-              className="reveal group flex flex-col gap-6 rounded-card bg-surface p-8 shadow-raised transition-shadow duration-150 hover:shadow-[var(--shadow-raised),0_12px_32px_-12px_var(--color-scrim)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:flex-row sm:items-center sm:justify-between sm:p-10"
+              className="reveal lift group flex flex-col gap-6 rounded-card bg-surface p-8 shadow-raised transition-shadow duration-150 hover:shadow-[var(--shadow-raised),0_12px_32px_-12px_var(--color-scrim)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:flex-row sm:items-center sm:justify-between sm:p-10"
             >
               <div className="flex flex-col gap-3">
                 <h2 id="lojas" className="display-sm text-ink">
@@ -302,8 +327,12 @@ export default function Home() {
         </section>
 
         {/* Fechamento */}
-        <section aria-labelledby="fim" className="relative overflow-hidden border-t border-rule pt-24 pb-28 sm:pt-32 sm:pb-36">
-          <div aria-hidden className="dot-grid pointer-events-none absolute inset-0 opacity-60" />
+        <section
+          aria-labelledby="fim"
+          className="relative overflow-hidden border-t border-rule pt-24 pb-28 sm:pt-32 sm:pb-36"
+        >
+          <div aria-hidden className="glow-rise pointer-events-none absolute inset-0" />
+          <div aria-hidden className="dot-grid pointer-events-none absolute inset-0 opacity-40" />
           <Container className="relative flex flex-col items-center gap-8 text-center">
             <h2 id="fim" className="reveal display-lg max-w-4xl text-ink">
               Sua próxima compra, sem dúvida.
@@ -349,10 +378,20 @@ function PriceDrawing() {
     <div className="flex w-full flex-col gap-2">
       <div className="flex items-baseline justify-between text-caption text-graphite">
         <span>Quieto 300</span>
-        <span className="rounded-tag bg-ink px-2 py-0.5 font-semibold text-on-ink tabular-nums">R$ 749</span>
+        <span className="rounded-tag bg-accent px-2 py-0.5 font-semibold text-on-accent tabular-nums">R$ 749</span>
       </div>
-      <svg aria-hidden viewBox="0 0 240 80" className="h-20 w-full overflow-visible text-ink">
+      <svg aria-hidden viewBox="0 0 240 80" className="h-20 w-full overflow-visible text-accent">
+        <defs>
+          <linearGradient id="price-area" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor="currentColor" stopOpacity="0.22" />
+            <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+          </linearGradient>
+        </defs>
         <line x1="0" y1="52" x2="240" y2="52" className="stroke-edge" strokeDasharray="3 4" strokeWidth="1" />
+        <path
+          d="M0 22 L30 26 L60 18 L90 28 L120 24 L150 34 L180 30 L210 58 L240 64 L240 80 L0 80 Z"
+          fill="url(#price-area)"
+        />
         <path
           d="M0 22 L30 26 L60 18 L90 28 L120 24 L150 34 L180 30 L210 58 L240 64"
           fill="none"
@@ -392,6 +431,39 @@ function WebDrawing() {
         <span className="h-1.5 w-full rounded-full bg-edge" />
         <span className="h-1.5 w-3/4 rounded-full bg-edge" />
         <span className="mt-auto h-4 rounded-full bg-ink" />
+      </div>
+    </div>
+  );
+}
+
+/** Thirty tabs for one purchase: the work tone takes off your hands. */
+const TABS = ["Top 10 de 2026", "Review sincero", "Reclamações", "Loja A", "Loja B", "Comparativo"];
+
+function TabPile() {
+  return (
+    <div aria-hidden className="reveal relative flex flex-col overflow-hidden rounded-panel bg-paper shadow-raised">
+      <div className="flex items-end overflow-hidden px-2 pt-2 [mask-image:linear-gradient(to_right,black_80%,transparent)]">
+        {TABS.map((tab, index) => (
+          <span
+            key={tab}
+            className={`-me-1 flex shrink-0 items-center gap-1.5 rounded-t-thumb px-3 py-2 text-caption whitespace-nowrap ${
+              index === 0 ? "bg-surface text-ink" : "bg-sunken text-graphite"
+            }`}
+          >
+            <span className="size-2.5 shrink-0 rounded-full bg-edge" />
+            {tab}
+          </span>
+        ))}
+      </div>
+      <div className="relative flex flex-col gap-2.5 bg-surface p-5 [mask-image:linear-gradient(to_bottom,black_45%,transparent)]">
+        <span className="absolute top-4 right-4 rounded-full bg-accent-soft px-2.5 py-1 text-caption font-semibold text-accent-text tabular-nums">
+          +26 abas
+        </span>
+        <span className="h-2 w-3/5 rounded-full bg-edge" />
+        <span className="h-1.5 w-full rounded-full bg-sunken" />
+        <span className="h-1.5 w-11/12 rounded-full bg-sunken" />
+        <span className="h-1.5 w-4/5 rounded-full bg-sunken" />
+        <span className="h-1.5 w-full rounded-full bg-sunken" />
       </div>
     </div>
   );
