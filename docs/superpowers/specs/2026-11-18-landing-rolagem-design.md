@@ -95,3 +95,12 @@ Vai para `docs/copy/landing.md` antes do código. Os nomes de produto e números
 - Sem JavaScript: estado final em toda seção.
 - Lighthouse no celular sem queda de desempenho nem CLS novo.
 - Typecheck, lint, testes e `check:design` passam.
+
+## Ajustes depois da primeira versão (2026-11-18)
+
+Pedidos do Gabriel ao ver a primeira versão:
+
+- **Abertura:** a frase entra sozinha e grande, palavra por palavra; depois o texto e o campo; por último o app sobe para o espaço abaixo. Layout centrado, uma coisa de cada vez.
+- **Dores:** a barra de abas vira um navegador na largura toda (16 abas que se espremem, contador até "30 abas abertas", resultados de busca) e os três problemas ficam em linha embaixo.
+- **Linhas de convergência:** saem da parte do problema; ficam só depois da solução, no começo de "O porquê", mais altas e na largura do conteúdo.
+- **A pesquisa:** em vez de cards num palco, janelas (lojas, avaliações, fichas, vídeos, fóruns) enchem a tela toda e ficam desfocadas atrás dos passos. No passo 2, cinco janelas sobem acima do desfoque, nítidas, com anel coral e o fato que ela tirou de cada uma. No passo 3, viram a resposta. O desfoque é uma camada só (`backdrop-filter` constante); as janelas escolhidas sobem por `z-index`, sem filtro animado.

@@ -9,14 +9,14 @@ const LIT = new Set([2, 6]);
 
 export function Converge({ className = "" }: { className?: string }) {
   return (
-    <div aria-hidden="true" className={`relative h-28 w-full [view-timeline-name:--converge] sm:h-36 ${className}`}>
-      <svg viewBox="0 0 1000 160" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible">
+    <div aria-hidden="true" className={`relative h-48 w-full [view-timeline-name:--converge] sm:h-72 ${className}`}>
+      <svg viewBox="0 0 1000 300" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible">
         {Array.from({ length: LINES }, (_, index) => {
-          const x = 20 + (index * 960) / (LINES - 1);
+          const x = (index * 1000) / (LINES - 1);
           return (
             <path
               key={index}
-              d={`M${x} 0 C${x} 95, 500 60, 500 160`}
+              d={`M${x} 0 C${x} 170, 500 120, 500 300`}
               pathLength="1"
               fill="none"
               strokeWidth={LIT.has(index) ? 1.5 : 1}

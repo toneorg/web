@@ -17,15 +17,21 @@ describe("a pesquisa na página principal", () => {
   });
 
   it("ends on the answer, with the counters at their totals", () => {
+    expect(html).toContain("Eu começaria pela");
     expect(html).toContain("Cadeira Apoio Pro");
     expect(html).toContain("214");
     expect(html).toContain("11");
   });
 
-  it("hides the stage from screen readers and shows no discarded card at the end", () => {
-    expect(html).toMatch(/data-stage[^>]*aria-hidden="true"|aria-hidden="true"[^>]*data-stage/);
-    const discarded = html.match(/<div[^>]*data-card="discard"[^>]*>/g) ?? [];
-    expect(discarded.length).toBeGreaterThanOrEqual(8);
-    for (const card of discarded) expect(card).toMatch(/opacity:0[;"]/);
+  it("fills the screen with windows behind the steps, hidden from screen readers", () => {
+    expect(html).toMatch(/data-desk[^>]*aria-hidden="true"|aria-hidden="true"[^>]*data-desk/);
+    const windows = html.match(/<div[^>]*data-window="[a-z]+"[^>]*>/g) ?? [];
+    expect(windows.length).toBeGreaterThanOrEqual(16);
+  });
+
+  it("has merged every picked window into the answer at the end", () => {
+    const picked = html.match(/<div[^>]*data-window="picked"[^>]*>/g) ?? [];
+    expect(picked.length).toBeGreaterThanOrEqual(4);
+    for (const window of picked) expect(window).toMatch(/opacity:0[;"]/);
   });
 });

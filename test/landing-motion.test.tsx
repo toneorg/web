@@ -11,9 +11,9 @@ import { TabPile } from "../src/landing/TabPile";
 describe("movimentos menores com a rolagem", () => {
   it("the tab pile ends with every tab shown and the full count", () => {
     const html = renderToStaticMarkup(<TabPile />);
-    expect(html).toContain("+26 abas");
+    expect(html).toContain("30 abas abertas");
     const tabs = html.match(/<span[^>]*data-tab[^>]*>/g) ?? [];
-    expect(tabs).toHaveLength(10);
+    expect(tabs).toHaveLength(16);
     for (const tab of tabs) expect(tab).not.toMatch(/opacity:0[;"]/);
   });
 

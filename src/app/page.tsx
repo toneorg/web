@@ -96,55 +96,52 @@ export default function Home() {
       />
 
       <main id="conteudo" className="flex-1">
-        {/* Abertura */}
+        {/* Abertura: a frase sozinha primeiro, depois o app sobe */}
         <section aria-labelledby="titulo" className="relative overflow-hidden">
           <div aria-hidden className="glow-warm pointer-events-none absolute inset-0" />
           <div aria-hidden className="dot-grid pointer-events-none absolute inset-x-0 top-0 h-[42rem] opacity-50" />
-          <Container className="relative grid gap-14 pt-14 pb-20 sm:pt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-10 lg:pt-24 lg:pb-28">
-            <div id="lista" className="flex flex-col items-start gap-7">
+          <Container className="relative flex flex-col items-center gap-14 pt-14 pb-20 text-center sm:pt-20 lg:gap-16 lg:pt-24 lg:pb-28">
+            <div id="lista" className="flex flex-col items-center gap-7">
               <Eyebrow className="rise">
                 <span className="size-1.5 rounded-full bg-accent" aria-hidden />
                 Em teste fechado. Entre na lista de espera.
               </Eyebrow>
-              <h1 id="titulo" className="rise display-lg text-ink [--i:1]">
-                Compre sem dúvida.
+              <h1 id="titulo" className="display-xl max-w-5xl text-ink">
+                <span className="headline-in inline-block">Compre</span>{" "}
+                <span className="headline-in inline-block [--i:1]">sem</span>{" "}
+                <span className="headline-in inline-block [--i:2]">dúvida.</span>
               </h1>
-              <p className="rise lead max-w-lg text-graphite [--i:2]">
+              <p className="rise lead max-w-2xl text-graphite [--i:6]">
                 Conte o que você procura. A tone pesquisa nas lojas, compara por você e volta com poucas opções, cada uma com
                 o porquê. Você decide sabendo o que está escolhendo e o que está deixando de lado.
               </p>
-              <div className="rise w-full [--i:3]">
+              <div className="rise flex w-full justify-center text-start [--i:7]">
                 <WaitlistForm source="home-abertura" showSignIn />
               </div>
             </div>
-            <div className="rise [--i:3]">
+            <div className="app-in w-full max-w-3xl text-start">
               <ConsumerDemo />
             </div>
           </Container>
         </section>
 
         {/* Por que isso importa */}
-        <section aria-labelledby="importa" className="border-t border-rule bg-surface pt-24 sm:pt-32">
-          <Container className="grid gap-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-20">
-            <div className="flex min-w-0 flex-col gap-10">
-              <SectionHead id="importa" title="Comprar ficou fácil. Escolher, não." />
-              <TabPile />
-            </div>
-            <ul className="flex flex-col divide-y divide-rule border-y border-rule">
+        <section aria-labelledby="importa" className="border-t border-rule bg-surface py-24 sm:py-32">
+          <Container className="flex flex-col gap-12 lg:gap-16">
+            <SectionHead id="importa" title="Comprar ficou fácil. Escolher, não." />
+            <TabPile />
+            <ul className="grid gap-10 md:grid-cols-3 md:gap-8">
               {PAINS.map(({ icon: Icon, title, body }) => (
-                <li key={title} className="reveal flex gap-5 py-7">
+                <li key={title} className="reveal flex flex-col gap-4">
                   <span className="grid size-12 shrink-0 place-items-center rounded-full bg-accent-soft text-accent-text">
                     <Icon />
                   </span>
-                  <div className="flex flex-col gap-2">
-                    <h3 className="display-sm text-ink">{title}</h3>
-                    <p className="text-body text-graphite">{body}</p>
-                  </div>
+                  <h3 className="display-sm text-ink">{title}</h3>
+                  <p className="text-body text-graphite">{body}</p>
                 </li>
               ))}
             </ul>
           </Container>
-          <Converge className="mt-16 sm:mt-20" />
         </section>
 
         {/* A pesquisa: o bastidor da resposta, com a rolagem */}
@@ -152,7 +149,9 @@ export default function Home() {
 
         {/* O porquê */}
         <section id="porque" aria-labelledby="porque-titulo" className="bg-surface pb-24 sm:pb-32">
-          <Converge className="mb-16 sm:mb-20" />
+          <Container>
+            <Converge className="mb-12 sm:mb-16" />
+          </Container>
           <Container className="flex flex-col gap-12">
             <SectionHead id="porque-titulo" title="Toda recomendação vem com o porquê.">
               Não é uma lista de “os 10 melhores”. É a escolha ligada ao que você disse, e o que você perde em cada

@@ -462,3 +462,40 @@
     stroke-dashoffset: 0;
   }
 }
+
+/*
+  The home page's opening (DESIGN.md: a staged entrance, once, on load): the
+  headline comes first, word by word and a little larger than its resting size,
+  then the lead and the form, then the app rises into the space below it.
+*/
+@keyframes headline-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.25em) scale(1.04);
+    filter: blur(10px);
+  }
+}
+
+@utility headline-in {
+  animation: headline-in 700ms var(--ease-soft) both;
+  animation-delay: calc(120ms + var(--i, 0) * 140ms);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes app-in {
+  from {
+    opacity: 0;
+    transform: translateY(56px) scale(0.96);
+    filter: blur(6px);
+  }
+}
+
+@utility app-in {
+  animation: app-in 800ms var(--ease-soft) both;
+  animation-delay: 1050ms;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

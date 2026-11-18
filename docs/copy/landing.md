@@ -35,13 +35,13 @@ tone · Como funciona · Para lojas · **Entrar**
 - **Quem recomenda ganha com a sua compra.** O influenciador recebe comissão, o ranking é patrocinado, a loja quer girar o estoque. Fica difícil saber em quem confiar.
 
 ### A pesquisa (`#como-funciona`)
-Seção fixa no fundo escuro: a pesquisa acontece conforme a pessoa rola (`docs/superpowers/specs/2026-11-18-landing-rolagem-design.md`). É o bastidor da demo da abertura (a mesma cadeira).
+Seção fixa no fundo escuro: a pesquisa acontece conforme a pessoa rola (`docs/superpowers/specs/2026-11-18-landing-rolagem-design.md`). É o bastidor da demo da abertura (a mesma cadeira). Janelas de lojas, avaliações, fichas, vídeos e fóruns enchem a tela e ficam desfocadas atrás dos passos; no passo 2, cinco ficam nítidas, com o que ela tirou de cada uma: *Dentro do seu limite* · *Cabe na sua altura* · *Quem é alto aprova* · *Sem desgaste em 30 dias* · *Ajuda nas costas*. No passo 3, viram a resposta.
 - Título: **Enquanto você espera, ela faz o trabalho pesado.**
 1. **Você conta.** O que você precisa, para quê e quanto quer gastar. Pode colar o link de um produto que já está olhando.
-2. **Ela pesquisa.** Lê fichas técnicas, avaliações e vídeos em várias lojas e descarta o que não serve para você.
+2. **Ela pesquisa.** Lê fichas técnicas, avaliações e vídeos em várias lojas e separa o que importa para você.
 3. **Você decide.** Poucas opções, com o motivo de cada uma e o que você abre mão em cada escolha.
 - Pedido: *Cadeira para 8 horas por dia. Tenho 1,85 m e dor nas costas. Até R$ 1.500.*
-- Contadores: **214** avaliações lidas · **12** cadeiras comparadas · **6** lojas · **11** descartadas
+- Contadores: **214** avaliações · **12** cadeiras · **6** lojas · **11** descartes
 - Cards que chegam (ilustrativos) e o motivo de cada descarte:
   - Linha Flex, R$ 1.180 → *Assento para em 48 cm*
   - Ergo Max, R$ 990 → *Sem ajuste lombar*
