@@ -34,11 +34,27 @@ tone · Como funciona · Para lojas · **Entrar**
 - **Acertar dá trabalho demais.** Trinta abas, ficha técnica, vídeo de review, comentário que contradiz o outro. Ninguém tem tempo para isso a cada compra.
 - **Quem recomenda ganha com a sua compra.** O influenciador recebe comissão, o ranking é patrocinado, a loja quer girar o estoque. Fica difícil saber em quem confiar.
 
-### Como funciona (`#como-funciona`)
-- Título: **Você conta. Ela pesquisa. Você decide.**
-1. **Conte do seu jeito.** O que você precisa, para quê e quanto quer gastar. Pode colar o link de um produto que já está olhando.
-2. **Ela faz a pesquisa.** Lê fichas técnicas, avaliações e vídeos em várias lojas e descarta o que não serve para você.
-3. **Você decide com o porquê.** Poucas opções, com o motivo de cada uma e o que você abre mão em cada escolha.
+### A pesquisa (`#como-funciona`)
+Seção fixa no fundo escuro: a pesquisa acontece conforme a pessoa rola (`docs/superpowers/specs/2026-11-18-landing-rolagem-design.md`). É o bastidor da demo da abertura (a mesma cadeira).
+- Título: **Enquanto você espera, ela faz o trabalho pesado.**
+1. **Você conta.** O que você precisa, para quê e quanto quer gastar. Pode colar o link de um produto que já está olhando.
+2. **Ela pesquisa.** Lê fichas técnicas, avaliações e vídeos em várias lojas e descarta o que não serve para você.
+3. **Você decide.** Poucas opções, com o motivo de cada uma e o que você abre mão em cada escolha.
+- Pedido: *Cadeira para 8 horas por dia. Tenho 1,85 m e dor nas costas. Até R$ 1.500.*
+- Contadores: **214** avaliações lidas · **12** cadeiras comparadas · **6** lojas · **11** descartadas
+- Cards que chegam (ilustrativos) e o motivo de cada descarte:
+  - Linha Flex, R$ 1.180 → *Assento para em 48 cm*
+  - Ergo Max, R$ 990 → *Sem ajuste lombar*
+  - Executiva Prime, R$ 2.290 → *Acima do seu limite*
+  - Gamer Turbo, R$ 1.250 → *Lombar é só uma almofada*
+  - *"O encosto quebrou em 4 meses."* (Ergo Max, 2 estrelas) → *Encosto frágil em 31 avaliações*
+  - *"Esquenta muito no verão."* (Office Air, 3 estrelas) → *Esquenta, segundo 18 avaliações*
+  - *"Chegou com peça faltando."* (Loja D, 1 estrela) → *Loja com muitas reclamações*
+  - Comfy Plus: altura do assento 42 a 49 cm → *Baixa para 1,85 m*
+  - Basic 2: apoio de braço fixo → *Sem ajuste de braço*
+  - Office Air: garantia de 3 meses → *Garantia curta*
+  - A favor da escolha, convergem na resposta: Cadeira Apoio Pro, R$ 1.390 (Loja A) · *"Ótima para quem é alto."* (5 estrelas) · Assento sobe até 54 cm · Lombar com ajuste de altura
+- Resposta: **Eu começaria pela Cadeira Apoio Pro.** ✓ Assento sobe até 54 cm, para a sua altura. ✓ Apoio lombar com ajuste de altura. ✓ Dentro do seu limite.
 
 ### O porquê
 - Título: **Toda recomendação vem com o porquê.**

@@ -5,6 +5,7 @@ import { Comparison } from "@/landing/Comparison";
 import { ConsumerDemo } from "@/landing/ConsumerDemo";
 import { ExampleTabs } from "@/landing/ExampleTabs";
 import { Faq } from "@/landing/Faq";
+import { Research } from "@/landing/Research";
 import {
   ArrowIcon,
   BellIcon,
@@ -46,21 +47,6 @@ const PAINS = [
     icon: CoinIcon,
     title: "Quem recomenda ganha com a sua compra.",
     body: "O influenciador recebe comissão, o ranking é patrocinado, a loja quer girar o estoque. Fica difícil saber em quem confiar.",
-  },
-];
-
-const STEPS = [
-  {
-    title: "Conte do seu jeito.",
-    body: "O que você precisa, para quê e quanto quer gastar. Pode colar o link de um produto que já está olhando.",
-  },
-  {
-    title: "Ela faz a pesquisa.",
-    body: "Lê fichas técnicas, avaliações e vídeos em várias lojas e descarta o que não serve para você.",
-  },
-  {
-    title: "Você decide com o porquê.",
-    body: "Poucas opções, com o motivo de cada uma e o que você abre mão em cada escolha.",
   },
 ];
 
@@ -158,29 +144,8 @@ export default function Home() {
           </Container>
         </section>
 
-        {/* Como funciona */}
-        <section id="como-funciona" aria-labelledby="como" className="py-24 sm:py-32">
-          <Container className="flex flex-col gap-14">
-            <SectionHead id="como" title="Você conta. Ela pesquisa. Você decide." />
-            <ol className="relative grid gap-4 md:grid-cols-3">
-              <span aria-hidden className="absolute top-[2.25rem] right-[16%] left-[16%] hidden h-px bg-edge md:block">
-                <span className="line-pulse absolute inset-x-0 -top-px block h-[3px] rounded-full" />
-              </span>
-              {STEPS.map((step, index) => (
-                <li
-                  key={step.title}
-                  className="reveal relative flex flex-col gap-5 rounded-card bg-surface p-7 shadow-raised"
-                >
-                  <span className="grid size-10 place-items-center rounded-full bg-accent-soft text-ui font-semibold text-accent-text ring-4 ring-surface tabular-nums">
-                    {index + 1}
-                  </span>
-                  <h3 className="display-sm text-ink">{step.title}</h3>
-                  <p className="text-body text-graphite">{step.body}</p>
-                </li>
-              ))}
-            </ol>
-          </Container>
-        </section>
+        {/* A pesquisa: o bastidor da resposta, com a rolagem */}
+        <Research />
 
         {/* O porquê */}
         <section id="porque" aria-labelledby="porque-titulo" className="border-t border-rule bg-surface py-24 sm:py-32">
