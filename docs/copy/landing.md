@@ -113,6 +113,16 @@ Seção fixa no fundo escuro: a pesquisa acontece conforme a pessoa rola (`docs/
 - E-mail inválido: Escreva um e-mail no formato voce@email.com.
 - Falha: Não deu para entrar na lista agora. Tente de novo em instantes.
 
+### E-mail de confirmação (`src/lib/waitlist-mail.ts`)
+Sai logo depois que o e-mail entra na lista, pelo Resend, de `MAIL_FROM` (`tone <avisos@heytone.app>`). Um e-mail por endereço a cada 24 horas.
+- Assunto: **Recebemos seu interesse na tone**
+- Pré-visualização: Você está na lista de espera. Avisamos quando o seu convite sair.
+- Título: **Recebemos seu interesse.**
+- Seu e-mail está na lista de espera da tone. Estamos em teste fechado e os convites saem aos poucos, por ordem da lista. Quando o seu sair, você recebe outro e-mail com o link de entrada.
+- Enquanto isso, a ideia é simples: você conta o que procura, a tone pesquisa nas lojas e volta com poucas opções, cada uma com o porquê. Ela não recebe de nenhuma marca para recomendar.
+- Seu e-mail serve só para isso. Se não foi você que se inscreveu, é só ignorar esta mensagem.
+- Rodapé: Compre sem dúvida. · endereço do site
+
 ---
 
 ## Página para lojas (`/lojas`)

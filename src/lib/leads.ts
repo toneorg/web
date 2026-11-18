@@ -2,8 +2,10 @@
 // store's pilot request (/lojas). This server has no database, so each entry is
 // forwarded, from the server, to the URL in LEADS_WEBHOOK_URL (a sheet, an
 // automation, the tone server). Without it the routes answer 503 and the forms
-// say so, with the contact e-mail.
+// say so, with the contact e-mail. A saved waiting list entry then gets the
+// "recebemos seu interesse" e-mail (waitlist-mail.ts).
 import { z } from "zod";
+import { sendWaitlistConfirmation } from "./waitlist-mail";
 
 export const PLATFORMS = ["Nuvemshop", "Shopify", "VTEX", "WooCommerce", "Tray", "Loja Integrada", "Outra"] as const;
 export const TRAFFIC = ["Menos de 10 mil", "10 mil a 50 mil", "50 mil a 300 mil", "Mais de 300 mil"] as const;
@@ -64,5 +66,8 @@ export async function receive(kind: Kind, request: Request): Promise<Response> {
     console.error(`leads: the webhook failed for a ${kind} entry`, error);
     return Response.json({ error: "upstream" }, { status: 502 });
   }
+  // Saved: now the person hears back. Awaited, so the serverless function does
+  // not stop before the e-mail leaves; its failure never undoes the entry.
+  if (kind === "waitlist") await sendWaitlistConfirmation((data as { email: string }).email);
   return Response.json({ ok: true });
 }
