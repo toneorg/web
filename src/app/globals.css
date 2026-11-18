@@ -437,3 +437,28 @@
     }
   }
 }
+
+/*
+  A line drawn by the scroll (Converge): stroke-dashoffset from 1 to 0 on a
+  path with pathLength="1", along the view timeline its wrapper names. Without
+  view timelines, or with reduced motion, the line is simply drawn.
+*/
+@keyframes line-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@utility line-draw {
+  stroke-dasharray: 1;
+  @supports (animation-timeline: view()) {
+    stroke-dashoffset: 1;
+    animation: line-draw linear both;
+    animation-timeline: --converge;
+    animation-range: entry calc(10% + var(--i, 0) * 4%) cover 60%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

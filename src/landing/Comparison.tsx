@@ -3,11 +3,10 @@
 // side, then a short list of what changes. Claims on the general side describe
 // the shape of a typical answer, never a fact about one company; the tone side
 // names only what the product does (provenance.ts, watch.ts, decision.ts).
+import { GeneralAnswer } from "./GeneralAnswer";
 import { BellIcon, CheckMark, CrossMark } from "./icons";
 
 const ASKED = "Air fryer para 4 pessoas. Minha cozinha é pequena. Até R$ 600.";
-
-const GENERAL_LIST = ["Fritadeira Turbo 4L", "AirChef Max 6L", "Cozinha Fácil 3,5L", "Duo 7L", "Crocante Digital 5L"];
 
 const TONE_REASONS = [
   "Cesto de 5 L: serve 4 pessoas.",
@@ -90,37 +89,6 @@ export function Comparison() {
         ))}
       </dl>
     </div>
-  );
-}
-
-/** A long, polite answer that hands the decision back: the shape, not one product's words. */
-function GeneralAnswer() {
-  return (
-    <article className="reveal flex flex-col gap-5 rounded-card bg-sunken p-6 sm:p-8">
-      <header className="flex items-center justify-between gap-4">
-        <h3 className="text-ui text-graphite">Um chat de uso geral</h3>
-        <span className="rounded-tag bg-paper px-2.5 py-1 text-caption text-graphite tabular-nums">8 opções</span>
-      </header>
-      <div className="flex flex-1 flex-col gap-4 text-small text-graphite">
-        <p className="text-ink">Ótima pergunta! Aqui estão 8 excelentes opções de air fryer para você considerar:</p>
-        <ol className="flex max-h-[15rem] flex-col gap-3.5 overflow-hidden [mask-image:linear-gradient(to_bottom,black_60%,transparent)]">
-          {GENERAL_LIST.map((name, index) => (
-            <li key={name} className="flex flex-col gap-1.5">
-              <span className="font-medium text-ink">
-                {index + 1}. {name}
-              </span>
-              <span aria-hidden className="flex flex-col gap-1.5">
-                <span className="h-1.5 w-11/12 rounded-full bg-edge" />
-                <span className="h-1.5 w-2/3 rounded-full bg-edge" />
-              </span>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-auto border-t border-rule pt-4">
-          A melhor escolha vai depender das suas necessidades e do seu orçamento.
-        </p>
-      </div>
-    </article>
   );
 }
 

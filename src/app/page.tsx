@@ -4,8 +4,10 @@ import { LandingFooter, LandingNav } from "@/landing/chrome";
 import { Comparison } from "@/landing/Comparison";
 import { ConsumerDemo } from "@/landing/ConsumerDemo";
 import { ExampleTabs } from "@/landing/ExampleTabs";
+import { Converge } from "@/landing/Converge";
 import { Faq } from "@/landing/Faq";
 import { Research } from "@/landing/Research";
+import { TabPile } from "@/landing/TabPile";
 import {
   ArrowIcon,
   BellIcon,
@@ -122,7 +124,7 @@ export default function Home() {
         </section>
 
         {/* Por que isso importa */}
-        <section aria-labelledby="importa" className="border-t border-rule bg-surface py-24 sm:py-32">
+        <section aria-labelledby="importa" className="border-t border-rule bg-surface pt-24 sm:pt-32">
           <Container className="grid gap-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-20">
             <div className="flex min-w-0 flex-col gap-10">
               <SectionHead id="importa" title="Comprar ficou fácil. Escolher, não." />
@@ -142,13 +144,15 @@ export default function Home() {
               ))}
             </ul>
           </Container>
+          <Converge className="mt-16 sm:mt-20" />
         </section>
 
         {/* A pesquisa: o bastidor da resposta, com a rolagem */}
         <Research />
 
         {/* O porquê */}
-        <section id="porque" aria-labelledby="porque-titulo" className="border-t border-rule bg-surface py-24 sm:py-32">
+        <section id="porque" aria-labelledby="porque-titulo" className="bg-surface pb-24 sm:pb-32">
+          <Converge className="mb-16 sm:mb-20" />
           <Container className="flex flex-col gap-12">
             <SectionHead id="porque-titulo" title="Toda recomendação vem com o porquê.">
               Não é uma lista de “os 10 melhores”. É a escolha ligada ao que você disse, e o que você perde em cada
@@ -396,39 +400,6 @@ function WebDrawing() {
         <span className="h-1.5 w-full rounded-full bg-edge" />
         <span className="h-1.5 w-3/4 rounded-full bg-edge" />
         <span className="mt-auto h-4 rounded-full bg-ink" />
-      </div>
-    </div>
-  );
-}
-
-/** Thirty tabs for one purchase: the work tone takes off your hands. */
-const TABS = ["Top 10 de 2026", "Review sincero", "Reclamações", "Loja A", "Loja B", "Comparativo"];
-
-function TabPile() {
-  return (
-    <div aria-hidden className="reveal relative flex flex-col overflow-hidden rounded-panel bg-paper shadow-raised">
-      <div className="flex items-end overflow-hidden px-2 pt-2 [mask-image:linear-gradient(to_right,black_80%,transparent)]">
-        {TABS.map((tab, index) => (
-          <span
-            key={tab}
-            className={`-me-1 flex shrink-0 items-center gap-1.5 rounded-t-thumb px-3 py-2 text-caption whitespace-nowrap ${
-              index === 0 ? "bg-surface text-ink" : "bg-sunken text-graphite"
-            }`}
-          >
-            <span className="size-2.5 shrink-0 rounded-full bg-edge" />
-            {tab}
-          </span>
-        ))}
-      </div>
-      <div className="relative flex flex-col gap-2.5 bg-surface p-5 [mask-image:linear-gradient(to_bottom,black_45%,transparent)]">
-        <span className="absolute top-4 right-4 rounded-full bg-accent-soft px-2.5 py-1 text-caption font-semibold text-accent-text tabular-nums">
-          +26 abas
-        </span>
-        <span className="h-2 w-3/5 rounded-full bg-edge" />
-        <span className="h-1.5 w-full rounded-full bg-sunken" />
-        <span className="h-1.5 w-11/12 rounded-full bg-sunken" />
-        <span className="h-1.5 w-4/5 rounded-full bg-sunken" />
-        <span className="h-1.5 w-full rounded-full bg-sunken" />
       </div>
     </div>
   );

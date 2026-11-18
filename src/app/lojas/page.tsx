@@ -4,6 +4,7 @@ import { LandingFooter, LandingNav } from "@/landing/chrome";
 import { Faq } from "@/landing/Faq";
 import { ArrowIcon, ChartIcon, CheckMark, PlugIcon, ShieldIcon, SparkIcon } from "@/landing/icons";
 import { PilotForm } from "@/landing/PilotForm";
+import { QuestionReport } from "@/landing/QuestionReport";
 import { StoreDemo } from "@/landing/StoreDemo";
 import { ButtonLink, Container, Eyebrow, SectionHead } from "@/landing/ui";
 
@@ -90,7 +91,6 @@ const FAQ = [
 ];
 
 export default function Stores() {
-  const max = Math.max(...QUESTIONS.map((item) => item.n));
   return (
     <div className="flex min-h-dvh flex-col bg-paper text-ink">
       <LandingNav
@@ -207,37 +207,7 @@ export default function Stores() {
             </SectionHead>
             <div className="reveal relative isolate">
               <div aria-hidden className="glow-warm pointer-events-none absolute -inset-16 -z-10 opacity-80 [mask-image:radial-gradient(closest-side,black_55%,transparent)]" />
-              <div className="rounded-card bg-surface p-3 shadow-raised ring-4 ring-ink/5">
-                <div className="flex items-center justify-between px-4 pt-3 pb-4">
-                  <p className="text-subheading text-ink">Esta semana</p>
-                  <span className="rounded-tag bg-sunken px-2 py-0.5 text-caption font-semibold text-ink">
-                    1.284 conversas
-                  </span>
-                </div>
-                <ul className="flex flex-col gap-1">
-                  {QUESTIONS.map((item, index) => (
-                    <li key={item.q} className="flex flex-col gap-2.5 rounded-panel px-4 py-3.5 even:bg-paper">
-                      <div className="flex items-baseline justify-between gap-4">
-                        <q className="font-display text-[1.25rem] leading-snug text-ink italic">{item.q}</q>
-                        <span className="shrink-0 text-small text-graphite tabular-nums">{item.n} pessoas</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-sunken">
-                        <div
-                          className="fill-in h-full rounded-full bg-accent"
-                          style={{ width: `${(item.n / max) * 100}%`, ["--i" as string]: index }}
-                        />
-                      </div>
-                      <p className="text-caption text-graphite">{item.gap}</p>
-                    </li>
-                  ))}
-                </ul>
-                <div className="m-1 mt-3 flex items-start gap-3 rounded-panel bg-accent-soft p-4 text-ink">
-                  <SparkIcon className="mt-0.5 size-4 shrink-0 text-accent-text" />
-                  <p className="text-small">
-                    <span className="font-semibold">Sugestão:</span> acrescente “sem fragrância” às fichas de 14 produtos.
-                  </p>
-                </div>
-              </div>
+              <QuestionReport questions={QUESTIONS} />
             </div>
           </Container>
         </section>
