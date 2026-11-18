@@ -36,6 +36,15 @@ const EXAMPLES: Example[] = [
     other: { name: "o Leve 2", tradeoff: "Pesa menos, mas não corrige a pronação." },
   },
   {
+    tab: "Jaqueta",
+    asked: "Jaqueta para o inverno de Curitiba. Uso M, mas tenho ombro largo. Até R$ 450.",
+    by: "pela",
+    pick: "Jaqueta Serra",
+    price: "R$ 419",
+    why: ["Forro térmico para dias de 5 °C", "Ombro mais largo no M, segundo as avaliações", "Dentro do seu limite"],
+    other: { name: "a Parka Leve", tradeoff: "Custa menos, mas as avaliações dizem que aperta nos ombros." },
+  },
+  {
     tab: "Fone",
     asked: "Quero um fone para o metrô e para chamadas no trabalho.",
     by: "pelo",

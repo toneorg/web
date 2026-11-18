@@ -59,8 +59,9 @@ Seção fixa no fundo escuro: a pesquisa acontece conforme a pessoa rola (`docs/
 ### O porquê
 - Título: **Toda recomendação vem com o porquê.**
 - Texto: Não é uma lista de "os 10 melhores". É a escolha ligada ao que você disse, e o que você perde em cada alternativa. Se não fizer sentido, você vê exatamente onde discordar.
-- Exemplos (abas): Cadeira · Tênis de corrida · Fone · Hidratante
+- Exemplos (abas): Cadeira · Tênis de corrida · Jaqueta · Fone · Hidratante
   - **Tênis de corrida.** *"Corro 5 km três vezes por semana, piso pronado, até R$ 600."* → **Eu começaria pelo Ritmo 4.** Tem controle de pisada e amortecimento para treino diário. *O Leve 2 pesa menos, mas não corrige a pronação.*
+  - **Jaqueta.** *"Jaqueta para o inverno de Curitiba. Uso M, mas tenho ombro largo. Até R$ 450."* → **Eu começaria pela Jaqueta Serra.** Tem forro térmico para dias de 5 °C e, segundo as avaliações, o M tem ombro mais largo. *A Parka Leve custa menos, mas as avaliações dizem que aperta nos ombros.*
   - **Fone.** *"Quero um fone para o metrô e para chamadas no trabalho."* → **Eu começaria pelo Quieto 300.** O cancelamento de ruído é o mais forte da faixa e tem dois microfones por lado. *O Pulse custa menos, mas o microfone some em lugar barulhento.*
   - **Hidratante.** *"Pele sensível, quero algo leve e sem perfume."* → **Eu começaria pelo Gel Calma.** É sem fragrância, tem textura em gel e é o mais leve dos três. *O Creme Nutri hidrata mais, mas pode pesar no calor.*
 
