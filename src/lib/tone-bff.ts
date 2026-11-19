@@ -23,7 +23,7 @@ const ALLOWED: RegExp[] = [
   /^situations$/,
   /^situations\/[^/]+\/outcome$/,
   /^sessions$/,
-  /^sessions\/[^/]+(\/(transcript|end|research-runs|review-runs|decision))?$/,
+  /^sessions\/[^/]+(\/(transcript|end|research-runs|review-runs|followups|decision))?$/,
   // The single chat: its sessions, one after the other, and the search of its messages (?q=).
   /^chat\/sessions$/,
   /^messages\/search$/,

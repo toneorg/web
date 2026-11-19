@@ -659,6 +659,7 @@ export function Conversation(props: {
         if (controller.current === abort) controller.current = null;
         setBusy(false);
         setReviewsSince(Date.now());
+        setFollowUpsSince(Date.now());
       }
     },
     [fold, expired],
@@ -829,6 +830,53 @@ export function Conversation(props: {
       clearInterval(timer);
     };
   }, [reviewsSince, liveId]);
+
+  // Motor de descoberta, segunda fase: read after each turn, then every 3 s while one is pending (at
+  // most 3 min). A message that arrived is added once, also when the transcript already brought it.
+  const [followUpsSince, setFollowUpsSince] = useState<number | null>(null);
+  useEffect(() => {
+    if (followUpsSince === null || !liveId) return;
+    let live = true;
+    const read = () =>
+      api
+        .followUps(liveId)
+        .then((list) => {
+          if (!live) return;
+          setItems((current) => {
+            let next = current;
+            for (const followUp of list) {
+              const line = followUp.line;
+              if (followUp.status !== "shown" || !line) continue;
+              const id = `followup-${followUp.id}`;
+              const messageId = line.kind === "assistant" ? line.messageId : undefined;
+              const there = next.some(
+                (item) => item.id === id || (messageId !== undefined && item.kind === "assistant" && item.messageId === messageId),
+              );
+              if (there) continue;
+              // New in this visit: not marked old, so the live region reads it.
+              const added = itemsOf(line, liveId).map((item, index): Item => {
+                const fresh = { ...item, id: index ? `${id}-${index}` : id };
+                delete fresh.old;
+                return fresh;
+              });
+              next = [...next, ...added];
+            }
+            return next;
+          });
+          if (!list.some((item) => item.status === "pending" || item.status === "working") || Date.now() - followUpsSince > 3 * 60_000)
+            setFollowUpsSince(null);
+        })
+        // A server without the route, or offline: stop until the next turn.
+        .catch(() => {
+          if (live) setFollowUpsSince(null);
+        });
+    void read();
+    const timer = setInterval(read, 3000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [followUpsSince, liveId]);
 
   // T16: a panel's conversation started from its page arrives with its first message; it is sent once.
   // It comes from the page's search params: on a client navigation, window.location still

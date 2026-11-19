@@ -65,6 +65,10 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["photos", "abc", "other"])).toBeNull();
   });
 
+  it("lets the conversation read the late messages of its searches", () => {
+    expect(upstreamPath(["sessions", "abc", "followups"])).toBe("/api/sessions/abc/followups");
+    expect(upstreamPath(["sessions", "abc", "followups", "x"])).toBeNull();
+  });
   it("refuses local runs", () => {
     expect(upstreamPath(["local-runs"])).toBeNull();
     expect(upstreamPath(["local-runs", "abc", "stop"])).toBeNull();
