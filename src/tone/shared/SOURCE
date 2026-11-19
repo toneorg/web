@@ -1,10 +1,11 @@
-toneorg/server@cf946ede5c80c048c8f5fd29b6ae4790ed037f57
+toneorg/server@185a6325947bdd18a21987e14568a76ed794b6d1
 agent.ts
 answer-rating.ts
 api.ts
 budget.ts
 consent.ts
 decision.ts
+fashion.ts
 genui.ts
 index.ts
 media.ts

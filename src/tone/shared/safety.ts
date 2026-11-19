@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@cf946ede5c80 (packages/shared/src/safety.ts). Não edite aqui.
+// Gerado de toneorg/server@185a6325947b (packages/shared/src/safety.ts). Não edite aqui.
 // RNF11: the agent never pays. This is enforced in code and not left to the
 // model: no checkout address is opened or linked, whatever the model asked.
 
@@ -46,6 +46,8 @@ export const IMAGE_HOSTS = [
   "vtexassets.com",
   "vteximg.com.br",
   "images.kabum.com.br",
+  // Photos of the Shopify Global Catalog (19/11/2026), the stores' own uploads.
+  "cdn.shopify.com",
   "encrypted-tbn0.gstatic.com",
   "encrypted-tbn1.gstatic.com",
   "encrypted-tbn2.gstatic.com",
