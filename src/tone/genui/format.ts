@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@185a6325947b (packages/genui-react/src/format.ts). Não edite aqui.
+// Gerado de toneorg/server@d5cb05dc2283 (packages/genui-react/src/format.ts). Não edite aqui.
 export const brl = (value: number | null | undefined) =>
   value === null || value === undefined
     ? "Preço não informado"

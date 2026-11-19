@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@185a6325947b (packages/genui-react/src/DecisionBoard.tsx). Não edite aqui.
+// Gerado de toneorg/server@d5cb05dc2283 (packages/genui-react/src/DecisionBoard.tsx). Não edite aqui.
 // T08: the decision board. The model writes only the decision id; the data
 // comes from the server with its evidence, and every button is the panel's:
 // it changes the decision as the person, opens a store page, or asks the agent.
