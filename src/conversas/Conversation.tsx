@@ -378,7 +378,7 @@ export function Conversation(props: {
           setLoaded(count);
           // A messaging app opens on its newest message, whatever the browser remembered of the scroll.
           window.history.scrollRestoration = "manual";
-          atBottom.current = true;
+          toEndNext.current = true;
           setItems(lines);
           setState("ready");
           track("chat_history_loaded", { sessions: list.length, lines: lines.length });
@@ -411,11 +411,6 @@ export function Conversation(props: {
     const kept = anchor.current;
     if (!kept) return;
     anchor.current = null;
-    // Reading the newest lines: older ones coming in above do not move the view off the bottom.
-    if (atBottom.current) {
-      toEnd();
-      return;
-    }
     const element = document.querySelector<HTMLElement>(`[data-line="${CSS.escape(kept.id)}"]`);
     if (element) window.scrollBy(0, element.getBoundingClientRect().top - kept.top);
   }, [items]);
@@ -461,7 +456,6 @@ export function Conversation(props: {
       onArrived?.(false);
       return;
     }
-    atBottom.current = false;
     const frame = requestAnimationFrame(() => {
       const element = document.querySelector<HTMLElement>(`[data-line="${CSS.escape(line.id)}"]`);
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -506,45 +500,15 @@ export function Conversation(props: {
     };
   }, [shownSessions, round, panelId]);
 
-  // Follows the conversation as it grows, also while an answer streams in, unless the
-  // person scrolled up to read something: then it leaves the page where it is.
-  const tail = items.at(-1);
-  const growth = tail?.kind === "assistant" ? tail.text.length : 0;
-  const atBottom = useRef(true);
-  useEffect(() => {
-    // Only a scroll the person makes (wheel, touch, keys, the scrollbar) lets go of the bottom:
-    // the browser restoring a position or older lines coming in above must not.
-    let touched = 0;
-    const touch = () => {
-      touched = Date.now();
-    };
-    const onScroll = () => {
-      if (Date.now() - touched > 1000) return;
-      atBottom.current = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160;
-    };
-    const inputs = ["wheel", "touchmove", "keydown", "pointerdown"] as const;
-    for (const name of inputs) window.addEventListener(name, touch, { passive: true });
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      for (const name of inputs) window.removeEventListener(name, touch);
-      window.removeEventListener("scroll", onScroll);
-    };
-  }, []);
-  const lastId = tail?.id;
-  useEffect(() => {
-    if (atBottom.current) toEnd();
-  }, [lastId, growth]);
-  // Lines that grow after they are drawn (a research card, reviews, photos loading) keep the
-  // bottom in view while the person is reading the newest message.
-  useEffect(() => {
-    const content = bottom.current?.parentElement;
-    if (!content) return;
-    const observer = new ResizeObserver(() => {
-      if (atBottom.current) toEnd();
-    });
-    observer.observe(content);
-    return () => observer.disconnect();
-  }, [state]);
+  // The page never scrolls by itself while the person reads: no following an answer as it
+  // streams, no keeping the bottom as cards grow. It goes to the end only once, right after the
+  // chat opens or the person sends something, and then leaves the scroll to them.
+  const toEndNext = useRef(true);
+  useLayoutEffect(() => {
+    if (!toEndNext.current || state !== "ready") return;
+    toEndNext.current = false;
+    toEnd();
+  }, [items, state]);
 
   const fold = useCallback(
     (event: Extract<AgentEvent, { type: "progress" | "research_result" }>, session: string, activityId?: string) =>
@@ -745,7 +709,7 @@ export function Conversation(props: {
       if (picked) setPicked(null);
       const replyTo = reply ?? undefined;
       setReply(null);
-      atBottom.current = true;
+      toEndNext.current = true;
       setItems((list) => [...list, said(session, trimmed, stores, replyTo)]);
       track("conversation_message_sent", {
         with_product: Boolean(picked),
@@ -774,7 +738,7 @@ export function Conversation(props: {
       if (busy || state !== "ready") return;
       const text = "Busque produtos parecidos com a minha foto de referência.";
       const session = reference.sessionId;
-      atBottom.current = true;
+      toEndNext.current = true;
       setItems((list) => [...list, said(session, text)]);
       track("photo_search_started", { attributes: reference.correction?.attributes.length ?? 0 });
       await runTurn({ type: "message", text, photoId: reference.id, ...(picked ? { product: picked } : {}) }, session);
@@ -951,7 +915,7 @@ export function Conversation(props: {
         liveRef({ id: sessionId, lastAt: now });
         setSessions((list) => [{ id: sessionId, onboarding: true, startedAt: now, lastAt: now, messages: 0 }, ...(list ?? [])]);
         setLoaded((count) => count + 1);
-        atBottom.current = true;
+        toEndNext.current = true;
         if (greeting) setItems((list) => [...list, { id: uid(), session: sessionId, at: now, kind: "assistant", text: greeting }]);
         setItems((list) => [...list, said(sessionId, WELCOME_FIRST)]);
         await runTurn({ type: "message", text: WELCOME_FIRST }, sessionId);
@@ -1088,7 +1052,6 @@ export function Conversation(props: {
   const goToLine = (id: string) => {
     const element = document.querySelector<HTMLElement>(`[data-line="${CSS.escape(id)}"]`);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    atBottom.current = false;
     element?.scrollIntoView({ block: "center", behavior: reduce ? "instant" : "smooth" });
     element?.focus({ preventScroll: true });
     setFound(id);
@@ -1101,7 +1064,7 @@ export function Conversation(props: {
     answer: (answers, display) => {
       if (busy) return;
       track("conversation_reply_selected", { answers: Object.keys(answers).length });
-      atBottom.current = true;
+      toEndNext.current = true;
       setItems((list) => [...list, said(item.session, display)]);
       void runTurn({ type: "ui_answer", answers }, item.session);
     },
@@ -1216,7 +1179,7 @@ export function Conversation(props: {
     const text = "Pesquisar de novo com minhas preferências de lojas";
     const session = latestResearch.sessionId;
     setItems((list) => [...list, said(session, text)]);
-    atBottom.current = true;
+    toEndNext.current = true;
     await runTurn({ type: "message", text, repeatResearch: true }, session);
   } : undefined;
 
