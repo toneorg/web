@@ -65,6 +65,8 @@ export type WebEvent =
   | "recommendation_rejected_clicked"
   | "watch_draft_saved"
   | "watch_draft_confirmed"
+  | "watch_draft_answered"
+  | "watch_panel_opened_from_chat"
   // Panels (watches) on the left
   | "panel_create_opened"
   | "panel_opened"

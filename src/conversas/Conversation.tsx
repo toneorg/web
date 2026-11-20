@@ -1069,6 +1069,12 @@ export function Conversation(props: {
       void runTurn({ type: "ui_answer", answers }, item.session);
     },
     say: (text) => void send(text),
+    answerWatch: (watchId, text) => {
+      if (busy) return;
+      toEndNext.current = true;
+      setItems((list) => [...list, said(item.session, text)]);
+      void runTurn({ type: "message", text, intent: "watch", watchId }, item.session);
+    },
     storeHosts: storeHostsOf(me?.stores),
     picked: picked?.url ?? null,
     pick: (product) => {
