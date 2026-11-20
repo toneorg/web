@@ -4,6 +4,33 @@
 import { provenanceNote, type ResearchRunState, storeLabel } from "@/tone/shared";
 import { StoreLink } from "./Program";
 
+/** A size at the end of a title ("– 36", "- GG"): the same piece in another size, not another product. */
+const SIZE_SUFFIX = /\s+[-–—]\s*(?:\d{1,3}|PP|P|M|G|GG|XG|XGG|EG|EGG|U|ÚNICO|UNICO)\s*$/i;
+
+/**
+ * The few offers shown while the search runs: one per product (sizes of the same piece count once),
+ * taking turns between stores, so one store's search never fills the list (20/11/2026: four sizes
+ * of the same C&A trousers).
+ */
+export function previewOffers<T extends { store: string }>(offers: readonly T[], titleOf: (offer: T) => string, limit = 5): T[] {
+  const seen = new Set<string>();
+  const byStore = new Map<string, T[]>();
+  for (const offer of offers) {
+    const key = `${offer.store}|${titleOf(offer).replace(SIZE_SUFFIX, "").trim().toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    byStore.set(offer.store, [...(byStore.get(offer.store) ?? []), offer]);
+  }
+  const queues = [...byStore.values()];
+  const picked: T[] = [];
+  for (let round = 0; picked.length < limit && queues.some((queue) => queue.length > round); round++)
+    for (const queue of queues) {
+      const offer = queue[round];
+      if (offer && picked.length < limit) picked.push(offer);
+    }
+  return picked;
+}
+
 export function ResearchRun(props: { run: ResearchRunState }) {
   const { run } = props;
   const offers = run.result?.offers ?? [];
@@ -24,7 +51,7 @@ export function ResearchRun(props: { run: ResearchRunState }) {
       </p>
       {offers.length ? (
         <ul className="flex flex-col gap-2">
-          {offers.slice(0, 5).map((offer, index) => (
+          {previewOffers(offers, (offer) => titleOf(offer.variantId)).map((offer, index) => (
             <li key={offer.id} className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-small text-ink">
                 {titleOf(offer.variantId)}
