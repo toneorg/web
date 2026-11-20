@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@d5cb05dc2283 (packages/shared/src/followups.ts). Não edite aqui.
+// Gerado de toneorg/server@7cdd92fb6f6c (packages/shared/src/followups.ts). Não edite aqui.
 // Motor de descoberta, segunda fase: when the slow stores of a search finish after the answer and
 // bring something that would be among the first four, the conversation gets one more message from
 // tone with those products. The web asks for these after each turn, while one is still pending.

@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@d5cb05dc2283 (packages/shared/src/fashion.ts). Não edite aqui.
+// Gerado de toneorg/server@7cdd92fb6f6c (packages/shared/src/fashion.ts). Não edite aqui.
 // The fashion taxonomy of tone's discovery (19/11/2026): categories and attributes with closed
 // values and the Portuguese words people and stores use for each one. One list serves to widen a
 // search by words, to bound what a model may extract (enums), to explain values to the chat model
@@ -10,6 +10,8 @@ export interface TaxonomyValue {
   label: string;
   /** Other ways to write it, folded or not; the id and the label count too. */
   synonyms: readonly string[];
+  /** A tone of a broader value (azul-claro of azul): asking the broad one accepts it, not the reverse. */
+  parent?: string;
 }
 
 export interface FashionCategory extends TaxonomyValue {
@@ -80,7 +82,12 @@ export const FASHION_CATEGORIES: readonly FashionCategory[] = [
   cat("pijama", "pijama", ["pijamas", "camisola"], []),
 ];
 
-const val = (id: string, label: string, synonyms: string[] = []): TaxonomyValue => ({ id, label, synonyms });
+const val = (id: string, label: string, synonyms: string[] = [], parent?: string): TaxonomyValue => ({
+  id,
+  label,
+  synonyms,
+  ...(parent ? { parent } : {}),
+});
 
 export interface FashionAttribute {
   key: string;
@@ -102,34 +109,43 @@ export const FASHION_ATTRIBUTES: readonly FashionAttribute[] = [
     multiple: true,
     visual: true,
     values: [
-      val("branco", "branco", [
-        "branca",
-        "brancas",
-        "brancos",
+      val("branco", "branco", ["branca", "brancas", "brancos", "white"]),
+      // Tones apart from their color: a person who writes the tone means it ("off white", "azul claro").
+      val(
+        "off_white",
         "off white",
-        "offwhite",
-        "off-white",
-        "marfim",
-        "creme",
-        "gelo",
-        "perola",
-        "cru",
-      ]),
+        ["off white", "offwhite", "off-white", "marfim", "creme", "gelo", "perola", "cru"],
+        "branco",
+      ),
       val("preto", "preto", ["preta", "pretas", "pretos", "black", "onix"]),
       val("cinza", "cinza", ["grafite", "chumbo", "mescla", "cinza mescla"]),
       val("bege", "bege", ["nude", "areia", "camel", "fendi"]),
       val("caqui", "cáqui", ["kaki", "khaki", "caqui"]),
-      val("marrom", "marrom", ["chocolate", "cafe", "caramelo", "tabaco", "conhaque", "whisky", "castanho"]),
-      val("azul", "azul", ["azul claro", "celeste", "azul bebe", "azul royal", "indigo"]),
+      val("marrom", "marrom", ["chocolate", "cafe", "tabaco", "castanho", "marrom escuro"]),
+      val("caramelo", "caramelo", ["caramelo", "conhaque", "whisky", "tan"], "marrom"),
+      val("azul", "azul", ["indigo"]),
+      val(
+        "azul_claro",
+        "azul-claro",
+        ["azul claro", "azul-claro", "celeste", "azul bebe", "azul serenity", "azul ceu"],
+        "azul",
+      ),
+      val("azul_petroleo", "azul-petróleo", ["azul petroleo", "azul-petroleo", "petroleo"], "azul"),
+      val("azul_royal", "azul royal", ["azul royal", "royal", "azul bic", "azul klein"], "azul"),
       val("marinho", "azul-marinho", ["azul marinho", "azul-marinho", "navy"]),
-      val("verde", "verde", ["verde militar", "militar", "oliva", "musgo", "verde agua", "menta"]),
+      val("verde", "verde", []),
+      val("verde_militar", "verde-militar", ["verde militar", "militar", "oliva", "verde oliva", "musgo"], "verde"),
+      val("verde_claro", "verde-claro", ["verde claro", "verde-claro", "verde agua", "menta", "pistache"], "verde"),
       val("vermelho", "vermelho", ["vermelha", "vermelhas", "vermelhos", "red"]),
       val("bordo", "bordô", ["vinho", "marsala", "burgundy"]),
       val("rosa", "rosa", ["pink", "rose", "rosado", "fucsia"]),
       val("roxo", "roxo", ["roxa", "lilas", "lavanda", "violeta"]),
-      val("amarelo", "amarelo", ["amarela", "mostarda"]),
-      val("laranja", "laranja", ["terracota", "coral", "ferrugem"]),
+      val("amarelo", "amarelo", ["amarela"]),
+      val("mostarda", "mostarda", ["mostarda"], "amarelo"),
+      val("laranja", "laranja", ["coral"]),
+      val("terracota", "terracota", ["terracota", "ferrugem", "telha"], "laranja"),
       val("dourado", "dourado", ["dourada", "ouro"]),
+      val("bronze", "bronze", ["bronze", "cobre", "cobreado", "acobreado"]),
       val("prata", "prata", ["prateado", "prateada"]),
     ],
   },
@@ -420,6 +436,17 @@ export function canonicalValue(key: string, text: string): string | null {
   const exact = attribute.values.find((value) => value.id === text || forms(value).includes(folded));
   if (exact) return exact.id;
   return detectAttributes(text)[key]?.[0] ?? null;
+}
+
+/**
+ * Whether a value found on a product answers the values asked: the same value, or a tone of a value
+ * asked broadly (asking "azul" accepts azul-claro). A tone asked is answered only by that tone, never
+ * by another tone of the same color (azul-claro is not azul-petróleo).
+ */
+export function valueAnswers(key: string, asked: readonly string[], found: string): boolean {
+  if (asked.includes(found)) return true;
+  const parent = attributeOf(key)?.values.find((value) => value.id === found)?.parent;
+  return Boolean(parent && asked.includes(parent));
 }
 
 export function valueLabel(key: string, id: string): string {
