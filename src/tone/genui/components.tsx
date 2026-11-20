@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@7cdd92fb6f6c (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@9e0e9003d62b (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -13,6 +13,7 @@ import {
   SENSITIVE_CONSENT,
   SENSITIVE_CONSENT_ANSWERS,
   SENSITIVE_CONSENT_PREFIX,
+  storeLabel,
 } from "@/tone/shared";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { DecisionBoardLoader } from "./DecisionBoard";
@@ -68,6 +69,22 @@ function Thumb(props: { src?: string | null; size?: "sm" }) {
   ) : (
     <div className={className} aria-hidden="true" />
   );
+}
+
+/**
+ * The store a product is sold by, as the person knows it: its name from the list, or the site's
+ * address without "www." (a brand's own Shopify store). Google Shopping lists several sellers.
+ */
+function storeOf(url: string): string | null {
+  if (!url) return null;
+  if (isGoogleShoppingUrl(url)) return "Várias lojas no Google Shopping";
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    const label = storeLabel(host);
+    return label === host ? host : label;
+  } catch {
+    return null;
+  }
 }
 
 /** Three bars, the confidence meter of the design system (components/feedback.md). */
@@ -127,12 +144,32 @@ function ProductCard(props: { product: ProductData; slide?: boolean }) {
   const title = text(product.title);
   const stars = num(product.rating);
   const reviews = num(product.reviews);
+  const store = storeOf(text(product.url));
+  // Turning a product down is a quiet control: on a slide it sits on the photo's corner, so the row
+  // below keeps the two actions that move the person forward (20/11/2026: alone on a second row).
+  const rejectToggle =
+    host.actionable && host.interactive && !rejected ? (
+      <button
+        type="button"
+        className={props.slide ? "icon-btn outline reject-toggle" : "icon-btn outline"}
+        aria-label={`Não curti ${title}`}
+        title="Não curti"
+        aria-expanded={rejecting}
+        onClick={() => setRejecting(!rejecting)}
+      >
+        <Icon name="thumbDown" size={props.slide ? 18 : 20} />
+      </button>
+    ) : null;
   return (
     <article className={props.slide ? "product slide" : "product"}>
-      <Thumb src={product.image} />
+      <div className="product-media">
+        <Thumb src={product.image} />
+        {props.slide ? rejectToggle : null}
+      </div>
       <div className="product-body">
         {product.badge ? <span className="tag">{product.badge}</span> : null}
         <div className="title">{title}</div>
+        {store ? <div className="product-store">{store}</div> : null}
         <div className="product-price">
           <span className="price">{brl(price)}</span>
           {stars !== null ? (
@@ -155,18 +192,7 @@ function ProductCard(props: { product: ProductData; slide?: boolean }) {
         <div className="actions">
           <OpenButton url={text(product.url)} title={title} />
           <PickButton product={product} />
-          {host.interactive && !rejected ? (
-            <button
-              type="button"
-              className="icon-btn outline"
-              aria-label={`Não curti ${title}`}
-              title="Não curti"
-              aria-expanded={rejecting}
-              onClick={() => setRejecting(!rejecting)}
-            >
-              <Icon name="thumbDown" size={20} />
-            </button>
-          ) : null}
+          {props.slide ? null : rejectToggle}
           {rejected ? (
             <p className="small muted product-note" ref={noted} tabIndex={-1}>
               Anotado: {REJECT_REASONS[rejected].toLowerCase()}
@@ -230,19 +256,78 @@ function PickButton(props: { product: ProductData }) {
   );
 }
 
+/**
+ * Previous and next for a mouse, which has no sideways scroll: one card per press. Hidden on touch
+ * screens (genui.css), where a swipe does it and the hint under the cards says so.
+ */
+function CarouselArrows(props: { target: { current: HTMLDivElement | null } }) {
+  const [edges, setEdges] = useState({ start: true, end: false });
+  useEffect(() => {
+    const track = props.target.current;
+    if (!track) return;
+    const measure = () => {
+      // Inline start and end in either direction: scrollLeft is negative in right-to-left.
+      const position = Math.abs(track.scrollLeft);
+      setEdges({ start: position < 4, end: position + track.clientWidth >= track.scrollWidth - 4 });
+    };
+    measure();
+    track.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      track.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+    };
+  }, [props.target]);
+  const move = (direction: 1 | -1) => {
+    const track = props.target.current;
+    const slide = track?.querySelector<HTMLElement>(".product.slide");
+    if (!track || !slide) return;
+    const rtl = getComputedStyle(track).direction === "rtl";
+    const step = (slide.offsetWidth + 8) * direction * (rtl ? -1 : 1);
+    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    track.scrollBy({ left: step, behavior: smooth ? "smooth" : "auto" });
+  };
+  return (
+    <div className="carousel-arrows">
+      <button
+        type="button"
+        className="icon-btn outline"
+        aria-label="Opções anteriores"
+        disabled={edges.start}
+        onClick={() => move(-1)}
+      >
+        <Icon name="back" size={18} />
+      </button>
+      <button
+        type="button"
+        className="icon-btn outline"
+        aria-label="Próximas opções"
+        disabled={edges.end}
+        onClick={() => move(1)}
+      >
+        <Icon name="forward" size={18} />
+      </button>
+    </div>
+  );
+}
+
 /** A product on its own, when the model places one outside a list. */
 const Product: ComponentRenderer<ProductData> = ({ props }) => <ProductCard product={props} />;
 
 const ProductCarousel: ComponentRenderer<{ title: string; products: unknown }> = ({ props }) => {
   const products = listOf<ProductData>(props.products);
+  const track = useRef<HTMLDivElement>(null);
   // A list with no product (named from another block, 16/11/2026) would be a bare title: drawn as nothing,
   // and the server asks the model to write the block again.
   if (!products.length) return null;
   return (
     <section className="card" aria-label={text(props.title)}>
-      <h3>{text(props.title)}</h3>
+      <div className="carousel-head">
+        <h3>{text(props.title)}</h3>
+        {products.length > 1 ? <CarouselArrows target={track} /> : null}
+      </div>
       {products.length > 1 ? (
-        <div className="carousel">
+        <div className="carousel" ref={track}>
           {products.map((product) => (
             <ProductCard key={`${product.url}|${product.title}`} product={product} slide />
           ))}

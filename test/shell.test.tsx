@@ -7,7 +7,7 @@ import type { BudgetStatement, Me, ResearchRunState, WatchResult } from "../src/
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined }) }));
 const { researchNote } = await import("../src/conversas/Conversation");
 const { lowestOf, weekLeftPercent } = await import("../src/conversas/Panels");
-const { ResearchRun } = await import("../src/conversas/ResearchRun");
+const { ResearchRunSummary } = await import("../src/conversas/Activity");
 const { Shell, initialOf, isSearchShortcut } = await import("../src/conversas/Shell");
 const { Chat } = await import("../src/conversas/Chat");
 const { api, forgetCached } = await import("../src/conversas/api");
@@ -175,8 +175,12 @@ describe("moldura da web (T16)", () => {
         sources: [],
       },
     };
-    const html = renderToStaticMarkup(<ResearchRun run={run} />);
-    expect(html).toContain("Dior · R$ 899.00");
+    // 20/11/2026: a run read back is one folded line; the stores and where prices came from inside it,
+    // never the raw offers before the tone chose.
+    const html = renderToStaticMarkup(<ResearchRunSummary run={run} />);
+    expect(html).toContain("Pesquisei 1 oferta em 1 loja");
+    expect(html).toContain("Dior <span");
     expect(html).toContain("navegador remoto da tone, sem login");
+    expect(html).not.toContain("R$ 899.00");
   });
 });

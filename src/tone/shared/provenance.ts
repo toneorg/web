@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@7cdd92fb6f6c (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/server@9e0e9003d62b (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
 // in the panel and on the web: observed in the index (T04) or read in the store's
 // search by a remote browser of tone (T16). Rows from the retired extension (T14)
@@ -40,6 +40,11 @@ const STORE_NAMES: Record<string, string> = {
   "johnjohndenim.com.br": "John John",
   "lelis.com.br": "Le Lis",
   "malwee.com.br": "Malwee",
+  // Read through Tilion (20/11/2026).
+  "zara.com": "Zara",
+  "dafiti.com.br": "Dafiti",
+  "centauro.com.br": "Centauro",
+  "farmrio.com.br": "Farm",
 };
 /** A store's name as people say it, from its domain. */
 export const storeLabel = (store: string) => STORE_NAMES[store] ?? store;
