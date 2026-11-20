@@ -44,7 +44,7 @@ import { Program, type ProgramHost, STORE_HOSTS, storeHostsOf, WATCHES_CHANGED }
 import { WatchReadings } from "./WatchReadings";
 import { takePicked } from "./picked-handoff";
 import { PhotoPicker, PhotoReference, usePhoto } from "./PhotoReference";
-import { ResearchRun } from "./ResearchRun";
+import { type Activity, ActivitySummary, applyStatus, endActivity, LiveActivity, newActivity, ResearchRunSummary, startWriting, worthKeeping } from "./Activity";
 import { Shell } from "./Shell";
 import { MessageMenu, messageMenuHandlers } from "./MessageMenu";
 import { ChosenStores, StoreOptions, UserMessage } from "./StoreMention";
@@ -75,6 +75,8 @@ export type Item = Line &
     /** A frame saved in an old conversation, drawn by the same components as an answer. */
     | { kind: "frame"; code: string }
     | { kind: "research"; run: ResearchRunState }
+    /** What the tone did in a turn of this visit: live while it runs, one folded line after. */
+    | { kind: "activity"; activity: Activity }
     /** TikToks of a product, asked for from the picked product above the composer. */
     | { kind: "media"; media: ProductMedia }
     /** Síntese de reviews: a run that ends apart from the turn, so the research never waits for it. */
@@ -540,9 +542,23 @@ export function Conversation(props: {
   }, [state]);
 
   const fold = useCallback(
-    (event: Extract<AgentEvent, { type: "progress" | "research_result" }>, session: string) =>
+    (event: Extract<AgentEvent, { type: "progress" | "research_result" }>, session: string, activityId?: string) =>
       setItems((list) => {
         const runId = event.type === "progress" ? event.progress.runId : event.result.id;
+        // A run of the turn going on is drawn inside its activity, not as a card of its own.
+        const host = activityId ? list.find((item) => item.id === activityId && item.kind === "activity") : undefined;
+        if (host && host.kind === "activity") {
+          const current = host.activity.runs[runId];
+          const before = current ? { [runId]: current } : {};
+          const after = reduceResearchRuns(before, event, session);
+          const run = after[runId];
+          if (after === before || !run) return list;
+          return list.map((item) =>
+            item.id === activityId && item.kind === "activity"
+              ? { ...item, activity: { ...item.activity, runs: { ...item.activity.runs, [runId]: run } } }
+              : item,
+          );
+        }
         const index = list.findIndex((item) => item.kind === "research" && item.run.runId === runId);
         const current = index >= 0 ? (list[index] as Extract<Item, { kind: "research" }>).run : undefined;
         const before = current ? { [runId]: current } : {};
@@ -564,6 +580,13 @@ export function Conversation(props: {
       let assistant: string | null = null;
       const started = performance.now();
       const at = () => new Date().toISOString();
+      // The live line of this turn: what the tone is doing now, folded into one line at the end.
+      const activityId = uid();
+      const alter = (change: (activity: Activity) => Activity) =>
+        setItems((list) =>
+          list.map((item) => (item.id === activityId && item.kind === "activity" ? { ...item, activity: change(item.activity) } : item)),
+        );
+      setItems((list) => [...list, { id: activityId, session, at: at(), kind: "activity", activity: newActivity(Date.now()) }]);
       // What the turn showed, for the analytics: counts and kinds only, never the text.
       const shown = { firstTextMs: null as number | null, components: 0, research: 0, memories: 0, errorCode: null as string | null };
       try {
@@ -572,8 +595,12 @@ export function Conversation(props: {
           input,
           (event) => {
             switch (event.type) {
+              case "status":
+                alter((activity) => applyStatus(activity, event, Date.now()));
+                break;
               case "text": {
                 if (shown.firstTextMs === null) shown.firstTextMs = since(started);
+                if (event.delta.trim()) alter((activity) => startWriting(activity, Date.now()));
                 if (!assistant) {
                   const id = uid();
                   assistant = id;
@@ -589,7 +616,7 @@ export function Conversation(props: {
               case "progress":
               case "research_result":
                 if (event.type === "research_result") shown.research += 1;
-                fold(event, session);
+                fold(event, session, activityId);
                 break;
               case "memory_saved":
                 shown.memories += 1;
@@ -655,7 +682,17 @@ export function Conversation(props: {
             ]);
         }
       } finally {
-        setItems((list) => list.map((item) => (item.kind === "assistant" && item.streaming ? { ...item, streaming: false } : item)));
+        // The turn is over: its activity folds into one line, or leaves when it says nothing new.
+        setItems((list) =>
+          list.flatMap((item) => {
+            if (item.kind === "assistant" && item.streaming) return [{ ...item, streaming: false }];
+            if (item.id === activityId && item.kind === "activity") {
+              const ended = endActivity(item.activity, Date.now());
+              return worthKeeping(ended) ? [{ ...item, activity: ended }] : [];
+            }
+            return [item];
+          }),
+        );
         if (controller.current === abort) controller.current = null;
         setBusy(false);
         setReviewsSince(Date.now());
@@ -1122,7 +1159,9 @@ export function Conversation(props: {
         </p>,
       );
     else if (item.kind === "frame") body = line(<Program code={item.code} streaming={false} host={hostFor(item)} />);
-    else if (item.kind === "research") body = line(<ResearchRun run={item.run} />);
+    else if (item.kind === "research") body = line(<ResearchRunSummary run={item.run} />);
+    else if (item.kind === "activity")
+      body = line(item.activity.endedAt === undefined ? <LiveActivity activity={item.activity} /> : <ActivitySummary activity={item.activity} />);
     else if (item.kind === "media") body = line(<ProductVideos media={item.media} />);
     else if (item.kind === "reviews")
       body = line(<ReviewSynthesisCard run={item.run} onOpen={(sourceId) => track("review_link_opened", { source_id: sourceId })} />);
@@ -1167,11 +1206,7 @@ export function Conversation(props: {
 
   const composer = (
     <div className="sticky bottom-0 z-[5] -mx-1 flex flex-col gap-2 bg-paper px-1 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
-      {busy ? (
-        <p role="status" className="text-small text-graphite">
-          A tone está trabalhando…
-        </p>
-      ) : null}
+      {/* What the tone is doing is said in the conversation itself (Activity), above its answer. */}
       {picked ? (
         <PickedProductBar
           product={picked}

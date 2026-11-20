@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@7cdd92fb6f6c (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@9e0e9003d62b (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -84,13 +84,32 @@ export const UiComponent = z.object({
 });
 export type UiComponent = z.infer<typeof UiComponent>;
 
+/**
+ * The kinds of step a turn goes through, for the live line of the web: understanding the message,
+ * what was understood, searching the stores, reading photos, comparing, choosing, writing, and the
+ * other tools (reviews, decision, watch).
+ */
+export const StatusStep = z.enum(["understand", "intent", "search", "photos", "compare", "pick", "write", "tool"]);
+export type StatusStep = z.infer<typeof StatusStep>;
+
 export const AgentEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("research_result"), result: ResearchResult }),
   /** T13: a step of a research run, numbered per run; partial results arrive as new revisions. */
   z.object({ type: z.literal("progress"), progress: ProgressEvent }),
   z.object({ type: z.literal("text"), delta: z.string() }),
   z.object({ type: z.literal("memory_saved"), key: z.string(), value: z.string() }),
-  z.object({ type: z.literal("status"), text: z.string() }),
+  /**
+   * What the tone is doing now, said to the person while the turn runs (20/11/2026): each status
+   * closes the one before it. `doneText` is how the step reads once it is over ("Olhou 12 fotos");
+   * `done` marks a statement that is already over when it arrives ("Entendi: …").
+   */
+  z.object({
+    type: z.literal("status"),
+    text: z.string(),
+    step: StatusStep.optional(),
+    doneText: z.string().optional(),
+    done: z.boolean().optional(),
+  }),
   z.object({
     type: z.literal("done"),
     costUsd: z.number(),

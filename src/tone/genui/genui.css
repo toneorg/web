@@ -1,4 +1,4 @@
-/* Gerado de toneorg/server@7cdd92fb6f6c (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/server@9e0e9003d62b (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -648,6 +648,83 @@ fieldset.field legend {
 }
 .carousel-hint {
   margin: var(--tone-space-md) 0 0;
+}
+/* The title and, for a mouse, previous and next on its trailing edge. */
+.carousel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tone-space-md);
+  margin-block-end: var(--tone-space-lg);
+}
+.carousel-head h3 {
+  margin: 0;
+  text-wrap: balance;
+}
+.carousel-arrows {
+  display: none;
+  gap: var(--tone-space-sm);
+}
+.carousel-arrows .icon-btn {
+  width: 36px;
+  height: 36px;
+  position: relative;
+  transition:
+    background-color var(--tone-duration-fast) var(--tone-ease-soft),
+    opacity var(--tone-duration-fast) var(--tone-ease-soft);
+}
+/* 36 px drawn, 44 px to the finger or the pointer. */
+.carousel-arrows .icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+.carousel-arrows .icon-btn:hover:not(:disabled) {
+  background: var(--tone-sunken);
+}
+.carousel-arrows .icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+@media (hover: hover) and (pointer: fine) {
+  .carousel-arrows {
+    display: flex;
+  }
+  .carousel-hint {
+    display: none;
+  }
+}
+
+/* The store under the title: who sells it is part of deciding, never a click away. */
+.product-store {
+  font: 400 13px / 18px var(--tone-font-sans);
+  color: var(--tone-graphite);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.product-media {
+  position: relative;
+  min-width: 0;
+}
+/* "Não curti" on the photo's corner of a slide: quiet, on its own surface so it reads on any photo. */
+.reject-toggle.icon-btn {
+  position: absolute;
+  top: var(--tone-space-sm);
+  inset-inline-end: var(--tone-space-sm);
+  width: 36px;
+  height: 36px;
+  color: var(--tone-graphite);
+  transition: color var(--tone-duration-fast) var(--tone-ease-soft);
+}
+.reject-toggle.icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+.reject-toggle.icon-btn:hover,
+.reject-toggle.icon-btn[aria-expanded="true"] {
+  color: var(--tone-ink);
 }
 
 /* Confidence meter (components/feedback.md, bench version) */

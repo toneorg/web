@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@7cdd92fb6f6c (packages/genui-react/src/Reviews.tsx). Não edite aqui.
+// Gerado de toneorg/server@9e0e9003d62b (packages/genui-react/src/Reviews.tsx). Não edite aqui.
 // Síntese de reviews: what reviews say, as tone read them (spec 2026-11-03):
 // YouTube videos and, since 15/11/2026, blogs, Reddit threads and buyers'
 // reviews in stores. Every point names its sources and opens them (the video
