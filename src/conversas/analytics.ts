@@ -79,7 +79,8 @@ export type WebEvent =
   | "panel_check_finished"
   | "panel_page_opened"
   | "panel_first_reading"
-  | "panel_conversation_started"
+  | "panel_asked_in_chat"
+  | "panel_verdict_store_clicked"
   // Profile and data
   | "memory_added"
   | "memory_confirmed"
