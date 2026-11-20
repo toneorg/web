@@ -46,6 +46,18 @@ p2 = Product("Fone B", "https://www.amazon.com.br/dp/B0B", 80, "https://tracker.
     expect(html).toContain("Ver na loja");
   });
 
+  it("põe a melhor escolha primeiro, diz a loja e dá setas e um 'não curti' por cartão", () => {
+    // 20/11/2026: o modelo escreveu a melhor escolha em segundo; a loja não aparecia no cartão.
+    const html = draw(`root = View([c])
+c = ProductCarousel("Tênis brancos", [p1, p2])
+p1 = Product("Tênis Bellaro", "https://www.amazon.com.br/dp/B0A", 329, null, null, null, ["Couro"], null, null)
+p2 = Product("Tênis Ankor", "https://www.epocacosmeticos.com.br/tenis/p", 139.9, null, null, null, ["Liso"], null, "Melhor escolha")`);
+    expect(html.indexOf("Tênis Ankor")).toBeLessThan(html.indexOf("Tênis Bellaro"));
+    expect(html).toContain("Amazon");
+    expect(html).toContain('aria-label="Próximas opções"');
+    expect(html.match(/aria-label="Não curti /g)).toHaveLength(2);
+  });
+
   it("desenha o encaixe do relógio no pulso", () => {
     const html = draw(`root = View([w])
 w = WristFit(40, 16, "Casio 40 mm no seu pulso")`);
