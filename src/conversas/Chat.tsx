@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Me, MessageMatch } from "@/tone/shared";
 import { track } from "./analytics";
-import { ApiError, api, peek } from "./api";
+import { ApiError, api, peek, prefetchChat } from "./api";
 import { Conversation, type Outbox } from "./Conversation";
 import { Onboarding, onboardingSeen } from "./Onboarding";
 import { ProfileSheet } from "./Profile";
@@ -77,6 +77,11 @@ export function Chat() {
     const loading = linkedReset()
       ? Promise.reject(new ApiError("Link de nova senha", 401))
       : Promise.all([api.me(), api.memories().catch(() => null)]);
+    // The chat and the panels do not wait for /me: their first requests leave now, at the same time.
+    if (!linkedReset() && !new URLSearchParams(window.location.search).has("painel")) {
+      prefetchChat();
+      api.watches().catch(() => undefined);
+    }
     loading
       .then(([person, memories]) => {
         if (!live) return;

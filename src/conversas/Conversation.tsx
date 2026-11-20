@@ -354,13 +354,16 @@ export function Conversation(props: {
       api
         .chatSessions()
         .then(async (list) => {
-          // The newest sessions until the screen has enough to read; the rest as the person scrolls up.
+          // The newest sessions, read at the same time (they were asked for as the page opened, see
+          // prefetchChat); the rest as the person scrolls up.
+          const first = list.slice(0, FIRST_SESSIONS);
+          const parts = await Promise.all(first.map((session) => readSession(session.id, false)));
           let count = 0;
           let lines: Item[] = [];
-          while (count < list.length && count < FIRST_SESSIONS && lines.length < FIRST_LINES) {
-            const next = list[count];
-            if (!next) break;
-            lines = [...(await readSession(next.id, false)), ...lines];
+          // As many as the screen needs, newest first: a long last session is enough on its own.
+          for (const part of parts) {
+            if (count > 0 && lines.length >= FIRST_LINES) break;
+            lines = [...part, ...lines];
             count++;
           }
           return { list, count, lines };
