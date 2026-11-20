@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@461cdca1a56f (packages/genui-react/src/wrist.tsx). Não edite aqui.
+// Gerado de toneorg/server@f83a4b4754be (packages/genui-react/src/wrist.tsx). Não edite aqui.
 // The watch on the wrist (RF5.4) and the reasons a product can be turned down,
 // shared by the generated components and the older tool-call cards.
 import { fitVerdict, wristWidthMm } from "./fit";

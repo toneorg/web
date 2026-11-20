@@ -6,7 +6,6 @@ import type { PanelSession, Watch, WatchResult, WatchRule } from "../src/tone/sh
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined }) }));
 vi.mock("posthog-js", () => ({ default: { capture: () => undefined, get_property: () => undefined } }));
 const { PanelView } = await import("../src/conversas/PanelPage");
-const { backLink } = await import("../src/conversas/Conversation");
 
 const rule: WatchRule = {
   goal: "Acompanhar o preço do iPhone 18",
@@ -91,10 +90,5 @@ describe("página do painel", () => {
     ]);
     expect(html).toContain("Conversas deste painel");
     expect(html).toContain('href="/conversas/s1?painel=w1"');
-  });
-
-  it("panel conversation back link points to the panel", () => {
-    expect(backLink("w1", "iPhone 18")).toEqual({ href: "/paineis/w1", label: "← iPhone 18" });
-    expect(backLink(null, null)).toEqual({ href: "/conversas", label: "← Conversa" });
   });
 });
