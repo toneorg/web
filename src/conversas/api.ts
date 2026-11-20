@@ -120,6 +120,39 @@ export function peek<T>(key: string): T | undefined {
 /** Forgets every kept answer: after a change, signing in or out, or a new turn. */
 export function forgetCached() {
   kept.clear();
+  early.clear();
+}
+
+/**
+ * Requests started as the page opens, before the screens that use them exist (20/11/2026: on a
+ * phone the chat waited for /me, then read its sessions one after the other, five waves of round
+ * trips). Each is used once, while fresh; otherwise the screen asks again.
+ */
+const early = new Map<string, { at: number; value: Promise<unknown> }>();
+function take(path: string): Promise<unknown> | undefined {
+  const entry = early.get(path);
+  early.delete(path);
+  return entry && Date.now() - entry.at < FRESH_MS ? entry.value : undefined;
+}
+function start(path: string) {
+  const value = call(path);
+  // A failure is the screen's to show when it asks; here it must not surface as unhandled.
+  value.catch(() => undefined);
+  early.set(path, { at: Date.now(), value });
+  return value;
+}
+
+/** The newest sessions of the chat, with what each shows, asked for as soon as the page opens. */
+export function prefetchChat(sessions = 3) {
+  if (early.has("chat/sessions")) return;
+  start("chat/sessions")
+    .then((raw) => {
+      const list = ChatSession.array().safeParse(raw);
+      if (!list.success) return;
+      for (const session of list.data.slice(0, sessions))
+        for (const part of ["transcript", "research-runs", "review-runs"]) start(`sessions/${session.id}/${part}`);
+    })
+    .catch(() => undefined);
 }
 
 /** A change: every kept copy is forgotten before it leaves and again once it lands. */
@@ -228,7 +261,7 @@ export const api = {
     PurchaseSituation.parse(await send(`situations/${id}/outcome`, "POST", { verdict })),
   sessions: () => cached("sessions", async () => SessionSummary.array().parse(await call("sessions"))),
   /** The sessions of the single chat, newest first; read fresh, the newest one grows with each turn. */
-  chatSessions: async () => ChatSession.array().parse(await call("chat/sessions")),
+  chatSessions: async () => ChatSession.array().parse(await (take("chat/sessions") ?? call("chat/sessions"))),
   /** Messages of the single chat with every word of `query`, newest first. */
   searchMessages: async (query: string, signal?: AbortSignal) =>
     MessageMatch.array().parse(await call(`messages/search?q=${encodeURIComponent(query)}`, { signal })),
@@ -242,9 +275,12 @@ export const api = {
     },
   /** The conversations kept in a panel; read fresh, they change as the person talks there. */
   panelSessions: async (watchId: string) => PanelSession.array().parse(await call(`watches/${watchId}/sessions`)),
-  transcript: async (id: string) => TranscriptItem.array().parse(await call(`sessions/${id}/transcript`)),
-  researchRuns: async (id: string) => ResearchRunState.array().parse(await call(`sessions/${id}/research-runs`)),
-  reviewRuns: async (id: string) => ReviewRunState.array().parse(await call(`sessions/${id}/review-runs`)),
+  transcript: async (id: string) =>
+    TranscriptItem.array().parse(await (take(`sessions/${id}/transcript`) ?? call(`sessions/${id}/transcript`))),
+  researchRuns: async (id: string) =>
+    ResearchRunState.array().parse(await (take(`sessions/${id}/research-runs`) ?? call(`sessions/${id}/research-runs`))),
+  reviewRuns: async (id: string) =>
+    ReviewRunState.array().parse(await (take(`sessions/${id}/review-runs`) ?? call(`sessions/${id}/review-runs`))),
   /** Motor de descoberta: the late message of a search whose slow stores finished after the answer. */
   followUps: async (id: string) => DiscoveryFollowUp.array().parse(await call(`sessions/${id}/followups`)),
   decision: async (id: string) => DecisionState.nullable().parse(await call(`sessions/${id}/decision`)),
