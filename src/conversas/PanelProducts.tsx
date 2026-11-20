@@ -45,7 +45,8 @@ export function PanelProducts(props: { products: WatchSummaryProduct[] }) {
               {product.best ? <span className="text-ui text-ink tabular-nums">{product.best.priceText}</span> : null}
               {delta ? (
                 <span className={`text-caption tabular-nums ${delta.good ? "font-medium text-accent-text" : "text-graphite"}`}>
-                  {delta.text === "igual" ? "igual a ontem" : `${delta.text} desde ontem`}
+                  {delta.text === "igual" ? "igual" : delta.text}
+                  <span className="max-sm:hidden">{delta.text === "igual" ? " a ontem" : " desde ontem"}</span>
                 </span>
               ) : null}
             </span>

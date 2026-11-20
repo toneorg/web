@@ -125,3 +125,24 @@ describe("cartão do painel: o relance", () => {
     expect(html).not.toContain(">D<");
   });
 });
+
+describe("menor preço de uma leitura", () => {
+  it("prefere a oferta confirmada à suspeita", async () => {
+    const { lowestMatch } = await import("../src/conversas/Panels");
+    const reading = {
+      id: "r1",
+      version: 1,
+      outcome: "ok",
+      conditionMet: false,
+      observedAt: "2026-11-20T12:00:00.000Z",
+      summary: {
+        message: "2",
+        matches: [
+          { title: "Pegasus usado", store: "olx.com.br", url: "https://www.olx.com.br/p", priceText: "R$ 299", amount: 299, limitation: "preço fora da faixa" },
+          { title: "Pegasus 41", store: "amazon.com.br", url: "https://www.amazon.com.br/dp/1", priceText: "R$ 599", amount: 599 },
+        ],
+      },
+    };
+    expect(lowestMatch(reading)?.priceText).toBe("R$ 599");
+  });
+});

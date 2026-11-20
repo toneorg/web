@@ -31,7 +31,7 @@ const ALLOWED: RegExp[] = [
   /^research$/,
   /^store-preferences\/(tenis|calcados|roupa|beleza|perfumaria|eletronicos|outros)$/,
   /^watches$/,
-  /^watches\/[^/]+(\/(confirm|pause|resume|check|mute|unmute|results|prices|sessions))?$/,
+  /^watches\/[^/]+(\/(confirm|pause|resume|check|mute|unmute|results|prices|summary|sessions))?$/,
   // T11: the mute link of an e-mail; the signed token is the only credential.
   /^watch-mute$/,
   /^events$/,

@@ -43,7 +43,8 @@ export function lowestOf(result: WatchResult | null): string | null {
 export function lowestMatch(result: WatchResult | null) {
   const priced = (result?.summary.matches ?? []).filter((match) => match.amount !== null);
   priced.sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0));
-  const match = priced[0];
+  // A suspicious or unconfirmed offer is the lowest only when nothing confirmed is left (20/11/2026).
+  const match = priced.find((offer) => !(offer as { limitation?: unknown }).limitation) ?? priced[0];
   if (!match) return null;
   const limitation = (match as { limitation?: unknown }).limitation;
   return { priceText: match.priceText, limitation: typeof limitation === "string" && limitation ? limitation : null };
