@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@9e0e9003d62b (packages/shared/src/fashion.ts). Não edite aqui.
+// Gerado de toneorg/server@849a02b9f532 (packages/shared/src/fashion.ts). Não edite aqui.
 // The fashion taxonomy of tone's discovery (19/11/2026): categories and attributes with closed
 // values and the Portuguese words people and stores use for each one. One list serves to widen a
 // search by words, to bound what a model may extract (enums), to explain values to the chat model

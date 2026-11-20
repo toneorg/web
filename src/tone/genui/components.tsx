@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@9e0e9003d62b (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@849a02b9f532 (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -314,8 +314,15 @@ function CarouselArrows(props: { target: { current: HTMLDivElement | null } }) {
 /** A product on its own, when the model places one outside a list. */
 const Product: ComponentRenderer<ProductData> = ({ props }) => <ProductCard product={props} />;
 
+/** The tone's best choice leads the list, whatever order the model wrote (20/11/2026: it came second). */
+const bestFirst = (products: ProductData[]) =>
+  products
+    .map((product, index) => ({ product, index, best: /melhor escolha/i.test(text(product.badge)) }))
+    .sort((left, right) => Number(right.best) - Number(left.best) || left.index - right.index)
+    .map((entry) => entry.product);
+
 const ProductCarousel: ComponentRenderer<{ title: string; products: unknown }> = ({ props }) => {
-  const products = listOf<ProductData>(props.products);
+  const products = bestFirst(listOf<ProductData>(props.products));
   const track = useRef<HTMLDivElement>(null);
   // A list with no product (named from another block, 16/11/2026) would be a bare title: drawn as nothing,
   // and the server asks the model to write the block again.

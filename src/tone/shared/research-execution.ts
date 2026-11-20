@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@9e0e9003d62b (packages/shared/src/research-execution.ts). Não edite aqui.
+// Gerado de toneorg/server@849a02b9f532 (packages/shared/src/research-execution.ts). Não edite aqui.
 import * as z from "zod";
 import { AUDIENCES } from "./fashion";
 import { evaluateRequirements, ResearchIntent, ResearchResult } from "./research";

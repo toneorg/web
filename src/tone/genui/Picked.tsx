@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@9e0e9003d62b (packages/genui-react/src/Picked.tsx). Não edite aqui.
+// Gerado de toneorg/server@849a02b9f532 (packages/genui-react/src/Picked.tsx). Não edite aqui.
 // The product the person picked in the conversation, above the composer: a
 // thumbnail, its name, its videos and a way to let it go. The next message
 // carries it, so "is this one good for running?" needs no name.
