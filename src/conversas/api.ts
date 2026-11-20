@@ -3,6 +3,8 @@
 // Responses are checked with the same contracts as the server.
 import posthog from "posthog-js";
 import {
+  StorePreferences,
+  type StorePreferenceCategory,
   AccessSession,
   ChatSession,
   MessageMatch,
@@ -208,6 +210,8 @@ export function fileToBase64(file: Blob): Promise<string> {
 }
 
 export const api = {
+  storePreferences: async (category: StorePreferenceCategory) => StorePreferences.parse(await call(`store-preferences/${category}`)),
+  saveStorePreferences: async (category: StorePreferenceCategory, stores: string[]) => StorePreferences.parse(await send(`store-preferences/${category}`, "PUT", { stores })),
   me,
   /** Every entry after the first: e-mail and password. */
   signIn: (email: string, password: string) => send("auth/web/login", "POST", { email, password }),

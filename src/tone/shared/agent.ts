@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@c661ab503e00 (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@f024a83c5d95 (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -46,6 +46,8 @@ export const TurnInput = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("message"),
     text: z.string().min(1).max(4000),
+    /** Explicit action after editing store preferences: replay the last saved research request in this conversation. */
+    repeatResearch: z.boolean().optional(),
     /** T07: a reference photo of this conversation that goes with the message. */
     photoId: z.string().min(1).max(60).optional(),
     /** The product the person picked in the conversation, shown above the composer. */

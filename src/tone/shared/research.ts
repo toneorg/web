@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@c661ab503e00 (packages/shared/src/research.ts). Não edite aqui.
+// Gerado de toneorg/server@f024a83c5d95 (packages/shared/src/research.ts). Não edite aqui.
 import * as z from "zod";
 import { isCheckoutUrl } from "./safety";
 
@@ -118,7 +118,34 @@ export const ListingSignals = z.object({
     .optional(),
 });
 
+export const CommercialAssessment = z.object({
+  policyVersion: z.string(),
+  recognition: z.enum(["established", "specialist", "unclassified"]),
+  trust: z.enum(["verified", "insufficient_evidence", "restricted"]),
+  evidenceUrls: z.array(z.string()),
+  reasons: z.array(z.string()),
+  eligible: z.boolean(),
+  exception: z
+    .object({
+      reason: z.enum([
+        "explicit_store",
+        "product_fit",
+        "material",
+        "availability",
+        "advertised_price",
+        "delivery",
+        "scarcity",
+        "small_brands_requested",
+      ]),
+      explanation: z.string(),
+      evidenceIds: z.array(z.string()),
+    })
+    .optional(),
+});
+export type CommercialAssessment = z.infer<typeof CommercialAssessment>;
+
 export const ResearchOffer = z.object({
+  commercial: CommercialAssessment.optional(),
   id: Identifier,
   variantId: Identifier,
   store: Identifier,

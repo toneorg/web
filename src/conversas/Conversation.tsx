@@ -17,6 +17,7 @@ import {
 } from "react";
 import { AnswerRating, type AnswerRatingChange, type AnswerRatingDetail, PickedProductBar, ProductVideos, ReviewSynthesisCard } from "@/tone/genui";
 import {
+  storePreferenceCategory,
   type AgentEvent,
   type AnswerRatingValue,
   type ChatSession,
@@ -52,6 +53,7 @@ import { filterStores, type Mention, mentionAt, pickStore } from "./store-mentio
 import { SignIn } from "./SignIn";
 import { type ChatTarget, dayLabel, dayStarts, lineKey, startsNewSession } from "./timeline";
 import { outlineButton } from "./ui";
+import { StorePreferenceEditor } from "./StorePreferences";
 import { WELCOME_FIRST } from "./welcome";
 
 /** Where a line belongs and when it was said. `old`: read from the server, not said in this visit. */
@@ -1207,6 +1209,17 @@ export function Conversation(props: {
     ];
   };
 
+  const latestResearch = items.flatMap((item) => item.kind === "research" ? [item.run] : item.kind === "activity" ? Object.values(item.activity.runs) : []).filter((run) => run.result).at(-1);
+  const preferenceCategory = storePreferenceCategory(draft.trim() || latestResearch?.result?.intent.query || "");
+  const repeatResearch = latestResearch && preferenceCategory === storePreferenceCategory(latestResearch.result?.intent.query ?? "") ? async () => {
+    if (busy || state !== "ready") return;
+    const text = "Pesquisar de novo com minhas preferências de lojas";
+    const session = latestResearch.sessionId;
+    setItems((list) => [...list, said(session, text)]);
+    atBottom.current = true;
+    await runTurn({ type: "message", text, repeatResearch: true }, session);
+  } : undefined;
+
   const composer = (
     <div className="sticky bottom-0 z-[5] -mx-1 flex flex-col gap-2 bg-paper px-1 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
       {/* What the tone is doing is said in the conversation itself (Activity), above its answer. */}
@@ -1382,6 +1395,7 @@ export function Conversation(props: {
         </div>
         <div ref={bottom} />
       </div>
+      {state === "ready" && !busy && (latestResearch || preferenceCategory !== "outros") ? <div className="mb-3"><StorePreferenceEditor key={preferenceCategory} category={preferenceCategory} suggested={latestResearch?.result?.offers.map((offer) => offer.store) ?? []} options={me?.stores ?? []} busy={busy} onResearch={repeatResearch} /></div> : null}
       {composer}
     </main>
   );
