@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@cf946ede5c80 (packages/shared/src/tools.ts). Não edite aqui.
+// Gerado de toneorg/server@7cdd92fb6f6c (packages/shared/src/tools.ts). Não edite aqui.
 // The tools the agent can call. They all run on the server: tone researches the
 // stores from there and never drives a store page; a store opens only when the
 // person clicks its link. One zod schema per tool is both the validation and the
@@ -88,7 +88,7 @@ export function isUiTool(name: string): name is UiToolName {
 export const ServerTools = {
   research_products: {
     description:
-      "Pesquisa produtos no servidor pelo índice e, na web, pelas ferramentas remotas validadas. Escolha em remoteSelection até três lojas relevantes do catálogo; mantenha storeScope irrestrito salvo pedido explícito da pessoa. Lojas explícitas prevalecem sem corte silencioso. Campos sem prova ficam desconhecidos.",
+      "Pesquisa produtos no servidor pelo índice e, na web, pelas ferramentas remotas validadas. Escolha em remoteSelection até três lojas relevantes do catálogo; mantenha storeScope irrestrito salvo pedido explícito da pessoa. Lojas explícitas prevalecem sem corte silencioso. Campos sem prova ficam desconhecidos. Em roupa, calçado e acessório, preencha discovery (kind discovery, categoria, público, restrições exigidas, preferências com peso e uma descrição visual); ao refinar (mais barato, menos largo, de linho, parecido com a primeira), mande a mesma discovery alterada.",
     args: ResearchRequest,
   },
   review_videos: {

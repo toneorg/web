@@ -14,6 +14,7 @@ import {
   type ConnectionProvider,
   type AnswerRatedEvent,
   DecisionState,
+  DiscoveryFollowUp,
   CONSENT_VERSION,
   InviteInfo,
   Me,
@@ -244,6 +245,8 @@ export const api = {
   transcript: async (id: string) => TranscriptItem.array().parse(await call(`sessions/${id}/transcript`)),
   researchRuns: async (id: string) => ResearchRunState.array().parse(await call(`sessions/${id}/research-runs`)),
   reviewRuns: async (id: string) => ReviewRunState.array().parse(await call(`sessions/${id}/review-runs`)),
+  /** Motor de descoberta: the late message of a search whose slow stores finished after the answer. */
+  followUps: async (id: string) => DiscoveryFollowUp.array().parse(await call(`sessions/${id}/followups`)),
   decision: async (id: string) => DecisionState.nullable().parse(await call(`sessions/${id}/decision`)),
   changeDecision: async (id: string, version: number, ops: DecisionOp[]) =>
     DecisionState.parse(await send(`sessions/${id}/decision`, "PATCH", { version, ops })),
