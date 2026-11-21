@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@e9a826ebdde9 (packages/shared/src/search.ts). Não edite aqui.
+// Gerado de toneorg/server@2e5e8c506c15 (packages/shared/src/search.ts). Não edite aqui.
 // The search of the web's single chat: what the person typed is found in what they and the tone
 // said, ignoring case and accents ("tenis" finds "Tênis"). The server picks the messages and cuts
 // the snippet; the web marks the same words in it, with the same rule.

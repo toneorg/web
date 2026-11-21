@@ -1,4 +1,4 @@
-/* Gerado de toneorg/server@e9a826ebdde9 (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/server@2e5e8c506c15 (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -2146,8 +2146,18 @@ html:has(.rating-sheet[open]) {
   border-radius: 50%;
   background: currentColor;
 }
+/* A layer over the card, so the ring also runs over the photo of a slide. */
 .product.chosen {
+  position: relative;
+}
+.product.chosen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
   box-shadow: inset 0 0 0 2px var(--tone-ink);
+  pointer-events: none;
 }
 .carousel-controls {
   display: flex;

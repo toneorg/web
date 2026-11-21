@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@e9a826ebdde9 (packages/shared/src/answer-rating.ts). Não edite aqui.
+// Gerado de toneorg/server@2e5e8c506c15 (packages/shared/src/answer-rating.ts). Não edite aqui.
 // "Esta resposta ajudou?": under each answer, a thumb up or down. A thumb down opens
 // an optional form with ready reasons and a line of the person's own. One rating per
 // turn of the conversation (the turn is how many messages the person had sent), so it
