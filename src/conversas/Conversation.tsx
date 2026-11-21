@@ -12,6 +12,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -50,6 +51,7 @@ import { type ChatTarget, dayLabel, dayStarts, lineKey, startsNewSession } from 
 import { outlineButton } from "./ui";
 import { StorePreferenceEditor } from "./StorePreferences";
 import { WELCOME_FIRST } from "./welcome";
+import { researchContexts } from "./research-context";
 
 /** Where a line belongs and when it was said. `old`: read from the server, not said in this visit. */
 type Line = { id: string; session: string; at?: string; old?: true };
@@ -226,6 +228,8 @@ export function Conversation(props: {
   const [older, setOlder] = useState<"idle" | "loading" | "failed">("idle");
 
   const [items, setItems] = useState<Item[]>([]);
+  // The "Usei" of each answer, worked out once per change of the list (not per streamed word).
+  const contexts = useMemo(() => researchContexts(items), [items]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "expired" | "error">("loading");
   const [draft, setDraft] = useState("");
   // "@" opens the store list; the stores picked limit this message's search.
@@ -992,21 +996,7 @@ export function Conversation(props: {
   };
   // An answer's buttons work only on the last answer, while its session is still the one going on.
   const stillGoing = live.current ? !startsNewSession(live.current.lastAt) : false;
-  // The "Usei" of an answer: the last search with a context in its session, started before the answer
-  // and after the person's message before it. Matched by time, since reopened runs are drawn apart.
-  const contextRuns = items
-    .flatMap((item) => (item.kind === "research" ? [item.run] : item.kind === "activity" ? Object.values(item.activity.runs) : []))
-    .filter((run) => run.context);
-  const researchFor = (item: Item): ResearchContext | null => {
-    if (item.kind !== "assistant" || !item.at) return null;
-    const index = items.indexOf(item);
-    const asked = items.slice(0, index).findLast((line) => line.kind === "user" && line.session === item.session)?.at;
-    const run = contextRuns
-      .filter((entry) => entry.sessionId === item.session && entry.startedAt <= (item.at as string) && (!asked || entry.startedAt >= asked))
-      .sort((left, right) => left.startedAt.localeCompare(right.startedAt))
-      .at(-1);
-    return run?.context ?? null;
-  };
+  const researchFor = (item: Item): ResearchContext | null => contexts.get(item.id) ?? null;
   const hostFor = (item: Item): ProgramHost => ({
     sessionId: item.session,
     interactive: item.id === lastAssistant && !busy && item.session === liveId && stillGoing,

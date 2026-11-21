@@ -46,6 +46,7 @@ export type WebEvent =
   | "used_filter_opened"
   | "used_filter_skipped"
   | "used_filter_changed"
+  | "used_filter_change_failed"
   | "product_unpicked"
   | "store_mentioned"
   | "product_videos_requested"

@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@2e5e8c506c15 (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@4c5f788472c2 (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -324,11 +324,26 @@ function CarouselArrows(props: { target: { current: HTMLDivElement | null } }) {
 const Product: ComponentRenderer<ProductData> = ({ props }) => <ProductCard product={props} />;
 
 /** The tone's best choice leads the list, whatever order the model wrote (20/11/2026: it came second). */
+/** The pick first, then the model's order; `index` is each product's place in the model's list. */
 const bestFirst = (products: ProductData[]) =>
   products
     .map((product, index) => ({ product, index, best: isBest(product) }))
-    .sort((left, right) => Number(right.best) - Number(left.best) || left.index - right.index)
-    .map((entry) => entry.product);
+    .sort((left, right) => Number(right.best) - Number(left.best) || left.index - right.index);
+
+/**
+ * The model writes a comparison row's values in its own order of products; the carousel may move
+ * the pick first, so each row follows the products to their new places (21/11/2026).
+ */
+const alignRows = (rows: CarouselRow[], order: number[]): CarouselRow[] =>
+  rows.map((row) => {
+    const values = strings(row.values);
+    const best = num(row.best);
+    return {
+      label: row.label,
+      values: order.map((index) => values[index] ?? ""),
+      best: best === null ? null : order.indexOf(best),
+    };
+  });
 
 type CarouselView = "list" | "compare";
 const VIEW_KEY = "tone.carousel.view";
@@ -367,8 +382,13 @@ interface CarouselRow {
 function CompareTable(props: { products: ProductData[]; rows: CarouselRow[]; title: string }) {
   const { products, rows } = props;
   const chosen = (product: ProductData) => (isBest(product) ? "chosen" : undefined);
-  const line = (label: string, value: (product: ProductData, index: number) => ReactNode, best?: number | null) => (
-    <tr key={label}>
+  const line = (
+    key: string,
+    label: string,
+    value: (product: ProductData, index: number) => ReactNode,
+    best?: number | null,
+  ) => (
+    <tr key={key}>
       <th scope="row">{label}</th>
       {products.map((product, index) => (
         <td
@@ -403,17 +423,19 @@ function CompareTable(props: { products: ProductData[]; rows: CarouselRow[]; tit
           </tr>
         </thead>
         <tbody>
-          {line("Preço", (product) => {
+          {line("price", "Preço", (product) => {
             const price = num(product.price);
             return price === null ? <span className="muted">Sem preço</span> : <strong>{brl(price)}</strong>;
           })}
-          {rows.map((row) => line(text(row.label), (_, index) => strings(row.values)[index] || "—", num(row.best)))}
-          {line("Avaliações", (product) => {
+          {rows.map((row, at) =>
+            line(`row-${at}`, text(row.label), (_, index) => strings(row.values)[index] || "—", num(row.best)),
+          )}
+          {line("rating", "Avaliações", (product) => {
             const stars = num(product.rating);
             const reviews = num(product.reviews);
             return stars === null ? "—" : `${rating(stars)}${reviews ? ` · ${count(reviews)}` : ""}`;
           })}
-          {line("Loja", (product) => storeOf(text(product.url)) ?? "—")}
+          {line("store", "Loja", (product) => storeOf(text(product.url)) ?? "—")}
           <tr className="compare-actions">
             <th scope="row">
               <span className="visually-hidden">Comprar</span>
@@ -453,10 +475,13 @@ function UsedPanel(props: { item: UsedItem; id: string; onClose: () => void }) {
   if (!memory) return null;
   const day = dayOf(memory.savedAt);
   const fresh = value.trim();
+  const canRun = host.interactive && (mode === "skip" || (Boolean(fresh) && fresh !== memory.value));
   const run = () => {
+    if (!canRun) return;
     if (mode === "skip") host.act({ type: "skip_personal", ids: [item.id], label: item.label });
     else {
-      const label = item.id === "pessoa_orcamento" && /^\d/.test(fresh) ? `até R$ ${fresh}` : fresh;
+      const amount = Number(fresh.replace(/[^\d,]/g, "").replace(",", "."));
+      const label = item.id === "pessoa_orcamento" && amount > 0 ? `até ${brl(amount)}` : fresh;
       host.act({
         type: "change_memory",
         id: memory.id,
@@ -510,18 +535,13 @@ function UsedPanel(props: { item: UsedItem; id: string; onClose: () => void }) {
             value={value}
             onChange={(event) => setValue(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && fresh) run();
+              if (event.key === "Enter") run();
             }}
           />
         </div>
       ) : null}
       <div className="used-actions">
-        <button
-          type="button"
-          className="btn solid sm"
-          disabled={!host.interactive || (mode === "change" && (!fresh || fresh === memory.value))}
-          onClick={run}
-        >
+        <button type="button" className="btn solid sm" disabled={!canRun} onClick={run}>
           Pesquisar de novo
         </button>
         <button type="button" className="btn outline sm" onClick={props.onClose}>
@@ -612,8 +632,12 @@ function UsedFilters(props: { context: ResearchContext }) {
 
 const ProductCarousel: ComponentRenderer<{ title: string; products: unknown; compare?: unknown }> = ({ props }) => {
   const host = useHost();
-  const products = bestFirst(listOf<ProductData>(props.products));
-  const rows = listOf<CarouselRow>(props.compare).filter((row) => text(row.label));
+  const ordered = bestFirst(listOf<ProductData>(props.products));
+  const products = ordered.map((entry) => entry.product);
+  const rows = alignRows(
+    listOf<CarouselRow>(props.compare).filter((row) => text(row.label)),
+    ordered.map((entry) => entry.index),
+  );
   const track = useRef<HTMLDivElement>(null);
   const [view, setView] = useCarouselView();
   // A list with no product (named from another block, 16/11/2026) would be a bare title: drawn as nothing,
@@ -666,7 +690,7 @@ const ProductCarousel: ComponentRenderer<{ title: string; products: unknown; com
           ))}
         </div>
       )}
-      {many ? (
+      {many && !comparing ? (
         <p className="small muted carousel-hint">Role para o lado para ver as {products.length} opções.</p>
       ) : null}
     </section>

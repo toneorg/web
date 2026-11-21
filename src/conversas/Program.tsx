@@ -230,7 +230,11 @@ function useWebHost(host: ProgramHost): GenUIHost {
         void api
           .correctMemory(action.id, action.value)
           .then(() => host.searchAgain?.(`Pesquisa de novo com ${action.label}`, []))
-          .catch(() => say(`Muda minha preferência para ${action.label} e pesquisa de novo`));
+          .catch(() => {
+            // The note could not be changed here: the person asks in the chat, where the agent changes it.
+            track("used_filter_change_failed", { key: action.key });
+            say(`Muda minha preferência para ${action.label} e pesquisa de novo`);
+          });
         return;
     }
   };
