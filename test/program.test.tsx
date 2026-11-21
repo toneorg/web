@@ -3,6 +3,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { savedFrameCode } from "../src/conversas/frames";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined }) }));
 import { openStore, Program, type ProgramHost, storeHostsOf, storeLink } from "../src/conversas/Program";
 
 const host: ProgramHost = {

@@ -31,6 +31,7 @@ describe("BFF da web (T06)", () => {
     expect(upstreamPath(["watches", "w1", "unmute"])).toBe("/api/watches/w1/unmute");
     // The panel's price line and the conversations kept in it (both were missing on 10/11/2026).
     expect(upstreamPath(["watches", "w1", "prices"])).toBe("/api/watches/w1/prices");
+    expect(upstreamPath(["watches", "w1", "summary"])).toBe("/api/watches/w1/summary");
     expect(upstreamPath(["watches", "w1", "sessions"])).toBe("/api/watches/w1/sessions");
     expect(upstreamPath(["watch-mute"])).toBe("/api/watch-mute");
     expect(upstreamPath(["watch-mute", "x"])).toBeNull();

@@ -4,13 +4,14 @@
 // to the panel's own page (10/11/2026: panels and conversations apart). From the
 // "⋯" the person pauses, resumes, mutes the e-mail, checks now or deletes.
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { type BudgetStatement, type Me, type Watch, type WatchPrices, type WatchResult, watchFacts, watchTitle } from "@/tone/shared";
+import { type BudgetStatement, type Me, type Watch, type WatchResult, type WatchSummary, watchFacts, watchTitle } from "@/tone/shared";
 import { PlusIcon } from "@/components/icons";
 import { track } from "./analytics";
 import { api } from "./api";
 import { NewPanelSheet } from "./NewPanel";
-import { Sparkline } from "./Sparkline";
+import { PanelGlance } from "./PanelGlance";
 import { readingOf, usePanelActions } from "./panel-actions";
 import { WATCHES_CHANGED } from "./Program";
 
@@ -42,7 +43,8 @@ export function lowestOf(result: WatchResult | null): string | null {
 export function lowestMatch(result: WatchResult | null) {
   const priced = (result?.summary.matches ?? []).filter((match) => match.amount !== null);
   priced.sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0));
-  const match = priced[0];
+  // A suspicious or unconfirmed offer is the lowest only when nothing confirmed is left (20/11/2026).
+  const match = priced.find((offer) => !(offer as { limitation?: unknown }).limitation) ?? priced[0];
   if (!match) return null;
   const limitation = (match as { limitation?: unknown }).limitation;
   return { priceText: match.priceText, limitation: typeof limitation === "string" && limitation ? limitation : null };
@@ -85,22 +87,24 @@ function PanelCard(props: {
   const lowest = lowestOf(latest);
   const limitation = lowestMatch(latest)?.limitation;
   const facts = panelFacts(watch);
-  // The line reads again whenever a new reading arrives.
-  const [prices, setPrices] = useState<WatchPrices | null>(null);
+  // The glance reads again whenever a new reading arrives.
+  const [summary, setSummary] = useState<WatchSummary | null>(null);
+  const readingId = latest?.id ?? null;
   useEffect(() => {
     if (!watch.confirmed) return;
     let live = true;
     api
-      .watchPrices(watch.id)
+      .watchSummary(watch.id, { fresh: readingId !== null })
       .then((value) => {
-        if (live) setPrices(value);
+        if (live) setSummary(value);
       })
-      // A server without the route yet: the card stays as it was.
+      // A server without the route yet: the card shows the lowest price, as before.
       .catch(() => undefined);
     return () => {
       live = false;
     };
-  }, [watch.id, watch.confirmed, latest?.id]);
+  }, [watch.id, watch.confirmed, readingId]);
+  const open = usePathname() === `/paineis/${watch.id}`;
 
   const { busy, menu, footer } = usePanelActions(props.panel, props.onChange, what);
   // The whole card is the way in: the control's area covers it (after:inset-0).
@@ -109,8 +113,9 @@ function PanelCard(props: {
 
   return (
     <article
-      className={`relative flex flex-col gap-3 rounded-card bg-surface p-5 shadow-raised${props.fresh ? " rise" : ""}`}
+      className={`relative flex flex-col gap-3 rounded-card bg-surface p-5 shadow-raised${open ? " ring-2 ring-ink" : ""}${props.fresh ? " rise" : ""}`}
       aria-busy={busy !== null}
+      aria-current={open ? "page" : undefined}
     >
       <div className="flex items-start gap-2">
         {watch.status === "draft" ? (
@@ -137,18 +142,15 @@ function PanelCard(props: {
         ) : null}
         {menu}
       </div>
-      {lowest ? (
+      {summary && summary.observedAt ? (
+        <PanelGlance summary={summary} />
+      ) : lowest ? (
         <div className="flex flex-col gap-1">
           <span className="display-sm font-display text-ink tabular-nums">{lowest}</span>
           <span className="text-caption text-graphite">
             Menor preço{latest ? ` em ${when(latest.observedAt)}` : ""}
             {limitation ? ` · ${limitation}` : ""}
           </span>
-          {prices && prices.points.length >= 2 ? (
-            <span className="mt-1 block">
-              <Sparkline points={prices.points} />
-            </span>
-          ) : null}
           {props.panel.emptyRound ? (
             <span className="text-caption text-graphite">
               A leitura mais recente não achou ofertas; este é o último preço visto.
@@ -169,7 +171,7 @@ function PanelCard(props: {
         </span>
       )}
       {condition && watch.status !== "draft" ? <span className="text-caption text-graphite">{condition}</span> : null}
-      {latest?.conditionMet ? <span className="text-ui text-ink">Condição atingida</span> : null}
+      {latest?.conditionMet && !summary ? <span className="text-ui text-ink">Condição atingida</span> : null}
       {facts.problem ? <span className="text-caption text-ink">{facts.problem}</span> : null}
       {facts.stale ? (
         <span className="text-caption text-ink">Leitura com mais de 48 h: o preço pode ter mudado.</span>

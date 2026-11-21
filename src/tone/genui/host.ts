@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@f024a83c5d95 (packages/genui-react/src/host.ts). Não edite aqui.
+// Gerado de toneorg/server@4e74f96b4cd3 (packages/genui-react/src/host.ts). Não edite aqui.
 // What a drawn component may ask of the panel. The model writes only data; the
 // panel decides what each button does, and checks every address before using it.
 import {
@@ -28,7 +28,11 @@ export type GenUIAction =
   /** Send a message as the person, from a button of the component. */
   | { type: "say"; text: string }
   /** The person picked a product to talk about next (or let it go, with null). */
-  | { type: "pick"; product: PickedProduct | null };
+  | { type: "pick"; product: PickedProduct | null }
+  /** The person tapped the answers to a draft's questions on the chat's card. */
+  | { type: "answer_watch"; watchId: string; text: string }
+  /** Open the page of a panel confirmed on the chat's card. */
+  | { type: "open_panel"; watchId: string };
 
 export interface GenUIHost {
   /** Stores whose pages and photos this surface may show: the web's fixed list. */

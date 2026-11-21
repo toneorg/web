@@ -1,6 +1,6 @@
 // A product tapped on a panel page travels to the conversation it opens, once.
 import { beforeEach, describe, expect, it } from "vitest";
-import { pickForSession, takePicked } from "../src/conversas/picked-handoff";
+import { pickForChat, pickForSession, takeChatPicked, takePicked } from "../src/conversas/picked-handoff";
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -27,5 +27,11 @@ describe("produto levado do painel para a conversa", () => {
   it("JSON inválido vira null", () => {
     store.set("tone:picked:s2", "{nope");
     expect(takePicked("s2")).toBeNull();
+  });
+
+  it("o produto levado para a conversa central também vale uma vez só", () => {
+    pickForChat(product);
+    expect(takeChatPicked()).toEqual(product);
+    expect(takeChatPicked()).toBeNull();
   });
 });

@@ -29,6 +29,7 @@ import {
   ResearchRunState,
   ReviewRunState,
   WatchPrices,
+  WatchSummary,
   PanelSession,
   SessionSummary,
   TranscriptItem,
@@ -304,6 +305,9 @@ export const api = {
   /** T16: the readings of a watch, newest first, for the panels. */
   /** The panel's price chart: lowest price per day and the target. */
   watchPrices: async (id: string) => WatchPrices.parse(await call(`watches/${id}/prices`)),
+  /** What the panel says first: the verdict and one item per product (20/11/2026). */
+  watchSummary: (id: string, options?: { fresh?: boolean }) =>
+    cached(`watches/${id}/summary`, async () => WatchSummary.parse(await call(`watches/${id}/summary`)), options),
   watchResults: (id: string, options?: { fresh?: boolean }) =>
     cached(`watches/${id}/results`, async () => WatchResult.array().parse(await call(`watches/${id}/results`)), options),
   confirmWatch: async (id: string, version: number) => Watch.parse(await send(`watches/${id}/confirm`, "POST", { version })),

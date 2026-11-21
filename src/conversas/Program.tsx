@@ -3,6 +3,7 @@
 // the server repository (src/tone/genui). Only the actions are the web's: open a
 // store page in a new tab when the person clicks, answer a question, pick a
 // product to talk about, or change a decision or a watch as the person.
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import {
   type Answer,
@@ -51,6 +52,26 @@ export interface ProgramHost {
   /** The url of the product picked to talk about, shown above the composer. */
   picked: string | null;
   pick: (product: PickedProduct | null) => void;
+  /** The person tapped the answers to a draft's questions on the chat's card. */
+  answerWatch?: (watchId: string, text: string) => void;
+}
+
+/** The draft card's own actions: answers as a panel turn, and the page of a confirmed panel. */
+export function watchAction(
+  action: GenUIAction,
+  deps: { answerWatch: (watchId: string, text: string) => void; openPanel: (href: string) => void },
+): boolean {
+  if (action.type === "answer_watch") {
+    track("watch_draft_answered", { source: "conversation" });
+    deps.answerWatch(action.watchId, action.text);
+    return true;
+  }
+  if (action.type === "open_panel") {
+    track("watch_panel_opened_from_chat");
+    deps.openPanel(`/paineis/${action.watchId}`);
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -147,6 +168,7 @@ export function rejectProduct(
 /** The web's side of the components: what each button does, and where decisions and watches live. */
 function useWebHost(host: ProgramHost): GenUIHost {
   const { sessionId, interactive, answer, say, picked, pick } = host;
+  const router = useRouter();
   const extraHosts = host.storeHosts ?? [];
   const decisions = useMemo(
     () => ({
@@ -173,6 +195,8 @@ function useWebHost(host: ProgramHost): GenUIHost {
     [],
   );
   const act = (action: GenUIAction) => {
+    if (watchAction(action, { answerWatch: host.answerWatch ?? (() => undefined), openPanel: (href) => router.push(href) }))
+      return;
     switch (action.type) {
       case "open":
         openStore(sessionId, action.url, action.title, action.where ?? { source: "generated_ui" }, extraHosts);

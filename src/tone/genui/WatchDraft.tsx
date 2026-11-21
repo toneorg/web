@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@f024a83c5d95 (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
+// Gerado de toneorg/server@4e74f96b4cd3 (packages/genui-react/src/WatchDraft.tsx). Não edite aqui.
 // T09: the draft of a watch, for the person to review and confirm. The model
 // writes only the id; the rule comes from the server and every button is the
 // panel's: it saves the person's edits and confirms the version on screen.
@@ -10,7 +10,7 @@
 // behind a disclosure: it matters, but it is not the decision.
 import { type Watch, type WatchCondition, type WatchRule, watchFacts } from "@/tone/shared";
 import { useEffect, useId, useRef, useState } from "react";
-import type { WatchAccess } from "./host";
+import type { GenUIAction, WatchAccess } from "./host";
 
 const STATUS: Record<Watch["status"], string> = {
   draft: "Rascunho",
@@ -58,6 +58,8 @@ export function WatchDraftView(props: {
    * (the conversation), the person answers by writing, and the card only shows the questions.
    */
   onAnswer?: (answers: string) => void;
+  /** Opens the panel's page once it runs (the chat's card, after confirming). */
+  onOpenPanel?: () => void;
   busy?: boolean;
 }) {
   const { watch, actionable } = props;
@@ -330,11 +332,26 @@ export function WatchDraftView(props: {
           {reason ? <p className="hint">{reason}</p> : null}
         </div>
       ) : null}
+      {live && !edited && props.onOpenPanel ? (
+        <div className="watch-actions">
+          <button type="button" className="btn" onClick={props.onOpenPanel}>
+            Abrir painel
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
 
-export function WatchDraftLoader(props: { watchId: string; title: string; actionable: boolean; access?: WatchAccess }) {
+export function WatchDraftLoader(props: {
+  watchId: string;
+  title: string;
+  actionable: boolean;
+  access?: WatchAccess;
+  /** The latest answer of a live conversation: the questions can be answered by tapping. */
+  interactive?: boolean;
+  onAct?: (action: GenUIAction) => void;
+}) {
   const [watch, setWatch] = useState<Watch | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -366,6 +383,7 @@ export function WatchDraftLoader(props: { watchId: string; title: string; action
       .finally(() => setBusy(false));
   };
   const access = props.access;
+  const onAct = props.onAct;
   return (
     <>
       <WatchDraftView
@@ -373,6 +391,10 @@ export function WatchDraftLoader(props: { watchId: string; title: string; action
         title={props.title}
         actionable={props.actionable && available}
         busy={busy}
+        onAnswer={
+          props.interactive && onAct ? (text) => onAct({ type: "answer_watch", watchId: watch.id, text }) : undefined
+        }
+        onOpenPanel={onAct ? () => onAct({ type: "open_panel", watchId: watch.id }) : undefined}
         onSave={(draft) => access && run(() => access.save(watch.id, watch.version, draft))}
         onConfirm={() => access && run(() => access.confirm(watch.id, watch.version))}
         onSaveAndConfirm={(draft) =>

@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@f024a83c5d95 (packages/shared/src/consent.ts). Não edite aqui.
+// Gerado de toneorg/server@4e74f96b4cd3 (packages/shared/src/consent.ts). Não edite aqui.
 // Specific consent for sensitive data (LGPD, art. 11, I): skin tone and personal coloring can reveal
 // racial or ethnic origin, so the tone keeps them in memory only after the person says yes to this
 // text, for this purpose. A general consent does not cover it.

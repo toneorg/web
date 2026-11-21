@@ -1,4 +1,4 @@
-toneorg/server@f024a83c5d9587a4ec5512b62965e51e564b6a44
+toneorg/server@4e74f96b4cd31cf0ab76fcc8fd1973fc7e0c65be
 agent.ts
 answer-rating.ts
 api.ts
@@ -14,6 +14,7 @@ memory-keys.ts
 memory-label.ts
 page.ts
 photo.ts
+price-signal.ts
 progress.ts
 provenance.ts
 research-execution.ts

@@ -1,11 +1,12 @@
 // T11: the center of watches in the panels, and the mute link of the e-mail.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { Watch, WatchRule } from "../src/tone/shared";
+import type { Watch, WatchRule, WatchSummary, WatchSummaryProduct } from "../src/tone/shared";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined }) }));
 const { actionsOf, panelFacts } = await import("../src/conversas/Panels");
 const { MuteLink } = await import("../src/conversas/MuteLink");
+const { PanelGlance } = await import("../src/conversas/PanelGlance");
 
 const rule: WatchRule = {
   goal: "Avisar quando o Casio A158 baixar",
@@ -82,5 +83,66 @@ describe("link para parar os e-mails (T11)", () => {
 
   it("link sem token leva à central", () => {
     expect(renderToStaticMarkup(<MuteLink token={null} />)).toContain('href="/conversas"');
+  });
+});
+
+const item = (title: string, amount: number | null, previous: number | null): WatchSummaryProduct => ({
+  title,
+  variantLabel: null,
+  best:
+    amount === null
+      ? null
+      : { title, priceText: `R$ ${amount}`, amount, store: "centauro.com.br", url: "https://www.centauro.com.br/p", imageUrl: null },
+  previous,
+  signal: null,
+  points: [],
+});
+const summary = (products: WatchSummaryProduct[], kind: WatchSummary["verdict"]["kind"] = "good"): WatchSummary => ({
+  observedAt: "2026-11-20T12:00:00.000Z",
+  verdict: { kind, productIndex: 0, reason: "" },
+  products,
+});
+
+describe("cartão do painel: o relance", () => {
+  it("uma linha por produto com preço e mudança, e o bom momento", () => {
+    const html = renderToStaticMarkup(
+      <PanelGlance summary={summary([item("Pegasus 41", 599, 679), item("Adizero SL", 649, 649)])} />,
+    );
+    for (const text of ["Pegasus 41", "R$ 599", "↓ R$ 80", "Adizero SL", "R$ 649", "igual", "Bom momento", "Lido"])
+      expect(html).toContain(text);
+  });
+
+  it("sem bom momento não há etiqueta; produto sem oferta diz isso", () => {
+    const html = renderToStaticMarkup(<PanelGlance summary={summary([item("Pegasus 41", null, 679)], "normal")} />);
+    expect(html).not.toContain("Bom momento");
+    expect(html).toContain("sem oferta");
+  });
+
+  it("mostra três produtos e diz quantos faltam", () => {
+    const four = ["A", "B", "C", "D"].map((title) => item(title, 100, 100));
+    const html = renderToStaticMarkup(<PanelGlance summary={summary(four)} />);
+    expect(html).toContain("+ 1");
+    expect(html).not.toContain(">D<");
+  });
+});
+
+describe("menor preço de uma leitura", () => {
+  it("prefere a oferta confirmada à suspeita", async () => {
+    const { lowestMatch } = await import("../src/conversas/Panels");
+    const reading = {
+      id: "r1",
+      version: 1,
+      outcome: "ok",
+      conditionMet: false,
+      observedAt: "2026-11-20T12:00:00.000Z",
+      summary: {
+        message: "2",
+        matches: [
+          { title: "Pegasus usado", store: "olx.com.br", url: "https://www.olx.com.br/p", priceText: "R$ 299", amount: 299, limitation: "preço fora da faixa" },
+          { title: "Pegasus 41", store: "amazon.com.br", url: "https://www.amazon.com.br/dp/1", priceText: "R$ 599", amount: 599 },
+        ],
+      },
+    };
+    expect(lowestMatch(reading)?.priceText).toBe("R$ 599");
   });
 });

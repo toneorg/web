@@ -19,13 +19,20 @@ const field =
 
 type Step = "writing" | "planning" | "review" | "unplanned";
 
+/** The session the sheet answers in: always a new one, even for a draft reopened from its card. */
+export function reviewSession(): string | null {
+  return null;
+}
+
 export function NewPanel(props: { onBuilt: (watch: Watch) => void; draft?: Watch }) {
   const close = useSheetClose();
-  // A draft reopened from its card starts at its review, on the session that drafted it.
+  // A draft reopened from its card starts at its review.
   const [step, setStep] = useState<Step>(props.draft ? "review" : "writing");
   const [pedido, setPedido] = useState("");
   const [more, setMore] = useState("");
-  const [sessionId, setSessionId] = useState<string | null>(props.draft?.sessionId ?? null);
+  // A draft reopened from its card answers in a session of its own (the server marks it as the sheet's),
+  // never in the chat that drafted it (20/11/2026: panels and the conversation apart).
+  const [sessionId, setSessionId] = useState<string | null>(reviewSession());
   const [draft, setDraft] = useState<Watch | null>(props.draft ?? null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

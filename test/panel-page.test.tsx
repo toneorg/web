@@ -1,12 +1,12 @@
-// The panel's own page (10/11/2026): results first, conversations kept in the panel, none in the list.
+// The panel's own page. 20/11/2026: the verdict first, one item per product, no conversation of its own.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { PanelSession, Watch, WatchResult, WatchRule } from "../src/tone/shared";
+import type { Watch, WatchResult, WatchRule, WatchSummary, WatchSummaryProduct } from "../src/tone/shared";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined }) }));
 vi.mock("posthog-js", () => ({ default: { capture: () => undefined, get_property: () => undefined } }));
 const { PanelView } = await import("../src/conversas/PanelPage");
-const { backLink } = await import("../src/conversas/Conversation");
+const { PanelHistory } = await import("../src/conversas/PanelProducts");
 
 const rule: WatchRule = {
   goal: "Acompanhar o preço do iPhone 18",
@@ -52,18 +52,31 @@ const reading: WatchResult = {
     ],
   },
 };
-const draw = (results: WatchResult[], sessions: PanelSession[] = []) =>
+const item = (title: string, amount: number | null, previous: number | null, points: number[] = []): WatchSummaryProduct => ({
+  title,
+  variantLabel: null,
+  best:
+    amount === null
+      ? null
+      : { title: `Tênis ${title}`, priceText: `R$ ${amount}`, amount, store: "amazon.com.br", url: "https://www.amazon.com.br/dp/9", imageUrl: null },
+  previous,
+  signal: null,
+  points: points.map((value, index) => ({ day: `2026-11-1${index}`, amount: value, store: null })),
+});
+const summaryOf = (kind: WatchSummary["verdict"]["kind"], reason: string, products = [item("Pegasus 41", 599, 679), item("Adizero SL", 649, 649)]): WatchSummary => ({
+  observedAt: "2026-11-20T12:00:00.000Z",
+  verdict: { kind, productIndex: 0, reason },
+  products,
+});
+const draw = (results: WatchResult[], summary: WatchSummary | null = null) =>
   renderToStaticMarkup(
     <PanelView
       watch={watch}
       results={results}
-      prices={{ points: [], target: null }}
-      sessions={sessions}
+      summary={summary}
       menu={null}
       footer={null}
       onAsk={() => undefined}
-      onTalk={() => undefined}
-      opening={false}
     />,
   );
 
@@ -75,26 +88,35 @@ describe("página do painel", () => {
     expect(html).not.toContain("<figure");
   });
 
-  it("panel page lists products with an ask action", () => {
-    const html = draw([reading]);
-    expect(html).toContain("Apple iPhone 18 256 GB");
-    expect(html).toContain("R$ 6.999");
+  it("abre com o veredito, depois os produtos", () => {
+    const html = draw([reading], summaryOf("good", "O menor preço em 30 dias, R$ 80 abaixo do normal."));
+    const order = ["Bom momento para comprar", "Tênis Pegasus 41 por R$ 599", "O menor preço em 30 dias, R$ 80 abaixo do normal.", "Ver na loja", "Adizero SL"];
+    const at = order.map((text) => html.indexOf(text));
+    expect(at.every((index) => index >= 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    expect(html).toContain("https://www.amazon.com.br/dp/9");
+    expect(html).toContain("↓ R$ 80");
+  });
+
+  it("veredito normal, acima e aprendendo com seus rótulos", () => {
+    expect(draw([reading], summaryOf("normal", "x"))).toContain("Preço normal");
+    expect(draw([reading], summaryOf("high", "x"))).toContain("Acima do normal");
+    expect(draw([reading], summaryOf("learning", "x"))).toContain("Ainda conhecendo o preço");
+  });
+
+  it("não oferece conversa do painel e mantém Perguntar nas ofertas", () => {
+    const html = draw([reading], summaryOf("normal", "x"));
+    expect(html).not.toContain("Conversar sobre este painel");
+    expect(html).not.toContain("Conversas deste painel");
+    expect(html).toContain("Todas as ofertas");
     expect(html.match(/>Perguntar</g)).toHaveLength(2);
-    expect(html).toContain("Conversar sobre este painel");
-    expect(html).toContain("O gráfico do preço aparece a partir do segundo dia de leitura.");
+    expect(html).toContain('href="/conversas"');
   });
 
-  it("panel conversations section is absent when there are none", () => {
-    expect(draw([reading])).not.toContain("Conversas deste painel");
-    const html = draw([reading], [
-      { id: "s1", title: "tem vídeo?", lastAt: "2026-11-10T13:00:00.000Z", messages: 1, origin: "panel" },
-    ]);
-    expect(html).toContain("Conversas deste painel");
-    expect(html).toContain('href="/conversas/s1?painel=w1"');
-  });
-
-  it("panel conversation back link points to the panel", () => {
-    expect(backLink("w1", "iPhone 18")).toEqual({ href: "/paineis/w1", label: "← iPhone 18" });
-    expect(backLink(null, null)).toEqual({ href: "/conversas", label: "← Conversa" });
+  it("histórico mostra o produto escolhido", () => {
+    const products = [item("Pegasus 41", 599, 679, [680, 679, 599]), item("Adizero SL", 649, 649, [655, 650, 649])];
+    const html = renderToStaticMarkup(<PanelHistory products={products} selected={1} onSelect={() => undefined} />);
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toMatch(/menor R\$\s649/);
   });
 });

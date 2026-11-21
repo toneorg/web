@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@f024a83c5d95 (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@4e74f96b4cd3 (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or

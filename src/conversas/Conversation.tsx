@@ -2,8 +2,8 @@
 // T06, redrawn on 15/11/2026 as a messaging app: the person talks to the tone in ONE chat, the
 // way they would with someone on their phone. The chat is the person's sessions one after the
 // other (timeline.ts), with the older ones read as they scroll up; after a pause, the next
-// message opens a new session under the hood. A panel's conversation (opened from its panel,
-// `sessionId` + `panelId`) is the same screen on that one session. The agent researches through
+// message opens a new session under the hood. Panels have no conversation of their own
+// (20/11/2026): their readings live on the panel's page, never here. The agent researches through
 // the server; a product opens in a new tab only when the person clicks it.
 import Link from "next/link";
 import {
@@ -32,21 +32,16 @@ import {
   type ReviewRunState,
   type TranscriptItem,
   type TurnInput,
-  type Watch,
-  type WatchResult,
-  watchTitle,
   type ReplyTo,
 } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { since, track } from "./analytics";
 import { ApiError, api, peek, rateAnswer, streamTurn } from "./api";
 import { savedFrameCode } from "./frames";
-import { Program, type ProgramHost, STORE_HOSTS, storeHostsOf, WATCHES_CHANGED } from "./Program";
-import { WatchReadings } from "./WatchReadings";
-import { takePicked } from "./picked-handoff";
+import { Program, type ProgramHost, STORE_HOSTS, storeHostsOf } from "./Program";
+import { takeChatPicked } from "./picked-handoff";
 import { PhotoPicker, PhotoReference, usePhoto } from "./PhotoReference";
 import { type Activity, ActivitySummary, applyStatus, endActivity, LiveActivity, newActivity, ResearchRunSummary, startWriting, worthKeeping } from "./Activity";
-import { Shell } from "./Shell";
 import { MessageMenu, messageMenuHandlers } from "./MessageMenu";
 import { ChosenStores, StoreOptions, UserMessage } from "./StoreMention";
 import { filterStores, type Mention, mentionAt, pickStore } from "./store-mention";
@@ -183,13 +178,6 @@ const FIRST_SESSIONS = 3;
  */
 const toEnd = () => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
 
-/** Where "←" goes from a panel's conversation: back to its panel. */
-export function backLink(panelId: string | null, panelTitle: string | null): { href: string; label: string } {
-  return panelId
-    ? { href: `/paineis/${panelId}`, label: `← ${panelTitle ?? "Painel"}` }
-    : { href: "/conversas", label: "← Conversa" };
-}
-
 const bubble = "whitespace-pre-wrap rounded-panel px-4 py-2.5 text-body [overflow-wrap:anywhere]";
 /** A bubble's width: up to most of the column, never the whole of a wide one. */
 const bubbleWidth = "w-fit max-w-[min(88%,38rem)]";
@@ -211,11 +199,6 @@ function StopIcon() {
 }
 
 export function Conversation(props: {
-  /** A panel's conversation: that one session. Without it, the single chat. */
-  sessionId?: string;
-  panelId?: string | null;
-  /** A panel's conversation started from its page arrives with its first message, sent once. */
-  first?: string | null;
   /** The single chat: the account, read by the frame around it. */
   me?: Me | null;
   /** The single chat: where to go (a search result, an old link), and the answer once there. */
@@ -229,31 +212,14 @@ export function Conversation(props: {
   /** The single chat: the session ended while the page was open. */
   onExpired?: () => void;
 }) {
-  const panel = props.sessionId ? { sessionId: props.sessionId, panelId: props.panelId ?? null } : null;
-  const panelId = panel?.panelId ?? null;
-  // The session new messages go to: fixed in a panel's conversation; in the single chat the newest
-  // one, until a pause asks for a new one (`ensureSession`).
-  const live = useRef<{ id: string; lastAt: string } | null>(panel ? { id: panel.sessionId, lastAt: new Date().toISOString() } : null);
-  const [liveId, setLiveId] = useState<string | null>(panel?.sessionId ?? null);
+  // The session new messages go to: the newest one, until a pause asks for a new one (`ensureSession`).
+  const live = useRef<{ id: string; lastAt: string } | null>(null);
+  const [liveId, setLiveId] = useState<string | null>(null);
   /** The sessions of the single chat, newest first, and how many of them (from the newest) are drawn. */
   const [sessions, setSessions] = useState<ChatSession[] | null>(null);
   const [loaded, setLoaded] = useState(0);
   const [older, setOlder] = useState<"idle" | "loading" | "failed">("idle");
 
-  // A panel's conversation names its panel in the way back.
-  const [panelTitle, setPanelTitle] = useState<string | null>(null);
-  useEffect(() => {
-    if (!panelId) return;
-    let live = true;
-    api.watch(panelId).then(
-      (watch) => live && watch && setPanelTitle(watchTitle(watch.confirmed ?? watch.draft)),
-      () => undefined,
-    );
-    return () => {
-      live = false;
-    };
-  }, [panelId]);
-  const back = backLink(panelId, panelTitle);
   const [items, setItems] = useState<Item[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "expired" | "error">("loading");
   const [draft, setDraft] = useState("");
@@ -263,7 +229,7 @@ export function Conversation(props: {
   const [activeStore, setActiveStore] = useState(0);
   const box = useRef<HTMLTextAreaElement>(null);
   // The frame (account and panels) draws at once from the last copy while the conversation loads.
-  const [ownMe, setMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
+  const [ownMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
   const me = props.me ?? ownMe;
   const [busy, setBusy] = useState(false);
   /** The product picked from a component: it goes with every message until the person lets it go. */
@@ -281,10 +247,9 @@ export function Conversation(props: {
   }, [copied]);
   // "Perguntar" on a panel's page brings the product along, once.
   useEffect(() => {
-    if (!liveId) return;
-    const brought = takePicked(liveId);
+    const brought = takeChatPicked();
     if (brought) setPicked(brought);
-  }, [liveId]);
+  }, []);
   const controller = useRef<AbortController | null>(null);
   // When the running turn started: Parar takes the place of Enviar under the pointer, and on 16/11/2026
   // a double click on Enviar stopped the turn 160 ms after it began (the person sent it again).
@@ -313,7 +278,7 @@ export function Conversation(props: {
   const ensureSession = useCallback(async (): Promise<string> => {
     const current = live.current;
     const now = new Date().toISOString();
-    if (panel || (current && !startsNewSession(current.lastAt))) {
+    if (current && !startsNewSession(current.lastAt)) {
       if (current) current.lastAt = now;
       return current?.id ?? "";
     }
@@ -326,15 +291,12 @@ export function Conversation(props: {
     setSessions((list) => [{ id: sessionId, onboarding: false, startedAt: now, lastAt: now, messages: 0 }, ...(list ?? [])]);
     setLoaded((count) => count + 1);
     return sessionId;
-    // `panel` only changes with the address, which mounts another page.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [Boolean(panel)]);
+  }, []);
   const photo = usePhoto(ensureSession);
 
   // Each change of `round` loads the conversation again (after signing in, retrying).
   const [round, setRound] = useState(0);
   const load = () => setRound((value) => value + 1);
-  const panelSession = panel?.sessionId ?? null;
   useEffect(() => {
     let live = true;
     const fail = (error: unknown) => {
@@ -343,16 +305,7 @@ export function Conversation(props: {
       if (status === 401) expired();
       setState(status === 401 ? "expired" : status === 404 ? "missing" : "error");
     };
-    if (panelSession) {
-      Promise.all([readSession(panelSession, true), api.me(), round])
-        .then(([lines, person]) => {
-          if (!live) return;
-          setMe(person);
-          setItems(lines);
-          setState("ready");
-        })
-        .catch(fail);
-    } else {
+    {
       api
         .chatSessions()
         .then(async (list) => {
@@ -389,7 +342,7 @@ export function Conversation(props: {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panelSession, round]);
+  }, [round]);
   /** Where the first line on screen was before older lines came in above it, to keep it in place. */
   const anchor = useRef<{ id: string; top: number } | null>(null);
   const loadOlder = useCallback(async () => {
@@ -472,33 +425,6 @@ export function Conversation(props: {
     return () => window.clearTimeout(timer);
   }, [found]);
 
-  // A panel is a conversation: the watches made here, with their readings, close their session.
-  const [panels, setPanels] = useState<{ watch: Watch; results: WatchResult[] }[]>([]);
-  const shownSessions = panel ? panel.sessionId : (sessions ?? []).slice(0, loaded).map((session) => session.id).join(",");
-  useEffect(() => {
-    // Opened from a panel: its page already shows the readings.
-    if (panelId || !shownSessions) return;
-    const shown = new Set(shownSessions.split(","));
-    let live = true;
-    const fetchPanels = () =>
-      api
-        .watches()
-        .then((list) =>
-          Promise.all(
-            list
-              .filter((watch) => watch.sessionId && shown.has(watch.sessionId) && watch.status !== "deleted" && watch.confirmed)
-              .map(async (watch) => ({ watch, results: await api.watchResults(watch.id).catch(() => []) })),
-          ),
-        )
-        .then((found) => live && setPanels(found))
-        .catch(() => undefined);
-    void fetchPanels();
-    window.addEventListener(WATCHES_CHANGED, fetchPanels);
-    return () => {
-      live = false;
-      window.removeEventListener(WATCHES_CHANGED, fetchPanels);
-    };
-  }, [shownSessions, round, panelId]);
 
   // The page never scrolls by itself while the person reads: no following an answer as it
   // streams, no keeping the bottom as cards grow. It goes to the end only once, right after the
@@ -884,18 +810,6 @@ export function Conversation(props: {
     };
   }, [followUpsSince, liveId]);
 
-  // T16: a panel's conversation started from its page arrives with its first message; it is sent once.
-  // It comes from the page's search params: on a client navigation, window.location still
-  // shows the previous page while this one first renders.
-  const first = useRef<string | null>(props.first ?? null);
-  useEffect(() => {
-    const text = first.current;
-    if (!text || state !== "ready" || busy) return;
-    first.current = null;
-    window.history.replaceState(null, "", window.location.pathname);
-    void send(text);
-  }, [state, busy, send]);
-
   // The single chat: what the frame asked to send (the tour's example, the welcome conversation).
   const { outbox, onOutboxSent } = props;
   const sentOutbox = useRef<number | null>(null);
@@ -1057,7 +971,7 @@ export function Conversation(props: {
     setFound(id);
   };
   // An answer's buttons work only on the last answer, while its session is still the one going on.
-  const stillGoing = live.current ? !startsNewSession(live.current.lastAt) || Boolean(panel) : false;
+  const stillGoing = live.current ? !startsNewSession(live.current.lastAt) : false;
   const hostFor = (item: Item): ProgramHost => ({
     sessionId: item.session,
     interactive: item.id === lastAssistant && !busy && item.session === liveId && stillGoing,
@@ -1069,6 +983,12 @@ export function Conversation(props: {
       void runTurn({ type: "ui_answer", answers }, item.session);
     },
     say: (text) => void send(text),
+    answerWatch: (watchId, text) => {
+      if (busy) return;
+      toEndNext.current = true;
+      setItems((list) => [...list, said(item.session, text)]);
+      void runTurn({ type: "message", text, intent: "watch", watchId }, item.session);
+    },
     storeHosts: storeHostsOf(me?.stores),
     picked: picked?.url ?? null,
     pick: (product) => {
@@ -1083,15 +1003,6 @@ export function Conversation(props: {
   const fresh = items.filter((item) => !item.old);
   const ordered = [...kept, ...fresh];
   const days = dayStarts(ordered);
-  // Each session's panels close it, after its last line.
-  const lastOfSession = new Map<string, number>();
-  ordered.forEach((item, index) => lastOfSession.set(item.session, index));
-  const panelsAfter = new Map<number, typeof panels>();
-  for (const entry of panels) {
-    const index = entry.watch.sessionId ? lastOfSession.get(entry.watch.sessionId) : undefined;
-    if (index === undefined) continue;
-    panelsAfter.set(index, [...(panelsAfter.get(index) ?? []), entry]);
-  }
   const draw = (item: Item, index: number) => {
     const day = days.get(index);
     const mark = found === item.id ? "found" : "";
@@ -1166,9 +1077,6 @@ export function Conversation(props: {
         </div>
       ) : null,
       body,
-      ...(panelsAfter.get(index) ?? []).map((entry) => (
-        <WatchReadings key={`painel-${entry.watch.id}`} watch={entry.watch} results={entry.results} sessionId={item.session} />
-      )),
     ];
   };
 
@@ -1322,16 +1230,7 @@ export function Conversation(props: {
 
   const chat = (
     <main id="conteudo" className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
-      <h1 className="sr-only">{panel ? `Conversa do painel ${panelTitle ?? ""}` : "Conversa com a tone"}</h1>
-      {panel ? (
-        // Sticky under the app bar: the way back to the panel stays in reach in a long conversation.
-        <header className="sticky top-17 z-[5] flex flex-wrap items-center justify-between gap-3 bg-paper/90 py-2 backdrop-blur">
-          <Link href={back.href} className="min-h-11 content-center text-ui text-ink underline-offset-4 hover:underline">
-            {back.label}
-          </Link>
-          {researchNote(me) ? <p className="text-caption text-graphite">{researchNote(me)}</p> : null}
-        </header>
-      ) : null}
+      <h1 className="sr-only">Conversa com a tone</h1>
       <div data-ph-mask className="flex flex-1 flex-col justify-end gap-3 pb-4 pt-2">
         <div ref={top} aria-hidden={!hasOlder} />
         {hasOlder ? (
@@ -1351,7 +1250,7 @@ export function Conversation(props: {
             Carregando a conversa…
           </p>
         ) : null}
-        {state === "ready" && !panel && items.length === 0 ? props.empty : null}
+        {state === "ready" && items.length === 0 ? props.empty : null}
         <div className="flex flex-col gap-3">{kept.map((item, index) => draw(item, index))}</div>
         <div role="log" aria-live="polite" aria-relevant="additions" aria-label="Mensagens novas" className="flex flex-col gap-3 empty:hidden">
           {fresh.map((item, index) => draw(item, kept.length + index))}
@@ -1362,12 +1261,7 @@ export function Conversation(props: {
       {composer}
     </main>
   );
-  if (!panel) return chat;
-  return (
-    <Shell me={me} sessionId={panel.sessionId}>
-      {chat}
-    </Shell>
-  );
+  return chat;
 }
 
 /**

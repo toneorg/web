@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@f024a83c5d95 (packages/shared/src/watch.ts). Não edite aqui.
+// Gerado de toneorg/server@4e74f96b4cd3 (packages/shared/src/watch.ts). Não edite aqui.
 // T09: a watch (acompanhamento) is a confirmed rule, not a free request.
 // A request becomes a draft with what to look for, where, how often and when to
 // notify; `reviewWatch` lists what still needs the person and which sources
@@ -280,7 +280,7 @@ export function reviewWatch(rule: WatchRule, remoteStores: readonly string[] = [
     notes.push("A queda é medida contra o primeiro preço que eu observar; não existe histórico anterior.");
   if (rule.condition.kind === "price_drop")
     notes.push(
-      `Comparo cada preço com o histórico deste produto e aviso quando ele fica ${SIGNIFICANT_DROP * 100}% ou mais abaixo do normal. Sem histórico ainda, a referência é o primeiro preço que eu observar.`,
+      `Comparo cada preço com o normal deste produto nos últimos 90 dias e aviso quando ele fica ${SIGNIFICANT_DROP * 100}% ou mais abaixo, igual ou abaixo do menor preço dos 30 dias anteriores e fora da oscilação de sempre. Sem histórico ainda, a referência é o primeiro preço que eu observar.`,
     );
   if (rule.condition.kind === "near_price")
     notes.push(
