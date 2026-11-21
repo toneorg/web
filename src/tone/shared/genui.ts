@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4e74f96b4cd3 (packages/shared/src/genui.ts). Não edite aqui.
+// Gerado de toneorg/server@e9a826ebdde9 (packages/shared/src/genui.ts). Não edite aqui.
 // The components the agent draws in the panel, in OpenUI Lang (openui.com).
 // One definition, two consumers: the server turns it into the instructions the
 // model reads and checks what the model wrote; the panel gives each component
@@ -165,8 +165,12 @@ export const ScaleRow = define(
 
 export const ProductCarousel = define(
   "ProductCarousel",
-  "Produtos para a pessoa escolher, de 1 a 6, em cartões. Use sempre que houver opções de produto a mostrar; não liste produtos em texto.",
-  z.object({ title: text(80), products: z.array(Product.ref).min(1).max(6) }),
+  "Produtos para a pessoa escolher, de 1 a 6, em cartões, que a pessoa também vê lado a lado. Use sempre que houver opções de produto a mostrar; não liste produtos em texto. compare: 2 a 4 CompareRow com os atributos que decidem esta compra, um valor curto por produto, na ordem dos produtos (preço, nota e loja já aparecem).",
+  z.object({
+    title: text(80),
+    products: z.array(Product.ref).min(1).max(6),
+    compare: optional(z.array(CompareRow.ref).max(6)),
+  }),
 );
 
 export const PreferenceChips = define(

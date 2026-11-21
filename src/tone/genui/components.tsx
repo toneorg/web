@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4e74f96b4cd3 (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@e9a826ebdde9 (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -10,12 +10,13 @@ import {
   MEMORY_CHECK_PREFIX,
   OUTCOME_CHECK_PREFIX,
   OUTCOME_LABELS,
+  type ResearchContext,
   SENSITIVE_CONSENT,
   SENSITIVE_CONSENT_ANSWERS,
   SENSITIVE_CONSENT_PREFIX,
   storeLabel,
 } from "@/tone/shared";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { DecisionBoardLoader } from "./DecisionBoard";
 import { brl } from "./format";
 import { type Answer, dataOf, listOf, safeImage, useHost } from "./host";
@@ -129,6 +130,9 @@ function OpenButton(props: { url: string; title: string; label?: string; quiet?:
 
 // ---- Products ---------------------------------------------------------------
 
+/** The model marks its own pick with this badge; the card names it the same way every time. */
+const isBest = (product: ProductData) => /melhor escolha/i.test(text(product.badge));
+
 function ProductCard(props: { product: ProductData; slide?: boolean }) {
   const { product } = props;
   const host = useHost();
@@ -160,14 +164,19 @@ function ProductCard(props: { product: ProductData; slide?: boolean }) {
         <Icon name="thumbDown" size={props.slide ? 18 : 20} />
       </button>
     ) : null;
+  const best = isBest(product);
   return (
-    <article className={props.slide ? "product slide" : "product"}>
+    <article className={["product", props.slide ? "slide" : "", best ? "chosen" : ""].filter(Boolean).join(" ")}>
       <div className="product-media">
         <Thumb src={product.image} />
         {props.slide ? rejectToggle : null}
       </div>
       <div className="product-body">
-        {product.badge ? <span className="tag">{product.badge}</span> : null}
+        {best ? (
+          <span className="tag pick">Escolha da tone</span>
+        ) : product.badge ? (
+          <span className="tag quiet">{product.badge}</span>
+        ) : null}
         <div className="title">{title}</div>
         {store ? <div className="product-store">{store}</div> : null}
         <div className="product-price">
@@ -317,23 +326,334 @@ const Product: ComponentRenderer<ProductData> = ({ props }) => <ProductCard prod
 /** The tone's best choice leads the list, whatever order the model wrote (20/11/2026: it came second). */
 const bestFirst = (products: ProductData[]) =>
   products
-    .map((product, index) => ({ product, index, best: /melhor escolha/i.test(text(product.badge)) }))
+    .map((product, index) => ({ product, index, best: isBest(product) }))
     .sort((left, right) => Number(right.best) - Number(left.best) || left.index - right.index)
     .map((entry) => entry.product);
 
-const ProductCarousel: ComponentRenderer<{ title: string; products: unknown }> = ({ props }) => {
+type CarouselView = "list" | "compare";
+const VIEW_KEY = "tone.carousel.view";
+
+/** Lista or Comparar, remembered on this device only; without storage it starts on the list. */
+function useCarouselView(): [CarouselView, (view: CarouselView) => void] {
+  const [view, setView] = useState<CarouselView>("list");
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(VIEW_KEY) === "compare") setView("compare");
+    } catch {
+      // Private window or blocked storage: the list it is.
+    }
+  }, []);
+  const change = (next: CarouselView) => {
+    setView(next);
+    try {
+      window.localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // Not remembered; still changed.
+    }
+  };
+  return [view, change];
+}
+
+interface CarouselRow {
+  label: string;
+  values?: unknown;
+  best?: number | null;
+}
+
+/**
+ * The same options side by side (21/11/2026): one column each, in the carousel's order, the tone's
+ * choice tinted. The labels stay put while the columns scroll.
+ */
+function CompareTable(props: { products: ProductData[]; rows: CarouselRow[]; title: string }) {
+  const { products, rows } = props;
+  const chosen = (product: ProductData) => (isBest(product) ? "chosen" : undefined);
+  const line = (label: string, value: (product: ProductData, index: number) => ReactNode, best?: number | null) => (
+    <tr key={label}>
+      <th scope="row">{label}</th>
+      {products.map((product, index) => (
+        <td
+          key={`${product.url}|${product.title}`}
+          className={[chosen(product), best === index ? "best" : ""].filter(Boolean).join(" ") || undefined}
+        >
+          {value(product, index)}
+          {best === index ? <span className="visually-hidden"> (melhor nesta linha)</span> : null}
+        </td>
+      ))}
+    </tr>
+  );
+  return (
+    // biome-ignore lint/a11y/noNoninteractiveTabindex: a region that scrolls sideways takes the keyboard's arrows
+    <section className="compare carousel-compare" aria-label="Comparação lado a lado" tabIndex={0}>
+      <table>
+        <caption className="visually-hidden">{props.title}: as opções lado a lado</caption>
+        <thead>
+          <tr>
+            <td />
+            {products.map((product) => (
+              <th key={`${product.url}|${product.title}`} scope="col" className={chosen(product)}>
+                <Thumb src={product.image} size="sm" />
+                <span className="compare-title">{text(product.title)}</span>
+                {isBest(product) ? (
+                  <span className="tag pick">Escolha</span>
+                ) : product.badge ? (
+                  <span className="tag quiet">{product.badge}</span>
+                ) : null}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {line("Preço", (product) => {
+            const price = num(product.price);
+            return price === null ? <span className="muted">Sem preço</span> : <strong>{brl(price)}</strong>;
+          })}
+          {rows.map((row) => line(text(row.label), (_, index) => strings(row.values)[index] || "—", num(row.best)))}
+          {line("Avaliações", (product) => {
+            const stars = num(product.rating);
+            const reviews = num(product.reviews);
+            return stars === null ? "—" : `${rating(stars)}${reviews ? ` · ${count(reviews)}` : ""}`;
+          })}
+          {line("Loja", (product) => storeOf(text(product.url)) ?? "—")}
+          <tr className="compare-actions">
+            <th scope="row">
+              <span className="visually-hidden">Comprar</span>
+            </th>
+            {products.map((product) => (
+              <td key={`${product.url}|${product.title}`} className={chosen(product)}>
+                <OpenButton url={text(product.url)} title={text(product.title)} quiet={!isBest(product)} />
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+const dayOf = (iso: string) => {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? null
+    : date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" });
+};
+
+type UsedItem = ResearchContext["used"][number];
+
+/** "Ignorar só nesta busca" or "Mudar de vez" for one preference that came from memory (21/11/2026). */
+function UsedPanel(props: { item: UsedItem; id: string; onClose: () => void }) {
+  const { item } = props;
+  const host = useHost();
+  const [mode, setMode] = useState<"skip" | "change">("skip");
+  const memory = item.memory;
+  const [value, setValue] = useState(memory?.value ?? "");
+  const first = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    first.current?.focus();
+  }, []);
+  if (!memory) return null;
+  const day = dayOf(memory.savedAt);
+  const fresh = value.trim();
+  const run = () => {
+    if (mode === "skip") host.act({ type: "skip_personal", ids: [item.id], label: item.label });
+    else {
+      const label = item.id === "pessoa_orcamento" && /^\d/.test(fresh) ? `até R$ ${fresh}` : fresh;
+      host.act({
+        type: "change_memory",
+        id: memory.id,
+        key: memory.key,
+        category: memory.category,
+        value: fresh,
+        label,
+      });
+    }
+    props.onClose();
+  };
+  const name = `${props.id}-mode`;
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: Escape anywhere in the panel closes it and returns to the pill.
+    <div
+      className="used-panel"
+      id={props.id}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          props.onClose();
+        }
+      }}
+    >
+      <p className="small">
+        <strong>{item.label}</strong> veio do que você me disse{day ? ` em ${day}` : ""}.
+      </p>
+      <fieldset className="used-options">
+        <legend className="visually-hidden">O que fazer com {item.label}</legend>
+        <label className="used-option">
+          <input ref={first} type="radio" name={name} checked={mode === "skip"} onChange={() => setMode("skip")} />
+          <span>
+            <span className="used-option-title">Ignorar só nesta busca</span>
+            <span className="small muted">Pesquiso de novo sem isso. Sua preferência continua.</span>
+          </span>
+        </label>
+        <label className="used-option">
+          <input type="radio" name={name} checked={mode === "change"} onChange={() => setMode("change")} />
+          <span>
+            <span className="used-option-title">Mudar de vez</span>
+            <span className="small muted">Troco a preferência e uso a nova nas próximas compras.</span>
+          </span>
+        </label>
+      </fieldset>
+      {mode === "change" ? (
+        <div className="field">
+          <label htmlFor={`${props.id}-value`}>Novo valor</label>
+          <input
+            id={`${props.id}-value`}
+            className="input"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && fresh) run();
+            }}
+          />
+        </div>
+      ) : null}
+      <div className="used-actions">
+        <button
+          type="button"
+          className="btn solid sm"
+          disabled={!host.interactive || (mode === "change" && (!fresh || fresh === memory.value))}
+          onClick={run}
+        >
+          Pesquisar de novo
+        </button>
+        <button type="button" className="btn outline sm" onClick={props.onClose}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * "Usei: …": what weighed on this search (21/11/2026). A coral dot marks what came from the person's
+ * memory, and only those open the panel; a value the server raised shows before and after.
+ */
+function UsedFilters(props: { context: ResearchContext }) {
+  const host = useHost();
+  const [open, setOpen] = useState<string | null>(null);
+  const pills = useRef<Record<string, HTMLButtonElement | null>>({});
+  const panelId = useId();
+  const widened = new Map(props.context.widened.map((entry) => [entry.id, entry]));
+  const opened = props.context.used.find((item) => item.id === open) ?? null;
+  const close = () => {
+    const id = open;
+    setOpen(null);
+    if (id) pills.current[id]?.focus();
+  };
+  const shown = (item: UsedItem) => {
+    const raised = widened.get(item.id);
+    if (!raised) return item.label;
+    return (
+      <>
+        <s>{item.label}</s>
+        <span className="visually-hidden">, nesta busca</span> até {raised.to}
+      </>
+    );
+  };
+  const fromMemory = props.context.used.some((item) => item.source === "memory");
+  return (
+    <div className="used">
+      <div className="used-row">
+        <span className="used-label">Usei:</span>
+        <ul className="used-list">
+          {props.context.used.map((item) => (
+            <li key={item.id}>
+              {item.source === "memory" && item.memory && host.actionable ? (
+                <button
+                  type="button"
+                  className="used-pill memory"
+                  ref={(node) => {
+                    pills.current[item.id] = node;
+                  }}
+                  aria-expanded={open === item.id}
+                  aria-controls={open === item.id ? panelId : undefined}
+                  onClick={() => {
+                    const next = open === item.id ? null : item.id;
+                    setOpen(next);
+                    if (next) host.act({ type: "track", event: "used_filter_opened", props: { id: item.id } });
+                  }}
+                >
+                  <span className="used-dot" aria-hidden="true" />
+                  <span className="visually-hidden">Da sua memória: </span>
+                  {shown(item)}
+                </button>
+              ) : (
+                <span className={item.source === "memory" ? "used-pill memory" : "used-pill"}>
+                  {item.source === "memory" ? <span className="used-dot" aria-hidden="true" /> : null}
+                  {shown(item)}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+      {opened ? <UsedPanel key={opened.id} item={opened} id={panelId} onClose={close} /> : null}
+      {props.context.note ? (
+        <p className="used-note">
+          <Icon name="up" size={16} />
+          <span>{props.context.note}</span>
+        </p>
+      ) : fromMemory && !opened ? (
+        <p className="used-legend" aria-hidden="true">
+          <span className="used-dot" /> da sua memória
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+const ProductCarousel: ComponentRenderer<{ title: string; products: unknown; compare?: unknown }> = ({ props }) => {
+  const host = useHost();
   const products = bestFirst(listOf<ProductData>(props.products));
+  const rows = listOf<CarouselRow>(props.compare).filter((row) => text(row.label));
   const track = useRef<HTMLDivElement>(null);
+  const [view, setView] = useCarouselView();
   // A list with no product (named from another block, 16/11/2026) would be a bare title: drawn as nothing,
   // and the server asks the model to write the block again.
   if (!products.length) return null;
+  const many = products.length > 1;
+  const comparing = many && view === "compare";
+  const title = text(props.title);
+  const change = (next: CarouselView) => {
+    if (next === view) return;
+    setView(next);
+    host.act({ type: "track", event: "carousel_view_changed", props: { view: next } });
+  };
   return (
-    <section className="card" aria-label={text(props.title)}>
+    <section className="card" aria-label={title}>
       <div className="carousel-head">
-        <h3>{text(props.title)}</h3>
-        {products.length > 1 ? <CarouselArrows target={track} /> : null}
+        <h3>{title}</h3>
       </div>
-      {products.length > 1 ? (
+      {host.research?.used.length ? <UsedFilters context={host.research} /> : null}
+      {many ? (
+        <div className="carousel-controls">
+          <fieldset className="view-switch">
+            <legend className="visually-hidden">Ver as opções</legend>
+            <button type="button" aria-pressed={!comparing} onClick={() => change("list")}>
+              Lista
+            </button>
+            <button type="button" aria-pressed={comparing} onClick={() => change("compare")}>
+              Comparar
+            </button>
+          </fieldset>
+          {comparing ? (
+            <span className="small muted">{products.length} opções</span>
+          ) : (
+            <CarouselArrows target={track} />
+          )}
+        </div>
+      ) : null}
+      {comparing ? (
+        <CompareTable products={products} rows={rows} title={title} />
+      ) : many ? (
         <div className="carousel" ref={track}>
           {products.map((product) => (
             <ProductCard key={`${product.url}|${product.title}`} product={product} slide />
@@ -346,7 +666,7 @@ const ProductCarousel: ComponentRenderer<{ title: string; products: unknown }> =
           ))}
         </div>
       )}
-      {products.length > 1 ? (
+      {many ? (
         <p className="small muted carousel-hint">Role para o lado para ver as {products.length} opções.</p>
       ) : null}
     </section>

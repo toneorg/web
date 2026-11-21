@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4e74f96b4cd3 (packages/genui-react/src/fit.ts). Não edite aqui.
+// Gerado de toneorg/server@e9a826ebdde9 (packages/genui-react/src/fit.ts). Não edite aqui.
 // The watch-size table of the relogio skill, for the fit drawing (RF5.4).
 export function recommendedCase(wristCm: number): [number, number] {
   if (wristCm < 15) return [34, 38];

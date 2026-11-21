@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4e74f96b4cd3 (packages/shared/src/progress.ts). Não edite aqui.
+// Gerado de toneorg/server@e9a826ebdde9 (packages/shared/src/progress.ts). Não edite aqui.
 // T13: what a research run is doing, from real operations only. The server
 // numbers each event of a run (`seq`) and sends the partial result as a new
 // revision of the same envelope; clients fold both with `reduceResearchRuns`,
@@ -41,6 +41,37 @@ export const ProgressEvent = z.object({
 });
 export type ProgressEvent = z.infer<typeof ProgressEvent>;
 
+/**
+ * What weighed on a search, for the "Usei" line of the screen (21/11/2026): the person's own
+ * preferences from memory, what the conversation asked, and what the server widened by itself.
+ */
+export const ResearchContext = z.object({
+  used: z
+    .array(
+      z.object({
+        /** The requirement id: `pessoa_*` for memory, the model's id for the conversation. */
+        id: z.string().min(1).max(60),
+        label: z.string().min(1).max(40),
+        source: z.enum(["memory", "conversation"]),
+        memory: z
+          .object({
+            id: z.string(),
+            key: z.string(),
+            value: z.string(),
+            category: z.string(),
+            savedAt: z.string(),
+          })
+          .optional(),
+      }),
+    )
+    .max(12),
+  /** A value the person gave that the server raised for this search, before and after. */
+  widened: z.array(z.object({ id: z.string(), from: z.string(), to: z.string() })).max(6),
+  /** The sentence that says what was widened, ready in Portuguese. */
+  note: z.string().max(240).nullable(),
+});
+export type ResearchContext = z.infer<typeof ResearchContext>;
+
 export const ResearchRunState = z.object({
   runId: z.string(),
   sessionId: z.string(),
@@ -55,6 +86,8 @@ export const ResearchRunState = z.object({
   startedAt: z.string(),
   updatedAt: z.string(),
   result: ResearchResult.nullable(),
+  /** What weighed on this search; runs saved before 21/11/2026 have none. */
+  context: ResearchContext.nullable().optional(),
 });
 export type ResearchRunState = z.infer<typeof ResearchRunState>;
 

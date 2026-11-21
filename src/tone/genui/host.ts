@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4e74f96b4cd3 (packages/genui-react/src/host.ts). Não edite aqui.
+// Gerado de toneorg/server@e9a826ebdde9 (packages/genui-react/src/host.ts). Não edite aqui.
 // What a drawn component may ask of the panel. The model writes only data; the
 // panel decides what each button does, and checks every address before using it.
 import {
@@ -7,6 +7,7 @@ import {
   type DecisionState,
   isAllowedImage,
   type PickedProduct,
+  type ResearchContext,
   type Watch,
   type WatchRule,
 } from "@/tone/shared";
@@ -32,7 +33,13 @@ export type GenUIAction =
   /** The person tapped the answers to a draft's questions on the chat's card. */
   | { type: "answer_watch"; watchId: string; text: string }
   /** Open the page of a panel confirmed on the chat's card. */
-  | { type: "open_panel"; watchId: string };
+  | { type: "open_panel"; watchId: string }
+  /** "Ignorar só nesta busca": search again without these preferences (`pessoa_*`); memory stays. */
+  | { type: "skip_personal"; ids: string[]; label: string }
+  /** "Mudar de vez": the person's preference takes a new value, then the search runs again. */
+  | { type: "change_memory"; id: string; key: string; category: string; value: string; label: string }
+  /** Something the person did on a component that only the analytics care about. */
+  | { type: "track"; event: "carousel_view_changed" | "used_filter_opened"; props: Record<string, string> };
 
 export interface GenUIHost {
   /** Stores whose pages and photos this surface may show: the web's fixed list. */
@@ -48,6 +55,8 @@ export interface GenUIHost {
   decisions?: DecisionAccess;
   /** T09: watches; the panel saves drafts and confirms as the person. */
   watches?: WatchAccess;
+  /** What weighed on the search of this answer (the "Usei" line); absent before 21/11/2026. */
+  research?: ResearchContext | null;
 }
 
 export interface WatchAccess {
