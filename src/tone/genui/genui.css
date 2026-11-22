@@ -1,4 +1,4 @@
-/* Gerado de toneorg/server@4c5f788472c2 (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/server@69f37f046f5a (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -327,6 +327,8 @@
 
 /* Comparison */
 .compare {
+  /* Positioned, so the hidden labels inside the cells stay in the scrolling box. */
+  position: relative;
   overflow-x: auto;
   margin: 0 calc(-1 * var(--tone-space-md));
 }
@@ -2198,12 +2200,15 @@ html:has(.rating-sheet[open]) {
 .carousel-compare {
   margin: 0 calc(-1 * var(--tone-space-xl));
   scroll-snap-type: x proximity;
+  /* A column snaps past the sticky labels, never under them. */
+  scroll-padding-inline-start: calc(92px + var(--tone-space-xl));
 }
 .carousel-compare table {
   width: auto;
   min-width: 100%;
 }
-.carousel-compare th[scope="row"] {
+.carousel-compare th[scope="row"],
+.carousel-compare thead td:first-child {
   position: sticky;
   inset-inline-start: 0;
   z-index: 1;
@@ -2216,6 +2221,7 @@ html:has(.rating-sheet[open]) {
 .carousel-compare td {
   min-width: 112px;
   max-width: 140px;
+  overflow-wrap: anywhere;
   scroll-snap-align: start;
 }
 .carousel-compare th[scope="col"] {

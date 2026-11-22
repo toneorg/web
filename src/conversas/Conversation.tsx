@@ -68,10 +68,20 @@ export type Item = Line &
         turn?: number;
         rating?: AnswerRatingValue | null;
         messageId?: string;
+        /** The activity of the turn it answers, live: where its "Usei" comes from. */
+        activityId?: string;
       }
     /** `saved`: read back from the conversation, so it is not announced again as it loads. */
     /** `memories`: what one answer saved about the person, drawn as one line (21/11/2026). */
-    | { kind: "notice"; text: string; error?: boolean; saved?: boolean; memories?: { key: string; value: string }[] }
+    /** `tapped`: an answer tapped on a card, reopened; it starts a turn as a message does. */
+    | {
+        kind: "notice";
+        text: string;
+        error?: boolean;
+        saved?: boolean;
+        tapped?: true;
+        memories?: { key: string; value: string }[];
+      }
     /** A frame saved in an old conversation, drawn by the same components as an answer. */
     | { kind: "frame"; code: string }
     | { kind: "research"; run: ResearchRunState }
@@ -122,7 +132,7 @@ export function itemsOf(item: TranscriptItem, session = "", index?: number): Ite
   // A tapped answer is not a message of the person (21/11/2026): reopened, its card has forgotten
   // the answer, so it stays as a quiet line instead of a bubble.
   if (item.kind === "user" && item.tapped)
-    return [{ ...line, kind: "notice", saved: true, text: `Você respondeu: ${item.text}` }];
+    return [{ ...line, kind: "notice", saved: true, tapped: true, text: `Você respondeu: ${item.text}` }];
   if (item.kind === "user")
     return [
       {
@@ -241,6 +251,11 @@ export function Conversation(props: {
   const [ownMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
   const me = props.me ?? ownMe;
   const [busy, setBusy] = useState(false);
+  /** `busy` as it is now, for what resolves after the click (the memory changed, then the search). */
+  const busyNow = useRef(busy);
+  useEffect(() => {
+    busyNow.current = busy;
+  }, [busy]);
   /** The product picked from a component: it goes with every message until the person lets it go. */
   const [picked, setPicked] = useState<PickedProduct | null>(null);
   /** The message the next one answers ("Responder" in a message's menu), shown above the composer. */
@@ -510,7 +525,7 @@ export function Conversation(props: {
                 if (!assistant) {
                   const id = uid();
                   assistant = id;
-                  setItems((list) => [...list, { id, session, at: at(), kind: "assistant", text: event.delta, streaming: true }]);
+                  setItems((list) => [...list, { id, session, at: at(), kind: "assistant", text: event.delta, streaming: true, activityId }]);
                 } else {
                   const id = assistant;
                   setItems((list) =>
@@ -1007,7 +1022,9 @@ export function Conversation(props: {
       toEndNext.current = true;
       void runTurn({ type: "ui_answer", answers }, item.session);
     },
-    say: (text) => void send(text),
+    say: (text) => {
+      if (!busyNow.current) void send(text);
+    },
     answerWatch: (watchId, text) => {
       if (busy) return;
       toEndNext.current = true;
@@ -1017,7 +1034,7 @@ export function Conversation(props: {
     storeHosts: storeHostsOf(me?.stores),
     research: researchFor(item),
     searchAgain: (text, skipPersonal) => {
-      if (busy) return;
+      if (busy || busyNow.current) return;
       toEndNext.current = true;
       setItems((list) => [...list, said(item.session, text)]);
       void runTurn(

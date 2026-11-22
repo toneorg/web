@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4c5f788472c2 (packages/genui-react/src/Icon.tsx). Não edite aqui.
+// Gerado de toneorg/server@69f37f046f5a (packages/genui-react/src/Icon.tsx). Não edite aqui.
 // Hand-drawn line icons (components/icon.md): 24 grid, round caps, currentColor.
 const PATHS = {
   send: "M12 19V5M5 12l7-7 7 7",

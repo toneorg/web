@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4c5f788472c2 (packages/shared/src/index.ts). Não edite aqui.
+// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/index.ts). Não edite aqui.
 export * from "./agent";
 export * from "./answer-rating";
 export * from "./api";

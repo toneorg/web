@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4c5f788472c2 (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@69f37f046f5a (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -323,11 +323,13 @@ function CarouselArrows(props: { target: { current: HTMLDivElement | null } }) {
 /** A product on its own, when the model places one outside a list. */
 const Product: ComponentRenderer<ProductData> = ({ props }) => <ProductCard product={props} />;
 
-/** The tone's best choice leads the list, whatever order the model wrote (20/11/2026: it came second). */
 /** The pick first, then the model's order; `index` is each product's place in the model's list. */
-const bestFirst = (products: ProductData[]) =>
-  products
-    .map((product, index) => ({ product, index, best: isBest(product) }))
+const bestFirst = (products: unknown) =>
+  (Array.isArray(products) ? products : [])
+    // The index is taken before a product that does not resolve is dropped: rows follow the model's list.
+    .map((item, index) => ({ product: dataOf<ProductData>(item), index }))
+    .filter((entry): entry is { product: ProductData; index: number } => entry.product !== null)
+    .map((entry) => ({ ...entry, best: isBest(entry.product) }))
     .sort((left, right) => Number(right.best) - Number(left.best) || left.index - right.index);
 
 /**
@@ -344,6 +346,18 @@ const alignRows = (rows: CarouselRow[], order: number[]): CarouselRow[] =>
       best: best === null ? null : order.indexOf(best),
     };
   });
+
+/** "R$ 1.200,50", "150,90" and "150.90" as a number (a dot before two last digits is the cents). */
+const moneyOf = (written: string): number => {
+  const digits = written.replace(/[^\d.,]/g, "");
+  const normal = digits.includes(",")
+    ? digits.replace(/\./g, "").replace(",", ".")
+    : /\.\d{1,2}$/.test(digits)
+      ? digits
+      : digits.replace(/\./g, "");
+  const number = Number(normal);
+  return Number.isFinite(number) ? number : 0;
+};
 
 type CarouselView = "list" | "compare";
 const VIEW_KEY = "tone.carousel.view";
@@ -480,8 +494,8 @@ function UsedPanel(props: { item: UsedItem; id: string; onClose: () => void }) {
     if (!canRun) return;
     if (mode === "skip") host.act({ type: "skip_personal", ids: [item.id], label: item.label });
     else {
-      const amount = Number(fresh.replace(/[^\d,]/g, "").replace(",", "."));
-      const label = item.id === "pessoa_orcamento" && amount > 0 ? `até ${brl(amount)}` : fresh;
+      const amount = moneyOf(fresh);
+      const label = (item.id === "pessoa_orcamento" && amount > 0 ? `até ${brl(amount)}` : fresh).slice(0, 40);
       host.act({
         type: "change_memory",
         id: memory.id,
@@ -533,6 +547,7 @@ function UsedPanel(props: { item: UsedItem; id: string; onClose: () => void }) {
             id={`${props.id}-value`}
             className="input"
             value={value}
+            maxLength={40}
             onChange={(event) => setValue(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") run();
@@ -583,10 +598,11 @@ function UsedFilters(props: { context: ResearchContext }) {
     <div className="used">
       <div className="used-row">
         <span className="used-label">Usei:</span>
-        <ul className="used-list">
+        {/* biome-ignore lint/a11y/noRedundantRoles: Safari drops the list role of a list drawn with display: contents */}
+        <ul className="used-list" role="list">
           {props.context.used.map((item) => (
             <li key={item.id}>
-              {item.source === "memory" && item.memory && host.actionable ? (
+              {item.source === "memory" && item.memory && host.actionable && host.interactive ? (
                 <button
                   type="button"
                   className="used-pill memory"
@@ -594,6 +610,9 @@ function UsedFilters(props: { context: ResearchContext }) {
                     pills.current[item.id] = node;
                   }}
                   aria-expanded={open === item.id}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape" && open === item.id) close();
+                  }}
                   aria-controls={open === item.id ? panelId : undefined}
                   onClick={() => {
                     const next = open === item.id ? null : item.id;
@@ -632,7 +651,7 @@ function UsedFilters(props: { context: ResearchContext }) {
 
 const ProductCarousel: ComponentRenderer<{ title: string; products: unknown; compare?: unknown }> = ({ props }) => {
   const host = useHost();
-  const ordered = bestFirst(listOf<ProductData>(props.products));
+  const ordered = bestFirst(props.products);
   const products = ordered.map((entry) => entry.product);
   const rows = alignRows(
     listOf<CarouselRow>(props.compare).filter((row) => text(row.label)),

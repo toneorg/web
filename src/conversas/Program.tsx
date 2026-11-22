@@ -226,10 +226,12 @@ function useWebHost(host: ProgramHost): GenUIHost {
         host.searchAgain?.(`Pesquisa de novo sem ${action.label}`, action.ids);
         return;
       case "change_memory":
-        track("used_filter_changed", { key: action.key });
         void api
           .correctMemory(action.id, action.value)
-          .then(() => host.searchAgain?.(`Pesquisa de novo com ${action.label}`, []))
+          .then(() => {
+            track("used_filter_changed", { key: action.key });
+            host.searchAgain?.(`Pesquisa de novo com ${action.label}`, []);
+          })
           .catch(() => {
             // The note could not be changed here: the person asks in the chat, where the agent changes it.
             track("used_filter_change_failed", { key: action.key });
