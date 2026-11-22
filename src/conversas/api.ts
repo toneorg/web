@@ -249,6 +249,8 @@ export const api = {
   confirmMemory: async (id: string) => Memory.parse(await send(`memories/${id}/confirm`, "POST", {})),
   /** Something the person wrote about themselves ("tamanho de tênis: 40 · já tenho sandália dourada"). */
   addMemory: (key: string, value: string, category: string) => send("memories", "POST", { key, value, category }),
+  /** The person corrects one of their notes ("Mudar de vez" on a preference the search used). */
+  correctMemory: (id: string, value: string) => send(`memories/${id}`, "PATCH", { value }),
   /** The specific consents that stand (skin tone and coloring). */
   consents: async () => Consent.array().parse(await call("consents")),
   /** Takes the permission back: the server deletes the sensitive notes it covered. */

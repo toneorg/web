@@ -12,6 +12,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -23,7 +24,6 @@ import {
   type ChatSession,
   MEDIA_COMPONENT,
   type Me,
-  memoryLabel,
   type PhotoSummary,
   type PickedProduct,
   ProductMedia,
@@ -33,6 +33,7 @@ import {
   type TranscriptItem,
   type TurnInput,
   type ReplyTo,
+  type ResearchContext,
 } from "@/tone/shared";
 import { splitAnswer } from "@/tone/shared/genui";
 import { since, track } from "./analytics";
@@ -50,6 +51,7 @@ import { type ChatTarget, dayLabel, dayStarts, lineKey, startsNewSession } from 
 import { outlineButton } from "./ui";
 import { StorePreferenceEditor } from "./StorePreferences";
 import { WELCOME_FIRST } from "./welcome";
+import { researchContexts } from "./research-context";
 
 /** Where a line belongs and when it was said. `old`: read from the server, not said in this visit. */
 type Line = { id: string; session: string; at?: string; old?: true };
@@ -66,9 +68,20 @@ export type Item = Line &
         turn?: number;
         rating?: AnswerRatingValue | null;
         messageId?: string;
+        /** The activity of the turn it answers, live: where its "Usei" comes from. */
+        activityId?: string;
       }
     /** `saved`: read back from the conversation, so it is not announced again as it loads. */
-    | { kind: "notice"; text: string; error?: boolean; saved?: boolean }
+    /** `memories`: what one answer saved about the person, drawn as one line (21/11/2026). */
+    /** `tapped`: an answer tapped on a card, reopened; it starts a turn as a message does. */
+    | {
+        kind: "notice";
+        text: string;
+        error?: boolean;
+        saved?: boolean;
+        tapped?: true;
+        memories?: { key: string; value: string }[];
+      }
     /** A frame saved in an old conversation, drawn by the same components as an answer. */
     | { kind: "frame"; code: string }
     | { kind: "research"; run: ResearchRunState }
@@ -116,6 +129,10 @@ function messageText(item: Extract<Item, { kind: "user" | "assistant" }>): strin
 
 export function itemsOf(item: TranscriptItem, session = "", index?: number): Item[] {
   const line = { id: index === undefined ? uid() : lineKey(session, index), session, old: true as const, ...(item.at ? { at: item.at } : {}) };
+  // A tapped answer is not a message of the person (21/11/2026): reopened, its card has forgotten
+  // the answer, so it stays as a quiet line instead of a bubble.
+  if (item.kind === "user" && item.tapped)
+    return [{ ...line, kind: "notice", saved: true, tapped: true, text: `Você respondeu: ${item.text}` }];
   if (item.kind === "user")
     return [
       {
@@ -221,6 +238,8 @@ export function Conversation(props: {
   const [older, setOlder] = useState<"idle" | "loading" | "failed">("idle");
 
   const [items, setItems] = useState<Item[]>([]);
+  // The "Usei" of each answer, worked out once per change of the list (not per streamed word).
+  const contexts = useMemo(() => researchContexts(items), [items]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "expired" | "error">("loading");
   const [draft, setDraft] = useState("");
   // "@" opens the store list; the stores picked limit this message's search.
@@ -232,6 +251,11 @@ export function Conversation(props: {
   const [ownMe] = useState<Me | null>(() => peek<Me>("me") ?? null);
   const me = props.me ?? ownMe;
   const [busy, setBusy] = useState(false);
+  /** `busy` as it is now, for what resolves after the click (the memory changed, then the search). */
+  const busyNow = useRef(busy);
+  useEffect(() => {
+    busyNow.current = busy;
+  }, [busy]);
   /** The product picked from a component: it goes with every message until the person lets it go. */
   const [picked, setPicked] = useState<PickedProduct | null>(null);
   /** The message the next one answers ("Responder" in a message's menu), shown above the composer. */
@@ -477,6 +501,8 @@ export function Conversation(props: {
       const at = () => new Date().toISOString();
       // The live line of this turn: what the tone is doing now, folded into one line at the end.
       const activityId = uid();
+      // What this turn saved about the person: one line, not one per note (21/11/2026).
+      const notesId = uid();
       const alter = (change: (activity: Activity) => Activity) =>
         setItems((list) =>
           list.map((item) => (item.id === activityId && item.kind === "activity" ? { ...item, activity: change(item.activity) } : item)),
@@ -499,7 +525,7 @@ export function Conversation(props: {
                 if (!assistant) {
                   const id = uid();
                   assistant = id;
-                  setItems((list) => [...list, { id, session, at: at(), kind: "assistant", text: event.delta, streaming: true }]);
+                  setItems((list) => [...list, { id, session, at: at(), kind: "assistant", text: event.delta, streaming: true, activityId }]);
                 } else {
                   const id = assistant;
                   setItems((list) =>
@@ -513,12 +539,25 @@ export function Conversation(props: {
                 if (event.type === "research_result") shown.research += 1;
                 fold(event, session, activityId);
                 break;
-              case "memory_saved":
+              case "memory_saved": {
                 shown.memories += 1;
-                setItems((list) => [
-                  ...list,
-                  { id: uid(), session, at: at(), kind: "notice", text: `Anotei: ${memoryLabel(event.key)} — ${event.value}` },
-                ]);
+                const note = { key: event.key, value: event.value };
+                setItems((list) => {
+                  const notes = list.find((item) => item.id === notesId && item.kind === "notice");
+                  if (!notes || notes.kind !== "notice")
+                    return [...list, { id: notesId, session, at: at(), kind: "notice", text: "", memories: [note] }];
+                  if (notes.memories?.some((saved) => saved.key === note.key && saved.value === note.value)) return list;
+                  return list.map((item) =>
+                    item.id === notesId && item.kind === "notice" ? { ...item, memories: [...(item.memories ?? []), note] } : item,
+                  );
+                });
+                break;
+              }
+              case "research_context":
+                alter((activity) => {
+                  const run = activity.runs[event.runId];
+                  return run ? { ...activity, runs: { ...activity.runs, [event.runId]: { ...run, context: event.context } } } : activity;
+                });
                 break;
               case "done": {
                 const { turn } = event;
@@ -972,17 +1011,20 @@ export function Conversation(props: {
   };
   // An answer's buttons work only on the last answer, while its session is still the one going on.
   const stillGoing = live.current ? !startsNewSession(live.current.lastAt) : false;
+  const researchFor = (item: Item): ResearchContext | null => contexts.get(item.id) ?? null;
   const hostFor = (item: Item): ProgramHost => ({
     sessionId: item.session,
     interactive: item.id === lastAssistant && !busy && item.session === liveId && stillGoing,
-    answer: (answers, display) => {
+    // The answered card already shows the answer: no echo as a message of the person (21/11/2026).
+    answer: (answers) => {
       if (busy) return;
       track("conversation_reply_selected", { answers: Object.keys(answers).length });
       toEndNext.current = true;
-      setItems((list) => [...list, said(item.session, display)]);
       void runTurn({ type: "ui_answer", answers }, item.session);
     },
-    say: (text) => void send(text),
+    say: (text) => {
+      if (!busyNow.current) void send(text);
+    },
     answerWatch: (watchId, text) => {
       if (busy) return;
       toEndNext.current = true;
@@ -990,6 +1032,16 @@ export function Conversation(props: {
       void runTurn({ type: "message", text, intent: "watch", watchId }, item.session);
     },
     storeHosts: storeHostsOf(me?.stores),
+    research: researchFor(item),
+    searchAgain: (text, skipPersonal) => {
+      if (busy || busyNow.current) return;
+      toEndNext.current = true;
+      setItems((list) => [...list, said(item.session, text)]);
+      void runTurn(
+        { type: "message", text, repeatResearch: true, ...(skipPersonal.length ? { skipPersonal } : {}) },
+        item.session,
+      );
+    },
     picked: picked?.url ?? null,
     pick: (product) => {
       track(product ? "product_picked" : "product_unpicked");
@@ -1028,7 +1080,17 @@ export function Conversation(props: {
         menuHandlers,
       );
     }
-    else if (item.kind === "notice")
+    else if (item.kind === "notice" && item.memories?.length) {
+      const values = [...new Set(item.memories.map((note) => note.value))];
+      body = line(
+        <p className="text-center text-small text-graphite">
+          Guardei {values.length === 1 ? "1 preferência" : `${values.length} preferências`}: {values.join(", ")} ·{" "}
+          <Link href="/conversas/perfil" className="underline underline-offset-2 hover:text-ink">
+            ver no perfil
+          </Link>
+        </p>,
+      );
+    } else if (item.kind === "notice")
       body = line(
         <p
           role={item.error && !item.saved && !item.old ? "alert" : undefined}

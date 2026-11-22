@@ -22,6 +22,7 @@ import {
   isCheckoutUrl,
   isGoogleShoppingUrl,
   type PickedProduct,
+  type ResearchContext,
   type StoreOption,
   type WatchRule,
 } from "@/tone/shared";
@@ -54,6 +55,10 @@ export interface ProgramHost {
   pick: (product: PickedProduct | null) => void;
   /** The person tapped the answers to a draft's questions on the chat's card. */
   answerWatch?: (watchId: string, text: string) => void;
+  /** What weighed on the search of this answer (the "Usei" line of the carousel). */
+  research?: ResearchContext | null;
+  /** Runs the last search of the conversation again, said as the person, leaving these preferences out. */
+  searchAgain?: (text: string, skipPersonal: string[]) => void;
 }
 
 /** The draft card's own actions: answers as a panel turn, and the page of a confirmed panel. */
@@ -213,9 +218,38 @@ function useWebHost(host: ProgramHost): GenUIHost {
       case "pick":
         pick(action.product);
         return;
+      case "track":
+        track(action.event, action.props);
+        return;
+      case "skip_personal":
+        track("used_filter_skipped", { id: action.ids.join(",") });
+        host.searchAgain?.(`Pesquisa de novo sem ${action.label}`, action.ids);
+        return;
+      case "change_memory":
+        void api
+          .correctMemory(action.id, action.value)
+          .then(() => {
+            track("used_filter_changed", { key: action.key });
+            host.searchAgain?.(`Pesquisa de novo com ${action.label}`, []);
+          })
+          .catch(() => {
+            // The note could not be changed here: the person asks in the chat, where the agent changes it.
+            track("used_filter_change_failed", { key: action.key });
+            say(`Muda minha preferência para ${action.label} e pesquisa de novo`);
+          });
+        return;
     }
   };
-  return { storeHosts: [...STORE_HOSTS, ...extraHosts], interactive, actionable: true, act, picked, decisions, watches };
+  return {
+    storeHosts: [...STORE_HOSTS, ...extraHosts],
+    interactive,
+    actionable: true,
+    act,
+    picked,
+    decisions,
+    watches,
+    research: host.research ?? null,
+  };
 }
 
 /** One block of an answer, drawn while it streams. */

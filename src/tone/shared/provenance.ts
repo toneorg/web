@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4e74f96b4cd3 (packages/shared/src/provenance.ts). Não edite aqui.
+// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/provenance.ts). Não edite aqui.
 // T13/T14/T16: where the prices of a research run came from, said the same way
 // in the panel and on the web: observed in the index (T04) or read in the store's
 // search by a remote browser of tone (T16). Rows from the retired extension (T14)

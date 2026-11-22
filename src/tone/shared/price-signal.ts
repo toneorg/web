@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4e74f96b4cd3 (packages/shared/src/price-signal.ts). Não edite aqui.
+// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/price-signal.ts). Não edite aqui.
 // What a price means against its own history (20/11/2026, after researching how price trackers and
 // Google Flights judge a deal). One series per product: the lowest confirmed price of each day.
 // - The normal price is the median of those daily lows, up to 90 days back (Google Flights: the

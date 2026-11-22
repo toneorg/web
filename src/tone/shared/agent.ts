@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@4e74f96b4cd3 (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -6,7 +6,7 @@
 // screen. The conversation lives on the server, so a turn only carries what is new.
 import * as z from "zod";
 import { AnswerRatingValue } from "./answer-rating";
-import { ProgressEvent } from "./progress";
+import { ProgressEvent, ResearchContext } from "./progress";
 import { ResearchResult } from "./research";
 
 export const ToolCall = z.object({
@@ -60,6 +60,11 @@ export const TurnInput = z.discriminatedUnion("type", [
     stores: z.array(z.string().min(3).max(80)).max(10).optional(),
     /** The message this one answers ("Responder" on a message). */
     replyTo: ReplyTo.optional(),
+    /** "Ignorar só nesta busca": the person's preferences (`pessoa_*`) this message's searches leave out. */
+    skipPersonal: z
+      .array(z.string().regex(/^pessoa_[a-z_]+$/))
+      .max(4)
+      .optional(),
   }),
   z.object({
     type: z.literal("ui_answer"),
@@ -98,6 +103,8 @@ export const AgentEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("research_result"), result: ResearchResult }),
   /** T13: a step of a research run, numbered per run; partial results arrive as new revisions. */
   z.object({ type: z.literal("progress"), progress: ProgressEvent }),
+  /** What weighed on a search of this turn (the "Usei" line), sent after it and again if widened. */
+  z.object({ type: z.literal("research_context"), runId: z.string(), context: ResearchContext }),
   z.object({ type: z.literal("text"), delta: z.string() }),
   z.object({ type: z.literal("memory_saved"), key: z.string(), value: z.string() }),
   /**
@@ -141,6 +148,8 @@ export const TranscriptItem = z.discriminatedUnion("kind", [
     replyTo: ReplyTo.optional(),
     /** The stored message, for "Responder" (see ReplyTo). */
     messageId: z.string().optional(),
+    /** An answer tapped on a component: the answered card already shows it (21/11/2026). */
+    tapped: z.boolean().optional(),
     at: SaidAt,
   }),
   z.object({

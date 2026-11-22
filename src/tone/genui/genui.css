@@ -1,4 +1,4 @@
-/* Gerado de toneorg/server@4e74f96b4cd3 (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/server@69f37f046f5a (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -327,6 +327,8 @@
 
 /* Comparison */
 .compare {
+  /* Positioned, so the hidden labels inside the cells stay in the scrolling box. */
+  position: relative;
   overflow-x: auto;
   margin: 0 calc(-1 * var(--tone-space-md));
 }
@@ -2128,5 +2130,281 @@ html:has(.rating-sheet[open]) {
   .choice:active,
   .option:active {
     transform: none;
+  }
+}
+
+/* Results in the chat (21/11/2026): the tone's choice marked, Lista | Comparar, and "Usei". */
+.tag.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--tone-accent-soft);
+  color: var(--tone-accent-text);
+}
+.tag.pick::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+/* A layer over the card, so the ring also runs over the photo of a slide. */
+.product.chosen {
+  position: relative;
+}
+.product.chosen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--tone-ink);
+  pointer-events: none;
+}
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tone-space-md);
+  margin-block-end: var(--tone-space-lg);
+}
+/* Segmented (components/selection.md): two views of the same options. */
+.view-switch {
+  display: inline-flex;
+  min-inline-size: 0;
+  margin: 0;
+  border: 0;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--tone-radius-full);
+  background: var(--tone-sunken);
+}
+.view-switch button {
+  min-height: var(--tone-touch);
+  padding: 0 var(--tone-space-xl);
+  border-radius: var(--tone-radius-full);
+  font: 500 15px / 20px var(--tone-font-sans);
+  color: var(--tone-graphite);
+  transition:
+    background-color var(--tone-duration-fast) var(--tone-ease-soft),
+    color var(--tone-duration-fast) var(--tone-ease-soft);
+}
+.view-switch button[aria-pressed="true"] {
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-raised);
+  color: var(--tone-ink);
+  font-weight: 600;
+}
+
+/* The comparison: the labels stay put while the columns scroll. */
+.carousel-compare {
+  margin: 0 calc(-1 * var(--tone-space-xl));
+  scroll-snap-type: x proximity;
+  /* A column snaps past the sticky labels, never under them. */
+  scroll-padding-inline-start: calc(92px + var(--tone-space-xl));
+}
+.carousel-compare table {
+  width: auto;
+  min-width: 100%;
+}
+.carousel-compare th[scope="row"],
+.carousel-compare thead td:first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  min-width: 92px;
+  max-width: 92px;
+  padding-inline-start: var(--tone-space-xl);
+  background: var(--tone-surface);
+}
+.carousel-compare th[scope="col"],
+.carousel-compare td {
+  min-width: 112px;
+  max-width: 140px;
+  overflow-wrap: anywhere;
+  scroll-snap-align: start;
+}
+.carousel-compare th[scope="col"] {
+  border-bottom: 0;
+  font-weight: 500;
+  color: var(--tone-ink);
+}
+.carousel-compare th[scope="col"] .tag {
+  margin-top: var(--tone-space-xs);
+}
+.carousel-compare .chosen {
+  background: var(--tone-accent-soft);
+}
+.carousel-compare thead .chosen {
+  border-start-start-radius: var(--tone-radius-panel);
+  border-start-end-radius: var(--tone-radius-panel);
+}
+.carousel-compare .compare-actions .chosen {
+  border-end-start-radius: var(--tone-radius-panel);
+  border-end-end-radius: var(--tone-radius-panel);
+}
+.carousel-compare .compare-actions th,
+.carousel-compare .compare-actions td {
+  border-bottom: 0;
+}
+.carousel-compare td strong {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.carousel-compare:focus-visible {
+  outline: 2px solid var(--tone-ink);
+  outline-offset: 2px;
+}
+
+/* "Usei": what weighed on the search. */
+.used {
+  margin-block-end: var(--tone-space-lg);
+}
+.used-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tone-space-xs) var(--tone-space-sm);
+}
+.used-label {
+  font: 400 13px / 18px var(--tone-font-sans);
+  color: var(--tone-graphite);
+}
+.used-list {
+  display: contents;
+  list-style: none;
+}
+.used-list li {
+  display: inline-flex;
+}
+.used-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--tone-radius-full);
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-raised);
+  font: 500 14px / 20px var(--tone-font-sans);
+  color: var(--tone-ink);
+  font-variant-numeric: tabular-nums;
+}
+.used-pill s {
+  color: var(--tone-graphite);
+}
+button.used-pill {
+  position: relative;
+  box-shadow: inset 0 0 0 1.5px var(--tone-accent-text);
+  transition: background-color var(--tone-duration-fast) var(--tone-ease-soft);
+}
+/* 32 px drawn, 44 px to the finger. */
+button.used-pill::before {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+button.used-pill:hover {
+  background: var(--tone-accent-soft);
+}
+button.used-pill[aria-expanded="true"] {
+  background: var(--tone-ink);
+  color: var(--tone-on-ink);
+  box-shadow: none;
+}
+button.used-pill[aria-expanded="true"] .used-dot {
+  background: var(--tone-accent-on-ink);
+}
+.used-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tone-accent);
+  flex: none;
+}
+.used-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--tone-space-sm) 0 0;
+  font: 400 13px / 18px var(--tone-font-sans);
+  color: var(--tone-graphite);
+}
+.used-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tone-space-sm);
+  margin: var(--tone-space-md) 0 0;
+  padding: 10px 12px;
+  border-radius: var(--tone-radius-input);
+  background: var(--tone-accent-soft);
+  font: 400 13px / 18px var(--tone-font-sans);
+  color: var(--tone-ink);
+  text-wrap: pretty;
+}
+.used-note svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--tone-accent-text);
+}
+.used-panel {
+  margin-top: var(--tone-space-md);
+  padding: var(--tone-space-lg);
+  border-radius: var(--tone-radius-panel);
+  background: var(--tone-surface);
+  box-shadow: var(--tone-shadow-floating), var(--tone-shadow-raised);
+  animation: genui-rise var(--tone-duration-enter) var(--tone-ease-soft) both;
+}
+.used-panel > p {
+  margin: 0;
+  text-wrap: pretty;
+}
+.used-options {
+  margin: var(--tone-space-sm) 0 0;
+  padding: 0;
+  border: 0;
+}
+.used-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tone-space-md);
+  min-height: var(--tone-touch);
+  padding: var(--tone-space-md) 0;
+  border-top: 1px solid var(--tone-rule);
+  cursor: pointer;
+}
+.used-option:first-of-type {
+  border-top: 0;
+}
+.used-option input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--tone-ink);
+}
+.used-option > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.used-option-title {
+  font: 500 15px / 20px var(--tone-font-sans);
+  color: var(--tone-ink);
+}
+.used-panel .field {
+  margin-top: var(--tone-space-sm);
+}
+.used-actions {
+  display: flex;
+  gap: var(--tone-space-sm);
+  margin-top: var(--tone-space-lg);
+}
+.used-actions .btn.solid {
+  flex: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .used-panel {
+    animation: none;
   }
 }
