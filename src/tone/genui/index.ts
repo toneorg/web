@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@69f37f046f5a (packages/genui-react/src/index.ts). Não edite aqui.
+// Gerado de toneorg/server@ca2edd86218b (packages/genui-react/src/index.ts). Não edite aqui.
 // The generated components of the tone, drawn once for every surface: the
 // web. Each surface passes a GenUIHost that
 // decides what a button does; the drawings never reach a store or the server.

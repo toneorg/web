@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/photo.ts). Não edite aqui.
+// Gerado de toneorg/server@ca2edd86218b (packages/shared/src/photo.ts). Não edite aqui.
 // T07: a personal reference photo and what the tone read in it. The photo is
 // private and goes through its own path (never `isAllowedImage`, which is for
 // store images). Only visible attributes are interpreted; authenticity,
@@ -65,6 +65,55 @@ export const PhotoCorrection = z.object({
     .max(10),
 });
 export type PhotoCorrection = z.infer<typeof PhotoCorrection>;
+
+/**
+ * Busca por foto (22/11/2026): the products the tone found in a photo. Each one is boxed in the photo,
+ * searched on Google Lens by its crop and checked by a vision model against the Lens pages: "same" is
+ * the same model, "similar" the same kind and style. Nothing is called exact without that check.
+ */
+export const PhotoMatch = z.object({
+  title: z.string().trim().min(1).max(200),
+  /** The site, as Lens names it ("Steve Madden", "Zara"). */
+  source: z.string().trim().min(1).max(80),
+  link: z.url({ protocol: /^https$/ }).max(2000),
+  thumbnail: z
+    .url({ protocol: /^https$/ })
+    .max(2000)
+    .nullable(),
+  verdict: z.enum(["same", "similar"]),
+});
+export type PhotoMatch = z.infer<typeof PhotoMatch>;
+
+const Permille = z.number().min(0).max(1000);
+
+export const PhotoFind = z.object({
+  /** The number drawn on the photo, 1 first (the most prominent). */
+  item: z.number().int().min(1).max(6),
+  name: z.string().trim().min(1).max(120),
+  category: z.string().trim().min(1).max(60),
+  /** Where it is in the photo: [ymin, xmin, ymax, xmax] in thousandths of the height and width. */
+  box: z.tuple([Permille, Permille, Permille, Permille]),
+  /** exact: a "same" page and a known brand and model; likely: a "same" page; generic: only the kind. */
+  identity: z.enum(["exact", "likely", "generic"]),
+  brand: z.string().trim().min(1).max(60).nullable(),
+  model: z.string().trim().min(1).max(80).nullable(),
+  /** The search for Brazilian stores, as a store would write it. */
+  query: z.string().trim().min(1).max(160),
+  queryVariants: z.array(z.string().trim().min(2).max(100)).max(4),
+  visualDescription: z.string().trim().min(1).max(300),
+  matches: z.array(PhotoMatch).max(8),
+});
+export type PhotoFind = z.infer<typeof PhotoFind>;
+
+export const PhotoFinds = z.object({
+  photoId: z.string().min(1).max(60),
+  finds: z.array(PhotoFind).max(6),
+  at: z.string(),
+});
+export type PhotoFinds = z.infer<typeof PhotoFinds>;
+
+/** The name of the saved "Na foto" card in a transcript. */
+export const PHOTO_FINDS_COMPONENT = "PhotoFinds";
 
 export const PhotoSummary = z.object({
   id: z.string(),

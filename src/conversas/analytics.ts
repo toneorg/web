@@ -55,6 +55,10 @@ export type WebEvent =
   | "product_reviews_requested"
   | "product_reviews_failed"
   | "photo_search_started"
+  // Busca por foto: a photo attached, a page of the "Na foto" card opened, "Buscar nas lojas"
+  | "photo_attached"
+  | "photo_find_opened"
+  | "photo_find_search"
   | "situation_outcome_recorded"
   // The single chat: its history, the search and the profile drawer
   | "chat_history_loaded"

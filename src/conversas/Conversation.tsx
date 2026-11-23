@@ -23,8 +23,9 @@ import {
   type AnswerRatingValue,
   type ChatSession,
   MEDIA_COMPONENT,
+  PHOTO_FINDS_COMPONENT,
+  PhotoFinds,
   type Me,
-  type PhotoSummary,
   type PickedProduct,
   ProductMedia,
   type ResearchRunState,
@@ -41,7 +42,8 @@ import { ApiError, api, peek, rateAnswer, streamTurn } from "./api";
 import { savedFrameCode } from "./frames";
 import { Program, type ProgramHost, STORE_HOSTS, storeHostsOf } from "./Program";
 import { takeChatPicked } from "./picked-handoff";
-import { PhotoPicker, PhotoReference, usePhoto } from "./PhotoReference";
+import { PhotoFindsCard } from "./PhotoFinds";
+import { PHOTO_QUESTION, PhotoPicker, PhotoReference, usePhoto } from "./PhotoReference";
 import { type Activity, ActivitySummary, applyStatus, endActivity, LiveActivity, newActivity, ResearchRunSummary, startWriting, worthKeeping } from "./Activity";
 import { MessageMenu, messageMenuHandlers } from "./MessageMenu";
 import { ChosenStores, StoreOptions, UserMessage } from "./StoreMention";
@@ -89,6 +91,8 @@ export type Item = Line &
     | { kind: "activity"; activity: Activity }
     /** TikToks of a product, asked for from the picked product above the composer. */
     | { kind: "media"; media: ProductMedia }
+    /** Busca por foto: the products found in the photo of a message ("Na foto"). */
+    | { kind: "photo_finds"; finds: PhotoFinds }
     /** Síntese de reviews: a run that ends apart from the turn, so the research never waits for it. */
     | { kind: "reviews"; run: ReviewRunState }
   );
@@ -159,6 +163,8 @@ export function itemsOf(item: TranscriptItem, session = "", index?: number): Ite
     ];
   const media = item.component.name === MEDIA_COMPONENT ? ProductMedia.safeParse(item.component.props) : null;
   if (media?.success) return [{ ...line, kind: "media", media: media.data }];
+  const finds = item.component.name === PHOTO_FINDS_COMPONENT ? PhotoFinds.safeParse(item.component.props) : null;
+  if (finds?.success) return [{ ...line, kind: "photo_finds", finds: finds.data }];
   const code = savedFrameCode(item.component);
   return code ? [{ ...line, kind: "frame", code }] : [];
 }
@@ -539,6 +545,9 @@ export function Conversation(props: {
                 if (event.type === "research_result") shown.research += 1;
                 fold(event, session, activityId);
                 break;
+              case "photo_finds":
+                setItems((list) => [...list, { id: uid(), session, at: at(), kind: "photo_finds", finds: event.finds }]);
+                break;
               case "memory_saved": {
                 shown.memories += 1;
                 const note = { key: event.key, value: event.value };
@@ -656,16 +665,23 @@ export function Conversation(props: {
   };
 
   const send = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim();
+    async (text: string, from?: { photoId: string; session: string }) => {
+      // Busca por foto: the photo attached in the composer goes with this message ("Buscar nas lojas"
+      // on a card sends its own); with no words, the message is the question a photo asks.
+      const attached = from ? null : photo.photo;
+      const photoId = from?.photoId ?? attached?.id;
+      const trimmed = text.trim() || (photoId ? PHOTO_QUESTION : "");
       if (!trimmed || busy || state !== "ready") return;
       let session: string;
       try {
-        session = await ensureSession();
+        // The photo belongs to the session it was sent in: the message goes there too.
+        session = from?.session ?? attached?.sessionId ?? (await ensureSession());
       } catch (error) {
         unopened(error);
         return;
       }
+      if (attached) photo.sent();
+      if (photoId) track("photo_search_started", { from: from ? "card" : "composer" });
       setDraft("");
       const stores = chosenStores;
       setChosenStores([]);
@@ -686,6 +702,7 @@ export function Conversation(props: {
         {
           type: "message",
           text: trimmed,
+          ...(photoId ? { photoId } : {}),
           ...(picked ? { product: picked } : {}),
           ...(stores.length ? { stores } : {}),
           ...(replyTo ? { replyTo } : {}),
@@ -694,21 +711,7 @@ export function Conversation(props: {
       );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [busy, items, picked, runTurn, state, chosenStores, ensureSession, reply],
-  );
-
-  /** "Buscar parecidos": the message goes with the photo, so the agent can compare it with the candidates. */
-  const searchWithPhoto = useCallback(
-    async (reference: PhotoSummary) => {
-      if (busy || state !== "ready") return;
-      const text = "Busque produtos parecidos com a minha foto de referência.";
-      const session = reference.sessionId;
-      toEndNext.current = true;
-      setItems((list) => [...list, said(session, text)]);
-      track("photo_search_started", { attributes: reference.correction?.attributes.length ?? 0 });
-      await runTurn({ type: "message", text, photoId: reference.id, ...(picked ? { product: picked } : {}) }, session);
-    },
-    [busy, picked, runTurn, state],
+    [busy, items, picked, runTurn, state, chosenStores, ensureSession, reply, photo.photo],
   );
 
   /** "See videos of this product": no model involved, the server searches TikTok and saves the result. */
@@ -1104,6 +1107,19 @@ export function Conversation(props: {
     else if (item.kind === "activity")
       body = line(item.activity.endedAt === undefined ? <LiveActivity activity={item.activity} /> : <ActivitySummary activity={item.activity} />);
     else if (item.kind === "media") body = line(<ProductVideos media={item.media} />);
+    else if (item.kind === "photo_finds")
+      body = line(
+        <PhotoFindsCard
+          finds={item.finds}
+          busy={busy || state !== "ready"}
+          onSearch={(find) =>
+            void send(`Onde compro o item ${find.item} da foto (${find.name})?`, {
+              photoId: item.finds.photoId,
+              session: item.session,
+            })
+          }
+        />,
+      );
     else if (item.kind === "reviews")
       body = line(<ReviewSynthesisCard run={item.run} onOpen={(sourceId) => track("review_link_opened", { source_id: sourceId })} />);
     else
@@ -1209,7 +1225,7 @@ export function Conversation(props: {
           </button>
         </div>
       ) : null}
-      <PhotoReference state={photo} busy={busy} onSearch={(reference) => void searchWithPhoto(reference)} />
+      <PhotoReference state={photo} busy={busy} />
       <ChosenStores
         stores={me?.stores ?? []}
         chosen={chosenStores}
@@ -1248,6 +1264,8 @@ export function Conversation(props: {
           placeholder={
             reply
               ? "Responder à mensagem"
+              : photo.photo
+              ? "Pergunte sobre a foto ou só envie"
               : state === "loading"
               ? "Carregando… já dá para escrever"
               : me?.stores?.length
@@ -1278,7 +1296,7 @@ export function Conversation(props: {
         ) : (
           <button
             type="button"
-            disabled={state !== "ready" || !draft.trim()}
+            disabled={state !== "ready" || (!draft.trim() && !photo.photo)}
             onClick={() => void send(draft)}
             aria-label="Enviar"
             className="press grid size-11 shrink-0 place-items-center rounded-full bg-ink text-on-ink disabled:bg-rule disabled:text-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
