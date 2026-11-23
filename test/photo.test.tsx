@@ -171,7 +171,8 @@ describe("cartão Na foto", () => {
     expect(html).toContain('href="https://www.stevemadden.com/products/mackena-white"');
     expect(html).toMatch(/rel="noopener noreferrer nofollow"/);
     expect(html).toContain("A busca por imagem não achou este produto em lojas.");
-    expect(html.match(/Buscar nas lojas/g)).toHaveLength(2);
+    expect(html.match(/>Buscar nas lojas</g)).toHaveLength(2);
+    expect(html).toContain(`aria-label="Buscar nas lojas: Steve Madden Mackena"`);
   });
 
   it("never links a checkout page", () => {
