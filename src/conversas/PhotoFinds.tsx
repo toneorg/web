@@ -189,7 +189,7 @@ export function PhotoFindsView(props: {
                   ))}
                 </ul>
               ) : (
-                <p className="text-small text-graphite">A busca por imagem não achou este produto em lojas.</p>
+                <p className="text-small text-graphite">Sem página igual pela imagem. Nas lojas, a tone busca pela descrição.</p>
               )}
               <button
                 type="button"
