@@ -43,7 +43,7 @@ import { savedFrameCode } from "./frames";
 import { Program, type ProgramHost, STORE_HOSTS, storeHostsOf } from "./Program";
 import { takeChatPicked } from "./picked-handoff";
 import { PhotoFindsCard } from "./PhotoFinds";
-import { PHOTO_QUESTION, PhotoPicker, PhotoReference, usePhoto } from "./PhotoReference";
+import { imageOf, PHOTO_QUESTION, PhotoPicker, PhotoReference, SentPhoto, usePhoto } from "./PhotoReference";
 import { type Activity, ActivitySummary, applyStatus, endActivity, LiveActivity, newActivity, ResearchRunSummary, startWriting, worthKeeping } from "./Activity";
 import { MessageMenu, messageMenuHandlers } from "./MessageMenu";
 import { ChosenStores, StoreOptions, UserMessage } from "./StoreMention";
@@ -53,7 +53,7 @@ import { type ChatTarget, dayLabel, dayStarts, lineKey, startsNewSession } from 
 import { outlineButton } from "./ui";
 import { StorePreferenceEditor } from "./StorePreferences";
 import { WELCOME_FIRST } from "./welcome";
-import { researchContexts } from "./research-context";
+import { foundOfferUrls, researchContexts } from "./research-context";
 
 /** Where a line belongs and when it was said. `old`: read from the server, not said in this visit. */
 type Line = { id: string; session: string; at?: string; old?: true };
@@ -61,7 +61,8 @@ export type Item = Line &
   (
     /** `stores`: the stores picked with @ for this message, drawn with it. */
     /** `replyTo`: the message it answers, drawn above it. `messageId`: the stored message, for Responder. */
-    | { kind: "user"; text: string; stores?: string[]; replyTo?: ReplyTo; messageId?: string }
+    /** `photoId`: the photo that went with it (busca por foto), drawn with it. */
+    | { kind: "user"; text: string; stores?: string[]; replyTo?: ReplyTo; messageId?: string; photoId?: string }
     /** `turn` is the turn it answers, for the thumbs under it; the greeting has none. */
     | {
         kind: "assistant";
@@ -146,6 +147,7 @@ export function itemsOf(item: TranscriptItem, session = "", index?: number): Ite
         ...(item.stores?.length ? { stores: item.stores } : {}),
         ...(item.replyTo ? { replyTo: item.replyTo } : {}),
         ...(item.messageId ? { messageId: item.messageId } : {}),
+        ...(item.photoId ? { photoId: item.photoId } : {}),
       },
     ];
   // Why a message was left without an answer (the model failed, the balance ran out).
@@ -167,6 +169,15 @@ export function itemsOf(item: TranscriptItem, session = "", index?: number): Ite
   if (finds?.success) return [{ ...line, kind: "photo_finds", finds: finds.data }];
   const code = savedFrameCode(item.component);
   return code ? [{ ...line, kind: "frame", code }] : [];
+}
+
+/**
+ * The live "Na foto" card goes right after the message that brought the photo, where the reopened
+ * conversation draws it, not after the activity line that started before it arrived.
+ */
+export function afterItsMessage(list: Item[], card: Item): Item[] {
+  const at = list.findLastIndex((item) => item.kind === "user" && item.session === card.session);
+  return at < 0 ? [...list, card] : [...list.slice(0, at + 1), card, ...list.slice(at + 1)];
 }
 
 /** Everything one session shows: its lines, then its research and review cards. */
@@ -246,6 +257,7 @@ export function Conversation(props: {
   const [items, setItems] = useState<Item[]>([]);
   // The "Usei" of each answer, worked out once per change of the list (not per streamed word).
   const contexts = useMemo(() => researchContexts(items), [items]);
+  const foundUrls = useMemo(() => foundOfferUrls(items), [items]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "expired" | "error">("loading");
   const [draft, setDraft] = useState("");
   // "@" opens the store list; the stores picked limit this message's search.
@@ -546,7 +558,7 @@ export function Conversation(props: {
                 fold(event, session, activityId);
                 break;
               case "photo_finds":
-                setItems((list) => [...list, { id: uid(), session, at: at(), kind: "photo_finds", finds: event.finds }]);
+                setItems((list) => afterItsMessage(list, { id: uid(), session, at: at(), kind: "photo_finds", finds: event.finds }));
                 break;
               case "memory_saved": {
                 shown.memories += 1;
@@ -646,7 +658,7 @@ export function Conversation(props: {
   );
 
   /** A line said now by the person, in `session`. */
-  const said = (session: string, text: string, stores: string[] = [], replyTo?: ReplyTo): Item => ({
+  const said = (session: string, text: string, stores: string[] = [], replyTo?: ReplyTo, photoId?: string): Item => ({
     id: uid(),
     session,
     at: new Date().toISOString(),
@@ -654,6 +666,7 @@ export function Conversation(props: {
     text,
     ...(stores.length ? { stores } : {}),
     ...(replyTo ? { replyTo } : {}),
+    ...(photoId ? { photoId } : {}),
   });
   /** Opening the next session failed: the message stays in the field, and the chat says why. */
   const unopened = (error: unknown) => {
@@ -691,7 +704,7 @@ export function Conversation(props: {
       const replyTo = reply ?? undefined;
       setReply(null);
       toEndNext.current = true;
-      setItems((list) => [...list, said(session, trimmed, stores, replyTo)]);
+      setItems((list) => [...list, said(session, trimmed, stores, replyTo, photoId)]);
       track("conversation_message_sent", {
         with_product: Boolean(picked),
         ...(replyTo ? { reply: replyTo.role } : {}),
@@ -902,6 +915,12 @@ export function Conversation(props: {
     track("store_mentioned", { store: domain });
     requestAnimationFrame(() => box.current?.setSelectionRange(next.caret, next.caret));
   };
+  /** A photo picked, pasted or dropped on the composer: attached to the next message, as the camera does. */
+  const attachImage = (file: File, from: "picker" | "paste" | "drop") => {
+    if (busy || state !== "ready" || photo.working !== null) return;
+    if (from !== "picker") track("photo_pasted", { from });
+    void photo.pick(file);
+  };
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (listOpen) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -1035,6 +1054,7 @@ export function Conversation(props: {
       void runTurn({ type: "message", text, intent: "watch", watchId }, item.session);
     },
     storeHosts: storeHostsOf(me?.stores),
+    foundUrls,
     research: researchFor(item),
     searchAgain: (text, skipPersonal) => {
       if (busy || busyNow.current) return;
@@ -1070,7 +1090,7 @@ export function Conversation(props: {
     let body: ReactNode;
     if (item.kind === "user") {
       const answered = item.replyTo ? quoted(item.replyTo) : undefined;
-      body = line(
+      const message = (
         <UserMessage
           text={item.text}
           stores={item.stores}
@@ -1078,7 +1098,17 @@ export function Conversation(props: {
           quote={item.replyTo ? { ...item.replyTo, onOpen: answered ? () => goToLine(answered.id) : undefined } : undefined}
           // The page's selection is ink on on-ink, the bubble's own colors: inverted here, or a selection is invisible.
           className={`${bubble} rounded-ee-tag bg-ink text-on-ink selection:bg-on-ink selection:text-ink [-webkit-touch-callout:none]`}
-        />,
+        />
+      );
+      body = line(
+        item.photoId ? (
+          <div className="flex flex-col items-end gap-2">
+            <SentPhoto photoId={item.photoId} />
+            {message}
+          </div>
+        ) : (
+          message
+        ),
         `ms-auto ${bubbleWidth}`,
         menuHandlers,
       );
@@ -1231,11 +1261,22 @@ export function Conversation(props: {
         chosen={chosenStores}
         onRemove={(domain) => setChosenStores((list) => list.filter((entry) => entry !== domain))}
       />
-      <div className="relative flex items-end gap-1 rounded-card bg-surface p-1 shadow-raised has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-ink">
+      <div
+        className="relative flex items-end gap-1 rounded-card bg-surface p-1 shadow-raised has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-ink"
+        onDragOver={(event) => {
+          if ([...event.dataTransfer.types].includes("Files")) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          const image = imageOf(event.dataTransfer);
+          if (!image) return;
+          event.preventDefault();
+          attachImage(image, "drop");
+        }}
+      >
         <PhotoPicker
           className="size-11 hover:bg-sunken"
           disabled={busy || state !== "ready" || photo.working !== null}
-          onFile={(file) => void photo.pick(file)}
+          onFile={(file) => attachImage(file, "picker")}
         />
         <label htmlFor="mensagem" className="sr-only">
           Mensagem
@@ -1279,6 +1320,12 @@ export function Conversation(props: {
           }}
           onBlur={() => setMention(null)}
           onKeyDown={onKeyDown}
+          onPaste={(event) => {
+            const image = imageOf(event.clipboardData);
+            if (!image) return;
+            event.preventDefault();
+            attachImage(image, "paste");
+          }}
           // Writing while the conversation loads: on 04/11/2026 a slow load left this box locked
           // and the tester clicked it again and again. Only sending waits for "ready".
           disabled={state !== "ready" && state !== "loading"}

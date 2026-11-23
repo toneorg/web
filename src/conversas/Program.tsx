@@ -50,6 +50,8 @@ export interface ProgramHost {
   say: (text: string) => void;
   /** Hosts of the stores listed in /api/me, besides the fixed list (`storeHostsOf`). */
   storeHosts?: readonly string[];
+  /** The product pages the tone's own searches found in this conversation (`foundOfferUrls`). */
+  foundUrls?: ReadonlySet<string>;
   /** The url of the product picked to talk about, shown above the composer. */
   picked: string | null;
   pick: (product: PickedProduct | null) => void;
@@ -95,6 +97,17 @@ export function storeLink(url: string, store?: string, extraHosts: readonly stri
   return hosts.some((host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)) ? url : null;
 }
 
+/**
+ * The address a product button opens, or null: a store link (`storeLink`), or a page the tone's own
+ * search found in this conversation, on any store, still only over HTTPS and never a checkout.
+ */
+export function openableLink(url: string, extraHosts: readonly string[] = [], found: ReadonlySet<string> = new Set()) {
+  const listed = storeLink(url, undefined, extraHosts);
+  if (listed || !found.has(url) || !URL.canParse(url)) return listed;
+  const parsed = new URL(url);
+  return parsed.protocol === "https:" && !parsed.username && !parsed.password && !isCheckoutUrl(url) ? url : null;
+}
+
 /** What a click on the link records: the conversation, the product and where it was on the screen. */
 export interface ClickContext {
   sessionId: string | null;
@@ -132,8 +145,9 @@ export function openStore(
   title: string,
   where: ClickWhere,
   extraHosts: readonly string[] = [],
+  found: ReadonlySet<string> = new Set(),
 ) {
-  const href = storeLink(url, undefined, extraHosts);
+  const href = openableLink(url, extraHosts, found);
   if (!href) {
     // Only the host, never the address: a refused link is a gap in the list of stores to close.
     track("store_link_blocked", { host: URL.canParse(url) ? new URL(url).hostname : null });
@@ -175,6 +189,7 @@ function useWebHost(host: ProgramHost): GenUIHost {
   const { sessionId, interactive, answer, say, picked, pick } = host;
   const router = useRouter();
   const extraHosts = host.storeHosts ?? [];
+  const found = host.foundUrls ?? new Set<string>();
   const decisions = useMemo(
     () => ({
       load: () => api.decision(sessionId),
@@ -204,7 +219,7 @@ function useWebHost(host: ProgramHost): GenUIHost {
       return;
     switch (action.type) {
       case "open":
-        openStore(sessionId, action.url, action.title, action.where ?? { source: "generated_ui" }, extraHosts);
+        openStore(sessionId, action.url, action.title, action.where ?? { source: "generated_ui" }, extraHosts, found);
         return;
       case "reject":
         rejectProduct(sessionId, action, say);
@@ -244,6 +259,8 @@ function useWebHost(host: ProgramHost): GenUIHost {
     storeHosts: [...STORE_HOSTS, ...extraHosts],
     interactive,
     actionable: true,
+    // No button that would open nothing (23/11/2026): the same rule as opening.
+    canOpen: (url) => openableLink(url, extraHosts, found) !== null,
     act,
     picked,
     decisions,
