@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ca2edd86218b (packages/genui-react/src/host.ts). Não edite aqui.
+// Gerado de toneorg/server@45eb127c73fd (packages/genui-react/src/host.ts). Não edite aqui.
 // What a drawn component may ask of the panel. The model writes only data; the
 // panel decides what each button does, and checks every address before using it.
 import {
@@ -57,7 +57,17 @@ export interface GenUIHost {
   watches?: WatchAccess;
   /** What weighed on the search of this answer (the "Usei" line); absent before 21/11/2026. */
   research?: ResearchContext | null;
+  /**
+   * Whether the surface would open this address. A button that opens nothing is worse than none: on
+   * 23/11/2026 "Ver na loja" did nothing on offers the open search found outside the store list.
+   * Absent, every address counts as openable.
+   */
+  canOpen?: (url: string) => boolean;
 }
+
+/** A product or offer gets an open button only where the surface would really open it. */
+export const opens = (host: Pick<GenUIHost, "actionable" | "canOpen">, url: string | null | undefined): url is string =>
+  host.actionable && Boolean(url) && (host.canOpen?.(url as string) ?? true);
 
 export interface WatchAccess {
   load: (id: string) => Promise<Watch | null>;

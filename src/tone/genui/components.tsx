@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ca2edd86218b (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@45eb127c73fd (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
@@ -19,7 +19,7 @@ import {
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { DecisionBoardLoader } from "./DecisionBoard";
 import { brl } from "./format";
-import { type Answer, dataOf, listOf, safeImage, useHost } from "./host";
+import { type Answer, dataOf, listOf, opens, safeImage, useHost } from "./host";
 import { Icon } from "./Icon";
 import { WatchDraftLoader } from "./WatchDraft";
 import { Fit, REJECT_REASONS, type RejectReason } from "./wrist";
@@ -114,7 +114,7 @@ function Bar(props: { share: number; tone?: "ink" | "alert" | "graphite" }) {
 
 function OpenButton(props: { url: string; title: string; label?: string; quiet?: boolean }) {
   const host = useHost();
-  if (!host.actionable || !props.url) return null;
+  if (!opens(host, props.url)) return null;
   // A product known only from the index opens Google Shopping, which lists who sells it: said as such.
   const label = isGoogleShoppingUrl(props.url) ? "Ver no Google Shopping" : (props.label ?? "Ver na loja");
   return (
@@ -1621,7 +1621,7 @@ const SolutionSet: ComponentRenderer<{ situation: string; paths: unknown; note?:
                         <div className="meta tabular">{brl(num(item.price))}</div>
                       ) : null}
                     </div>
-                    {host.actionable && !item.owned && item.url ? (
+                    {!item.owned && opens(host, text(item.url)) ? (
                       <button
                         type="button"
                         className="icon-btn"
@@ -1754,7 +1754,7 @@ const SavedShortlist: ComponentRenderer<{ title: string; items: unknown }> = ({ 
               <div className="value clamp">{item.title}</div>
               <div className="meta">{[brl(num(item.price)), item.note].filter(Boolean).join(" · ")}</div>
             </div>
-            {host.actionable && item.url ? (
+            {opens(host, item.url) ? (
               <button
                 type="button"
                 className="icon-btn"
@@ -1803,6 +1803,7 @@ const DecisionBoard: ComponentRenderer<{ decisionId: string; title: string }> = 
       actionable={host.actionable}
       access={host.decisions}
       onAct={host.act}
+      canOpen={host.canOpen}
     />
   );
 };

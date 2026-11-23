@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ca2edd86218b (packages/shared/src/api.ts). Não edite aqui.
+// Gerado de toneorg/server@45eb127c73fd (packages/shared/src/api.ts). Não edite aqui.
 // The REST shapes the panel and the server agree on.
 import * as z from "zod";
 import { BudgetStatement } from "./budget";

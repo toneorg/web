@@ -123,6 +123,32 @@ export function usePhoto(sessionId: string | (() => Promise<string>)) {
 }
 
 /**
+ * The image in what was pasted or dropped on the composer (23/11/2026: pasting a print did nothing).
+ * Text copied from a spreadsheet or a document may carry a picture of itself: with words, the words win.
+ */
+export function imageOf(data: DataTransfer | null): File | null {
+  if (!data || data.getData?.("text/plain")?.trim()) return null;
+  return [...data.files].find((entry) => entry.type.startsWith("image/")) ?? null;
+}
+
+/** The photo that went with a message of the person, drawn above its words. Nothing until it loads. */
+export function SentPhotoView(props: { src: string | null }) {
+  if (!props.src) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- a local blob of the person's own photo
+    <img
+      src={props.src}
+      alt="Foto enviada"
+      className="block max-h-60 w-auto max-w-full rounded-panel outline outline-1 -outline-offset-1 outline-image-outline"
+    />
+  );
+}
+
+export function SentPhoto(props: { photoId: string }) {
+  return <SentPhotoView src={usePhotoBlob(props.photoId)} />;
+}
+
+/**
  * The live region of the photo: always in the page, so what it says (sending, a refusal) is
  * announced after it is set. Empty, it takes no room.
  */

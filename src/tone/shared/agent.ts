@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ca2edd86218b (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@45eb127c73fd (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -153,6 +153,8 @@ export const TranscriptItem = z.discriminatedUnion("kind", [
     messageId: z.string().optional(),
     /** An answer tapped on a component: the answered card already shows it (21/11/2026). */
     tapped: z.boolean().optional(),
+    /** Busca por foto: the photo that went with the message, drawn with it (photos/:id/image). */
+    photoId: z.string().optional(),
     at: SaidAt,
   }),
   z.object({

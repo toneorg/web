@@ -57,6 +57,7 @@ export type WebEvent =
   | "photo_search_started"
   // Busca por foto: a photo attached, a page of the "Na foto" card opened, "Buscar nas lojas"
   | "photo_attached"
+  | "photo_pasted"
   | "photo_find_opened"
   | "photo_find_search"
   | "situation_outcome_recorded"

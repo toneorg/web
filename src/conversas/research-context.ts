@@ -39,3 +39,15 @@ export function researchContexts(items: readonly Item[]): Map<string, ResearchCo
   }
   return found;
 }
+
+/**
+ * The product pages the tone's own searches found in this conversation (23/11/2026): saved runs and
+ * the runs of this visit. "Ver na loja" opens these even outside the store list; an address only the
+ * model wrote opens only on a listed store (see Program's openStore).
+ */
+export function foundOfferUrls(items: readonly Item[]): Set<string> {
+  const runs = items.flatMap((item) =>
+    item.kind === "research" ? [item.run] : item.kind === "activity" ? Object.values(item.activity.runs) : [],
+  );
+  return new Set(runs.flatMap((run) => (run.result?.offers ?? []).map((offer) => offer.url)));
+}

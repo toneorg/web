@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@ca2edd86218b (packages/genui-react/src/DecisionBoard.tsx). Não edite aqui.
+// Gerado de toneorg/server@45eb127c73fd (packages/genui-react/src/DecisionBoard.tsx). Não edite aqui.
 // T08: the decision board. The model writes only the decision id; the data
 // comes from the server with its evidence, and every button is the panel's:
 // it changes the decision as the person, opens a store page, or asks the agent.
@@ -34,8 +34,10 @@ export function DecisionBoardView(props: {
   actionable: boolean;
   onChange: (ops: DecisionOp[]) => void;
   onAct: (action: GenUIAction) => void;
+  /** Whether the surface would open a candidate's page (see GenUIHost.canOpen). */
+  canOpen?: (url: string) => boolean;
 }) {
-  const { state, actionable, onChange, onAct } = props;
+  const { state, actionable, onChange, onAct, canOpen } = props;
   const comparison = compareDecision(state, props.now ?? new Date());
   const groups: { label: string; rows: ComparedCandidate[] }[] = [
     { label: "Lista curta", rows: comparison.candidates.filter((row) => row.state === "shortlisted") },
@@ -105,7 +107,14 @@ export function DecisionBoardView(props: {
           <div key={group.label}>
             <h4 className="decision-heading">{group.label}</h4>
             {group.rows.map((row) => (
-              <Candidate key={row.candidate.id} row={row} actionable={actionable} onChange={onChange} onAct={onAct} />
+              <Candidate
+                key={row.candidate.id}
+                row={row}
+                actionable={actionable}
+                onChange={onChange}
+                onAct={onAct}
+                canOpen={canOpen}
+              />
             ))}
           </div>
         ) : null,
@@ -130,8 +139,9 @@ function Candidate(props: {
   actionable: boolean;
   onChange: (ops: DecisionOp[]) => void;
   onAct: (action: GenUIAction) => void;
+  canOpen?: (url: string) => boolean;
 }) {
-  const { row, actionable, onChange, onAct } = props;
+  const { row, actionable, onChange, onAct, canOpen } = props;
   const { candidate } = row;
   const [discarding, setDiscarding] = useState(false);
   return (
@@ -206,25 +216,27 @@ function Candidate(props: {
               Reconsiderar
             </button>
           )}
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label={`Ver ${candidate.title} na loja`}
-            onClick={() =>
-              onAct({
-                type: "open",
-                url: candidate.url,
-                title: candidate.title,
-                where: {
-                  source: "decision_board",
-                  offerId: candidate.offerId,
-                  recommended: row.classification === "meets_required",
-                },
-              })
-            }
-          >
-            <Icon name="external" />
-          </button>
+          {(canOpen?.(candidate.url) ?? true) ? (
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label={`Ver ${candidate.title} na loja`}
+              onClick={() =>
+                onAct({
+                  type: "open",
+                  url: candidate.url,
+                  title: candidate.title,
+                  where: {
+                    source: "decision_board",
+                    offerId: candidate.offerId,
+                    recommended: row.classification === "meets_required",
+                  },
+                })
+              }
+            >
+              <Icon name="external" />
+            </button>
+          ) : null}
         </div>
       ) : null}
       {discarding && actionable ? (
@@ -259,6 +271,7 @@ export function DecisionBoardLoader(props: {
     change: (v: number, ops: DecisionOp[]) => Promise<DecisionState>;
   };
   onAct: (action: GenUIAction) => void;
+  canOpen?: (url: string) => boolean;
 }) {
   const { access } = props;
   const [state, setState] = useState<DecisionState | null | undefined>(undefined);
@@ -290,6 +303,7 @@ export function DecisionBoardLoader(props: {
       title={props.title}
       actionable={props.actionable && Boolean(access)}
       onAct={props.onAct}
+      canOpen={props.canOpen}
       onChange={(ops) => {
         if (!access) return;
         setError(null);
