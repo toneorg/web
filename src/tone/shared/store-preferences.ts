@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@cfd62d200da8 (packages/shared/src/store-preferences.ts). Não edite aqui.
+// Gerado de toneorg/server@ca2edd86218b (packages/shared/src/store-preferences.ts). Não edite aqui.
 import * as z from "zod";
 
 export const StorePreferenceCategory = z.enum([
