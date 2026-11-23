@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/memory-label.ts). Não edite aqui.
+// Gerado de toneorg/server@cfd62d200da8 (packages/shared/src/memory-label.ts). Não edite aqui.
 // A memory key ("calcado.marca_preferida") is for the agent; the person reads a name
 // ("Marca preferida (calçado)"). Keys are free text from the model, so this reads any of them:
 // the last part is what it is, the first is the category, what is in between is the situation.

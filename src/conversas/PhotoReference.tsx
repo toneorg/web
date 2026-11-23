@@ -1,14 +1,15 @@
 "use client";
-// The person's reference photo in the conversation. The photo is shrunk and re-encoded in the
-// browser first (hosting caps a request body near 4.5 MB and base64 adds a third), then goes to the
-// server as base64; the image comes back from
-// photos/:id/image into a local blob: it never gets a public address. The person keeps, rewrites
-// or ignores each attribute the tone read before the search.
-import { useCallback, useEffect, useRef, useState } from "react";
+// The person's photo, attached to the next message (busca por foto, 22/11/2026). The photo is shrunk
+// and re-encoded in the browser first (hosting caps a request body near 4.5 MB and base64 adds a
+// third), then goes to the server as base64; the image comes back from photos/:id/image into a local
+// blob: it never gets a public address. The server finds its products when the message is sent.
+import { useCallback, useRef, useState } from "react";
 import { color } from "@toneorg/design";
 import { CameraIcon } from "@/components/icons";
-import type { PhotoCorrection, PhotoSummary } from "@/tone/shared";
+import type { PhotoSummary } from "@/tone/shared";
+import { track } from "./analytics";
 import { api } from "./api";
+import { usePhotoBlob } from "./PhotoFinds";
 
 /** The longest side after shrinking, in pixels. */
 export const MAX_SIDE = 2048;
@@ -61,19 +62,15 @@ export async function prepareFile(file: File): Promise<Blob> {
 }
 const FAILED = "Não deu certo. Tente de novo.";
 
-type Attributes = PhotoCorrection["attributes"];
-type Priority = Attributes[number]["priority"];
-const PRIORITY: Record<Priority, string> = {
-  required: "Precisa ter",
-  preferred: "Prefiro",
-  indifferent: "Tanto faz",
-};
-
 export const failureText = (error: unknown) => (error instanceof Error && error.message ? error.message : FAILED);
 
+/** What a message with a photo and no words asks. */
+export const PHOTO_QUESTION = "O que é isso e onde compro?";
+
 /**
- * Shrinks the photo (and checks it still fits) before anything leaves the browser, uploads, then asks for the reading. The photo
- * is handed to `onPhoto` as soon as it is stored, so a failed reading still leaves "Ler a foto".
+ * Shrinks the photo (and checks it still fits) before anything leaves the browser, then uploads it.
+ * Busca por foto (22/11/2026): nothing is read here any more; the photo goes with the next message
+ * and the server finds its products in that turn.
  */
 export async function attachPhoto(
   sessionId: string,
@@ -81,40 +78,14 @@ export async function attachPhoto(
   onPhoto: (photo: PhotoSummary) => void,
   prepare: (file: File) => Promise<Blob> = prepareFile,
 ) {
-  const stored = await api.uploadPhoto(sessionId, await prepare(file));
-  onPhoto(stored);
-  onPhoto(await api.interpretPhoto(stored.id));
+  onPhoto(await api.uploadPhoto(sessionId, await prepare(file)));
 }
 
 export const removePhoto = (id: string) => api.deletePhoto(id);
 
-/** Whether the draft is what the server has kept: only then the search compares what the person sees. */
-export function draftIsSaved(photo: PhotoSummary, draft: Attributes): boolean {
-  const saved = photo.correction?.attributes;
-  return (
-    Boolean(saved) &&
-    saved?.length === draft.length &&
-    draft.every((entry, at) => {
-      const kept = saved?.[at];
-      return kept?.key === entry.key && kept.value === entry.value && kept.priority === entry.priority;
-    })
-  );
-}
-
-/** What the attributes start as: the person's correction, or else the reading. */
-export function draftOf(photo: PhotoSummary): Attributes {
-  const source = photo.correction?.attributes ?? photo.interpretation?.attributes ?? [];
-  return source.map((attribute) => ({
-    key: attribute.key,
-    label: attribute.label,
-    value: attribute.value,
-    priority: "priority" in attribute ? attribute.priority : "preferred",
-  }));
-}
-
 export type PhotoState = ReturnType<typeof usePhoto>;
 
-/** The photo of one conversation and what is happening to it. The single chat passes how to get its session, opened on demand. */
+/** The photo attached to the next message. The single chat passes how to get its session, opened on demand. */
 export function usePhoto(sessionId: string | (() => Promise<string>)) {
   const [photo, setPhoto] = useState<PhotoSummary | null>(null);
   const [working, setWorking] = useState<string | null>(null);
@@ -137,30 +108,23 @@ export function usePhoto(sessionId: string | (() => Promise<string>)) {
     working,
     error,
     pick: (file: File) =>
-      run("Enviando e lendo a foto…", async () =>
-        attachPhoto(typeof sessionId === "string" ? sessionId : await sessionId(), file, setPhoto),
-      ),
-    interpret: (id: string) => run("Lendo a foto…", async () => setPhoto(await api.interpretPhoto(id))),
-    correct: (id: string, correction: PhotoCorrection) =>
-      run("Guardando os atributos…", async () => setPhoto(await api.correctPhoto(id, correction))),
+      run("Enviando a foto…", async () => {
+        track("photo_attached");
+        await attachPhoto(typeof sessionId === "string" ? sessionId : await sessionId(), file, setPhoto);
+      }),
     remove: (id: string) =>
-      run("Apagando a foto…", async () => {
+      run("Tirando a foto…", async () => {
         await removePhoto(id);
         setPhoto(null);
       }),
+    /** The photo went with a message: the composer is free again (the photo stays for its card). */
+    sent: () => setPhoto(null),
   };
 }
 
-const quiet =
-  "press min-h-11 rounded-full bg-surface px-4 text-ui text-ink shadow-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50";
-const solid =
-  "press min-h-11 rounded-full bg-ink px-4 text-ui text-on-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:bg-rule disabled:text-graphite";
-const ghost =
-  "press min-h-11 rounded-full px-4 text-ui text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50";
-
 /**
- * The live region of the photo: always in the page, so what it says (sending, reading, a refusal)
- * is announced after it is set. Empty, it takes no room.
+ * The live region of the photo: always in the page, so what it says (sending, a refusal) is
+ * announced after it is set. Empty, it takes no room.
  */
 export function PhotoStatus(props: { text: string | null; problem?: boolean }) {
   return (
@@ -193,7 +157,7 @@ export function PhotoPicker(props: { disabled: boolean; onFile: (file: File) => 
       />
       <button
         type="button"
-        aria-label="Enviar foto de referência"
+        aria-label="Mandar uma foto do produto"
         disabled={props.disabled}
         onClick={() => input.current?.click()}
         className={`press flex shrink-0 items-center justify-center rounded-full text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50 ${props.className ?? "size-13 bg-surface shadow-raised"}`}
@@ -204,154 +168,53 @@ export function PhotoPicker(props: { disabled: boolean; onFile: (file: File) => 
   );
 }
 
-export function PhotoCardView(props: {
+const ghost =
+  "press min-h-11 shrink-0 rounded-full px-4 text-ui text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50";
+
+/** The photo waiting above the composer: what goes with the next message, and where it goes. */
+export function PhotoAttachmentView(props: {
   photo: PhotoSummary;
   /** The local address of the image, once loaded. */
   src: string | null;
-  draft: Attributes;
   working: boolean;
-  onDraft: (draft: Attributes) => void;
-  onInterpret: () => void;
-  onConfirm: () => void;
-  onSearch: () => void;
-  onDelete: () => void;
+  onRemove: () => void;
 }) {
-  const { photo, draft } = props;
-  const change = (index: number, patch: Partial<Attributes[number]>) =>
-    props.onDraft(draft.map((entry, at) => (at === index ? { ...entry, ...patch } : entry)));
   return (
-    <section aria-label="Foto de referência" className="flex flex-col gap-3 rounded-card bg-surface p-4 shadow-raised">
-      <div className="flex items-start gap-3">
-        {props.src ? (
-          // eslint-disable-next-line @next/next/no-img-element -- a local blob of the person's own photo
-          <img src={props.src} alt="Sua foto de referência" className="size-16 shrink-0 rounded-thumb object-cover outline outline-1 -outline-offset-1 outline-image-outline" />
-        ) : (
-          <div aria-hidden className="size-16 shrink-0 rounded-thumb bg-sunken" />
-        )}
-        <p className="text-small text-graphite">
-          Só você vê esta foto. Ela é lida por um provedor de modelo de visão e apagada aqui em{" "}
-          {new Date(photo.expiresAt).toLocaleDateString("pt-BR", { timeZone: "UTC" })}; cópias do provedor seguem as
-          regras dele.
-        </p>
-      </div>
-      {photo.status === "failed" ? (
-        <p className="text-small font-medium text-alert">
-          Não consegui ler a foto. Descreva o que procura em texto, ou tente ler de novo.
-        </p>
-      ) : null}
-      {photo.status !== "interpreted" ? (
-        <button type="button" className={solid} disabled={props.working} onClick={props.onInterpret}>
-          Ler a foto
-        </button>
-      ) : null}
-      {photo.interpretation ? (
-        <>
-          <p className="text-small text-graphite">
-            Parece: {photo.interpretation.category}. Ajuste o que importa; atributos marcados “Tanto faz” não entram na
-            comparação.
-          </p>
-          <ul className="flex flex-col gap-3">
-            {draft.map((attribute, index) => (
-              <li key={attribute.key} className="flex flex-col gap-1">
-                <label htmlFor={`attr-${photo.id}-${attribute.key}`} className="text-ui text-ink">
-                  {attribute.label}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id={`attr-${photo.id}-${attribute.key}`}
-                    value={attribute.value}
-                    maxLength={80}
-                    onChange={(event) => change(index, { value: event.target.value })}
-                    className="min-h-13 min-w-0 flex-1 rounded-input bg-surface px-4 text-body text-ink outline outline-1 -outline-offset-1 outline-rule focus-visible:outline-2 focus-visible:outline-ink"
-                  />
-                  <select
-                    aria-label={`Peso de ${attribute.label}`}
-                    value={attribute.priority}
-                    onChange={(event) => change(index, { priority: event.target.value as Priority })}
-                    className="min-h-13 rounded-input bg-surface px-3 text-body text-ink outline outline-1 -outline-offset-1 outline-rule focus-visible:outline-2 focus-visible:outline-ink"
-                  >
-                    {Object.entries(PRIORITY).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </li>
-            ))}
-          </ul>
-          {photo.interpretation.doubts.length ? (
-            <p className="text-small text-graphite">A foto não mostra: {photo.interpretation.doubts.join("; ")}</p>
-          ) : null}
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={quiet}
-              disabled={props.working || draft.length === 0 || draft.some((entry) => !entry.value.trim())}
-              onClick={props.onConfirm}
-            >
-              Confirmar atributos
-            </button>
-            <button type="button" className={solid} disabled={props.working || !draftIsSaved(photo, draft)} onClick={props.onSearch}>
-              Buscar parecidos
-            </button>
-          </div>
-        </>
-      ) : null}
-      <button type="button" className={`${ghost} self-start`} disabled={props.working} onClick={props.onDelete}>
-        Apagar foto
+    <section aria-label="Foto anexada" className="flex items-center gap-3 rounded-panel bg-surface p-3 shadow-raised">
+      {props.src ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a local blob of the person's own photo
+        <img
+          src={props.src}
+          alt="Sua foto"
+          className="size-14 shrink-0 rounded-tag object-cover outline outline-1 -outline-offset-1 outline-image-outline"
+        />
+      ) : (
+        <div aria-hidden className="size-14 shrink-0 rounded-tag bg-sunken" />
+      )}
+      <p className="min-w-0 flex-1 text-small text-graphite">
+        A tone acha os produtos da foto e onde comprar. Recortes vão ao Google Lens; a foto fica só com você e é apagada em{" "}
+        {new Date(props.photo.expiresAt).toLocaleDateString("pt-BR", { timeZone: "UTC" })}.
+      </p>
+      <button type="button" className={ghost} disabled={props.working} onClick={props.onRemove}>
+        Tirar
       </button>
     </section>
   );
 }
 
-/** The photo of the conversation: loads its image and holds what the person is rewriting. */
-export function PhotoReference(props: { state: PhotoState; busy: boolean; onSearch: (photo: PhotoSummary) => void }) {
+/** The photo attached to the next message, with its status line. */
+export function PhotoReference(props: { state: PhotoState; busy: boolean }) {
   const { photo, working, error } = props.state;
-  const [src, setSrc] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Attributes>([]);
-  const id = photo?.id;
-
-  useEffect(() => {
-    if (!id) return;
-    let url: string | null = null;
-    let live = true;
-    api
-      .photoImage(id)
-      .then((blob) => {
-        if (!live) return;
-        url = URL.createObjectURL(blob);
-        setSrc(url);
-      })
-      .catch(() => undefined);
-    return () => {
-      live = false;
-      setSrc(null);
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [id]);
-
-  // A new answer from the server (read, corrected) starts the draft over; typing does not.
-  const [seen, setSeen] = useState(photo);
-  if (seen !== photo) {
-    setSeen(photo);
-    setDraft(photo ? draftOf(photo) : []);
-  }
-
+  const src = usePhotoBlob(photo?.id);
   return (
     <>
       <PhotoStatus text={error ?? working} problem={Boolean(error)} />
       {photo ? (
-        <PhotoCardView
+        <PhotoAttachmentView
           photo={photo}
           src={src}
-          draft={draft}
           working={Boolean(working) || props.busy}
-          onDraft={setDraft}
-          onInterpret={() => void props.state.interpret(photo.id)}
-          onConfirm={() => void props.state.correct(photo.id, { attributes: draft })}
-          onSearch={() => props.onSearch(photo)}
-          onDelete={() => void props.state.remove(photo.id)}
+          onRemove={() => void props.state.remove(photo.id)}
         />
       ) : null}
     </>

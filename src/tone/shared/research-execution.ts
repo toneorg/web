@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/research-execution.ts). Não edite aqui.
+// Gerado de toneorg/server@cfd62d200da8 (packages/shared/src/research-execution.ts). Não edite aqui.
 import * as z from "zod";
 import { AUDIENCES } from "./fashion";
 import { evaluateRequirements, ResearchIntent, ResearchResult } from "./research";
@@ -53,10 +53,16 @@ export const DiscoveryIntent = z.object({
   reference: z
     .union([
       z.object({ offerId: z.string().trim().min(1).max(200) }),
-      z.object({ photoId: z.string().trim().min(1).max(200) }),
+      z.object({
+        photoId: z.string().trim().min(1).max(200),
+        /** Busca por foto: the product of the photo (its number in the "Na foto" card). */
+        item: z.number().int().min(1).max(6).optional(),
+      }),
     ])
     .optional()
-    .describe('Para "parecido com este": a oferta ou a foto de referência.'),
+    .describe(
+      'Para "parecido com este": a oferta ou a foto de referência; numa foto com produtos identificados, o número do item.',
+    ),
   exclude: z
     .array(z.string().trim().min(1).max(500))
     .max(50)

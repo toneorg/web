@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/memory-keys.ts). Não edite aqui.
+// Gerado de toneorg/server@cfd62d200da8 (packages/shared/src/memory-keys.ts). Não edite aqui.
 /**
  * Canonical memory keys the server turns into search constraints. Lists are comma separated;
  * the budget is a number in BRL. Older keys ("roupa.marca_evitada") are matched by `memoryKeyKind`.

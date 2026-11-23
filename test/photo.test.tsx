@@ -1,7 +1,7 @@
-// Foto de referência na conversa: o limite de tamanho, o envio, a leitura e a exclusão.
+// Foto na conversa (busca por foto): o limite de tamanho, o envio, o anexo, o cartão "Na foto" e a exclusão.
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { PhotoSummary } from "../src/tone/shared";
+import type { PhotoFinds, PhotoSummary } from "../src/tone/shared";
 
 const uploadPhoto = vi.fn();
 const interpretPhoto = vi.fn();
@@ -19,11 +19,14 @@ vi.mock("../src/conversas/api", () => ({
     uploadPhoto: (...args: unknown[]) => uploadPhoto(...args),
     interpretPhoto: (...args: unknown[]) => interpretPhoto(...args),
     deletePhoto: (...args: unknown[]) => deletePhoto(...args),
+    photoImage: async () => new Blob(),
   },
 }));
-const { PhotoCardView, PhotoStatus, attachPhoto, removePhoto, fitWithin, fitsOnTheWire, prepareFile, draftIsSaved, MAX_SIDE, MAX_RAW_BYTES } = await import(
+vi.mock("../src/conversas/analytics", () => ({ track: () => undefined }));
+const { PhotoAttachmentView, PhotoStatus, attachPhoto, removePhoto, fitWithin, fitsOnTheWire, prepareFile, MAX_SIDE, MAX_RAW_BYTES } = await import(
   "../src/conversas/PhotoReference"
 );
+const { PhotoFindsView, cropStyle, findTitle } = await import("../src/conversas/PhotoFinds");
 const { ApiError } = await import("../src/conversas/api");
 
 afterEach(() => {
@@ -44,33 +47,45 @@ const uploaded: PhotoSummary = {
   interpretation: null,
   correction: null,
 };
-const read: PhotoSummary = {
-  ...uploaded,
-  status: "interpreted",
-  interpretation: {
-    category: "Tênis",
-    query: "tênis branco",
-    attributes: [{ key: "cor", label: "Cor", value: "Branco", certainty: "high" }],
-    doubts: ["Material"],
-  },
-};
 const fileOf = (bytes: number) => new File([new Uint8Array(bytes)], "foto.jpg", { type: "image/jpeg" });
 const noop = () => undefined;
-const draw = (photo: PhotoSummary, props: Partial<Parameters<typeof PhotoCardView>[0]> = {}) =>
-  renderToStaticMarkup(
-    <PhotoCardView
-      photo={photo}
-      src={null}
-      draft={[{ key: "cor", label: "Cor", value: "Branco", priority: "preferred" }]}
-      working={false}
-      onDraft={noop}
-      onInterpret={noop}
-      onConfirm={noop}
-      onSearch={noop}
-      onDelete={noop}
-      {...props}
-    />,
-  );
+
+const finds: PhotoFinds = {
+  photoId: "p1",
+  at: "2026-11-22T12:00:00.000Z",
+  finds: [
+    {
+      item: 1,
+      name: "bota branca de cano curto",
+      category: "calçado",
+      box: [600, 300, 950, 700],
+      identity: "exact",
+      brand: "Steve Madden",
+      model: "Mackena",
+      query: "bota Steve Madden Mackena",
+      queryVariants: [],
+      visualDescription: "Bota branca de bico fino.",
+      matches: [
+        { title: "MACKENA White Boot", source: "Steve Madden", link: "https://www.stevemadden.com/products/mackena-white", thumbnail: null, verdict: "same" },
+        { title: "Bota branca", source: "Loja", link: "https://loja.com.br/checkout/123", thumbnail: null, verdict: "similar" },
+        { title: "Ankle boot branca", source: "Shein", link: "https://br.shein.com/p/1", thumbnail: null, verdict: "similar" },
+      ],
+    },
+    {
+      item: 2,
+      name: "moletom cropped amarelo",
+      category: "roupa",
+      box: [100, 300, 400, 700],
+      identity: "generic",
+      brand: null,
+      model: null,
+      query: "moletom cropped amarelo",
+      queryVariants: [],
+      visualDescription: "Moletom amarelo.",
+      matches: [],
+    },
+  ],
+};
 
 describe("foto de referência", () => {
   it("shrinks the longest side to 2048 px and never enlarges", () => {
@@ -100,49 +115,25 @@ describe("foto de referência", () => {
 
   it("uploads what was prepared, not the original", async () => {
     uploadPhoto.mockResolvedValue(uploaded);
-    interpretPhoto.mockResolvedValue(read);
     const small = new Blob(["x"]);
     await attachPhoto("s1", fileOf(5_000_000), noop, async () => small);
     expect(uploadPhoto).toHaveBeenCalledWith("s1", small);
   });
 
-  it("search waits for the draft to be confirmed again", () => {
-    const corrected: PhotoSummary = {
-      ...read,
-      correction: { attributes: [{ key: "cor", label: "Cor", value: "Branco", priority: "preferred" }] },
-    };
-    const same = [{ key: "cor" as const, label: "Cor", value: "Branco", priority: "preferred" as const }];
-    expect(draftIsSaved(corrected, same)).toBe(true);
-    expect(draftIsSaved(corrected, [{ ...same[0], value: "Preto" }])).toBe(false);
-    expect(draftIsSaved(read, same)).toBe(false);
-    expect(draw(corrected, { draft: [{ ...same[0], value: "Preto" }] })).toMatch(/<button[^>]*disabled=""[^>]*>Buscar parecidos/);
-    expect(draw(corrected, { draft: same })).not.toMatch(/<button[^>]*disabled=""[^>]*>Buscar parecidos/);
-  });
-
-  it("uploads, interprets and shows the reading", async () => {
+  it("uploads and hands over the stored photo, without reading it", async () => {
     uploadPhoto.mockResolvedValue(uploaded);
-    interpretPhoto.mockResolvedValue(read);
     const seen: PhotoSummary[] = [];
     await attachPhoto("s1", fileOf(1000), (photo) => seen.push(photo), async (f) => f);
     expect(uploadPhoto).toHaveBeenCalledWith("s1", expect.any(File));
-    expect(interpretPhoto).toHaveBeenCalledWith("p1");
-    expect(seen.map((photo) => photo.status)).toEqual(["uploaded", "interpreted"]);
-    const html = draw(read);
-    expect(html).toContain("Parece: Tênis");
-    expect(html).toContain("Branco");
-    expect(html).toContain("A foto não mostra: Material");
-    expect(html).toContain("Só você vê esta foto");
-    expect(html).toContain("14/12/2026");
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Buscar parecidos/);
+    expect(interpretPhoto).not.toHaveBeenCalled();
+    expect(seen).toEqual([uploaded]);
   });
 
-  it("keeps the uploaded photo when the reading fails", async () => {
-    uploadPhoto.mockResolvedValue(uploaded);
-    interpretPhoto.mockRejectedValue(new ApiError("O saldo dos últimos sete dias não cobre a leitura da foto.", 429));
-    const seen: PhotoSummary[] = [];
-    await expect(attachPhoto("s1", fileOf(1000), (photo) => seen.push(photo), async (f) => f)).rejects.toThrow("saldo");
-    expect(seen).toHaveLength(1);
-    expect(draw(uploaded)).toContain("Ler a foto");
+  it("the attachment says where the crops go and when the photo is deleted", () => {
+    const html = renderToStaticMarkup(<PhotoAttachmentView photo={uploaded} src={null} working={false} onRemove={noop} />);
+    expect(html).toContain("Google Lens");
+    expect(html).toContain("14/12/2026");
+    expect(html).toContain(">Tirar</button>");
   });
 
   it("415 from server shows its message", async () => {
@@ -154,7 +145,6 @@ describe("foto de referência", () => {
     const html = renderToStaticMarkup(<PhotoStatus text={text} />);
     expect(html).toContain('role="status"');
     expect(html).toContain("Só aceito JPEG, PNG ou WebP.");
-    expect(interpretPhoto).not.toHaveBeenCalled();
   });
 
   it("delete removes the photo", async () => {
@@ -165,5 +155,44 @@ describe("foto de referência", () => {
 
   it("keeps the status region mounted and empty", () => {
     expect(renderToStaticMarkup(<PhotoStatus text={null} />)).toMatch(/<p[^>]*role="status"[^>]*><\/p>/);
+  });
+});
+
+describe("cartão Na foto", () => {
+  const draw = (props: Partial<Parameters<typeof PhotoFindsView>[0]> = {}) =>
+    renderToStaticMarkup(<PhotoFindsView finds={finds} src={null} size={null} busy={false} onSearch={noop} {...props} />);
+
+  it("lists each product with how sure the tone is and the pages it checked", () => {
+    const html = draw();
+    expect(html).toContain("Achei 2 produtos.");
+    expect(html).toContain("Steve Madden Mackena");
+    expect(html).toContain("Achei o modelo");
+    expect(html).toContain("Parecidos");
+    expect(html).toContain('href="https://www.stevemadden.com/products/mackena-white"');
+    expect(html).toMatch(/rel="noopener noreferrer nofollow"/);
+    expect(html).toContain("A busca por imagem não achou este produto em lojas.");
+    expect(html.match(/Buscar nas lojas/g)).toHaveLength(2);
+  });
+
+  it("never links a checkout page", () => {
+    expect(draw()).not.toContain("/checkout/");
+  });
+
+  it("waits while the conversation is busy", () => {
+    expect(draw({ busy: true })).toMatch(/<button[^>]*disabled=""[^>]*>Buscar nas lojas/);
+  });
+
+  it("the crop fills its square without stretching the photo", () => {
+    // A 1000×500 photo; the box is 200×200 px around (500, 250).
+    const style = cropStyle([400, 400, 600, 600], { width: 1000, height: 500 });
+    const side = 220;
+    expect(parseFloat(style.width)).toBeCloseTo((1000 / side) * 100);
+    expect(parseFloat(style.height)).toBeCloseTo((500 / side) * 100);
+    expect(parseFloat(style.left)).toBeCloseTo((-(500 - side / 2) / side) * 100);
+  });
+
+  it("names the product by brand and model only when it is exact", () => {
+    expect(findTitle(finds.finds[0] as PhotoFinds["finds"][number])).toBe("Steve Madden Mackena");
+    expect(findTitle(finds.finds[1] as PhotoFinds["finds"][number])).toBe("Moletom cropped amarelo");
   });
 });

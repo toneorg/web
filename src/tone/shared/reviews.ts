@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/reviews.ts). Não edite aqui.
+// Gerado de toneorg/server@cfd62d200da8 (packages/shared/src/reviews.ts). Não edite aqui.
 // Síntese de reviews: reviews read for the person (spec 2026-11-03, ADR 0002):
 // YouTube videos by their captions and, since 15/11/2026, pages of the web
 // (blogs, Reddit threads, buyers' reviews in stores) found on Google. A run is

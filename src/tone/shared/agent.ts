@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@69f37f046f5a (packages/shared/src/agent.ts). Não edite aqui.
+// Gerado de toneorg/server@cfd62d200da8 (packages/shared/src/agent.ts). Não edite aqui.
 // The conversation protocol between the web and the server.
 //
 // The web posts a turn and reads a stream of server-sent events until `done` or
@@ -6,6 +6,7 @@
 // screen. The conversation lives on the server, so a turn only carries what is new.
 import * as z from "zod";
 import { AnswerRatingValue } from "./answer-rating";
+import { PhotoFinds } from "./photo";
 import { ProgressEvent, ResearchContext } from "./progress";
 import { ResearchResult } from "./research";
 
@@ -105,6 +106,8 @@ export const AgentEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("progress"), progress: ProgressEvent }),
   /** What weighed on a search of this turn (the "Usei" line), sent after it and again if widened. */
   z.object({ type: z.literal("research_context"), runId: z.string(), context: ResearchContext }),
+  /** Busca por foto: the products found in the photo of the message, before the answer. */
+  z.object({ type: z.literal("photo_finds"), finds: PhotoFinds }),
   z.object({ type: z.literal("text"), delta: z.string() }),
   z.object({ type: z.literal("memory_saved"), key: z.string(), value: z.string() }),
   /**

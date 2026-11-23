@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@69f37f046f5a (packages/genui-react/src/components.tsx). Não edite aqui.
+// Gerado de toneorg/server@cfd62d200da8 (packages/genui-react/src/components.tsx). Não edite aqui.
 // The drawings of the components in packages/shared/src/genui.ts, on the
 // neutral bench of the design system: ink and graphite on surface and sunken,
 // no colour that does not inform. Charts are drawn with the same tokens.
