@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@b0a1a35fd3e3 (packages/shared/src/page.ts). Não edite aqui.
+// Gerado de toneorg/server@45eb127c73fd (packages/shared/src/page.ts). Não edite aqui.
 // A store page as the server's research reads it (RNF5: the text, not a
 // screenshot). Everything in a snapshot came from a third-party page, so the
 // server treats every string in it as data, never as an instruction (RNF10).
