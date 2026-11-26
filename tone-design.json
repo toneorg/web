@@ -1,4 +1,4 @@
 {
   "include": ["src"],
-  "allow": ["src/lib/tones.ts"]
+  "allow": []
 }

@@ -14,7 +14,7 @@ The interface follows the tone design system, installed as `@toneorg/design` (gi
 
 - Before creating or changing any interface, read `node_modules/@toneorg/design/DESIGN.md`, then the sheet of the component you are touching in `node_modules/@toneorg/design/components/`. Both are in Portuguese.
 - Color, type, radius, shadow and easing come from the package: Tailwind classes from `@toneorg/design/theme.css` (imported in `src/app/globals.css`), or `import { color } from "@toneorg/design"` where a class cannot reach (metadata, generated images). Never write a color by hand: `npm run check:design` fails, and CI runs it.
-- A literal color is allowed only where it is data: the skin-tone scale in `src/lib/tones.ts`, listed under `allow` in `tone-design.json`.
+- A literal color is allowed only where it is data (a product's color from the catalog), in a file listed under `allow` in `tone-design.json`. tone does not use skin tone to understand the person: no screen, scale or swatch of it.
 - If a token or a component is missing, change it in `toneorg/design`, release a version and bump it here (`npm install github:toneorg/design#vX.Y.Z`). Do not add a local value.
 
 ## Where this page still differs from the reference
