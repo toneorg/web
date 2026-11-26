@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@45eb127c73fd (packages/shared/src/media.ts). Não edite aqui.
+// Gerado de toneorg/server@d32e8f2a3aca (packages/shared/src/media.ts). Não edite aqui.
 // Videos of the product the person is looking at: TikToks found by the
 // product's name. Titles and authors come from third parties, so
 // the panel shows them as plain text and the model never reads them.
@@ -42,6 +42,15 @@ export type ProductMedia = z.infer<typeof ProductMedia>;
 export const MediaRequest = z.object({
   sessionId: z.string(),
   productTitle: z.string().min(1).max(400),
+  /** The card the button is on, for the review reading to show which product it is about. */
+  product: z
+    .object({
+      imageUrl: z.string().max(2000).nullable().optional(),
+      url: z.string().max(2000).nullable().optional(),
+      store: z.string().max(120).nullable().optional(),
+      priceText: z.string().max(60).nullable().optional(),
+    })
+    .optional(),
 });
 export type MediaRequest = z.infer<typeof MediaRequest>;
 

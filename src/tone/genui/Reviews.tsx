@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@45eb127c73fd (packages/genui-react/src/Reviews.tsx). Não edite aqui.
+// Gerado de toneorg/server@d32e8f2a3aca (packages/genui-react/src/Reviews.tsx). Não edite aqui.
 // Síntese de reviews: what reviews say, as tone read them (spec 2026-11-03):
 // YouTube videos and, since 15/11/2026, blogs, Reddit threads and buyers'
 // reviews in stores. Every point names its sources and opens them (the video
@@ -14,6 +14,8 @@ import {
   type ReviewVideo,
   youtubeAt,
 } from "@/tone/shared";
+import { useState } from "react";
+import { safeImage } from "./host";
 import { Icon } from "./Icon";
 
 const MAX_SOURCES = 2;
@@ -190,10 +192,78 @@ function Progress(props: { run: ReviewRunState }) {
   );
 }
 
+/** The product the reading is about, as its card showed it: photo, name, store and price. */
+function ReviewProductRow(props: { product: NonNullable<ReviewRunState["product"]>; storeHosts: readonly string[] }) {
+  const { product } = props;
+  const [broken, setBroken] = useState(false);
+  const image = broken ? null : safeImage(product.imageUrl, props.storeHosts);
+  const meta = [product.store?.replace(/^www\./, ""), product.priceText].filter(Boolean).join(" · ");
+  return (
+    <div className="review-product">
+      {image ? (
+        <img className="thumb sm" src={image} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+      ) : (
+        <div className="thumb sm" aria-hidden="true" />
+      )}
+      <div className="review-product-text">
+        <span className="review-product-title">{product.title}</span>
+        {meta ? <span className="small muted">{meta}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+/** Every source read, with its title and kind: what the reading rests on, open in a new tab. */
+function SourcesRead(props: { run: ReviewRunState; onOpen?: (sourceId: string) => void }) {
+  const { run } = props;
+  const pagesRead = run.sources ?? [];
+  if (!run.videos.length && !pagesRead.length) return null;
+  return (
+    <ul className="review-videos">
+      {run.videos.map((video) => (
+        <li key={video.id} className="small">
+          <a
+            href={youtubeAt(video.id, 0)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => props.onOpen?.(video.id)}
+          >
+            {video.title}
+            <NewTab />
+          </a>
+          <span className="muted review-source-meta">
+            {[
+              "vídeo",
+              video.channel,
+              video.publishedAt ? year.format(new Date(video.publishedAt)) : null,
+              ...flags(video),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </li>
+      ))}
+      {pagesRead.map((page) => (
+        <li key={page.id} className="small">
+          <a href={page.url} target="_blank" rel="noopener noreferrer" onClick={() => props.onOpen?.(page.id)}>
+            {page.title}
+            <NewTab />
+          </a>
+          <span className="muted review-source-meta">
+            {[KIND[page.kind], sourceName(page), ratingText(page)].filter(Boolean).join(" · ")}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function ReviewSynthesisCard(props: {
   run: ReviewRunState;
   /** A source was opened: a video id, or a page id (w1, w2…). */
   onOpen?: (sourceId: string) => void;
+  /** Hosts whose photos the card may show (the product's). */
+  storeHosts?: readonly string[];
 }) {
   const { run } = props;
   const pagesRead = run.sources ?? [];
@@ -218,15 +288,51 @@ export function ReviewSynthesisCard(props: {
       ]
     : [];
   return (
-    <section className="card reviews" aria-label={`Reviews de ${run.query}`}>
-      <h3>O que os reviews dizem: “{run.query}”</h3>
+    <section className="card reviews" aria-label={`Reviews de ${run.product?.title ?? run.query}`}>
+      <h3>{run.product ? "O que os reviews dizem deste produto" : `O que os reviews dizem: “${run.query}”`}</h3>
+      {run.product ? <ReviewProductRow product={run.product} storeHosts={props.storeHosts ?? []} /> : null}
       {!synthesis ? (
-        <Progress run={run} />
+        <>
+          <Progress run={run} />
+          {run.status === "running" ? null : (
+            <>
+              {total ? (
+                <div className="review-group">
+                  <h4>Fontes lidas</h4>
+                  <SourcesRead run={run} onOpen={props.onOpen} />
+                </div>
+              ) : null}
+              {run.status === "insufficient" ? (
+                <p className="small muted">
+                  Dá para perguntar pelos reviews da linha ou de um modelo parecido: ela costuma ter mais vídeos e
+                  conversas.
+                </p>
+              ) : null}
+            </>
+          )}
+        </>
       ) : (
         <>
+          {synthesis.overview ? <p className="review-overview">{synthesis.overview}</p> : null}
           <p className="small muted">
-            Leitura da tone de {sourcesSummary(run)}. Abra a fonte para conferir; o vídeo abre no momento citado.
+            {total === 1
+              ? `Só 1 fonte falou deste modelo (${sourcesSummary(run)}): é a opinião dela, não um consenso.`
+              : `Leitura da tone de ${sourcesSummary(run)}.`}{" "}
+            Abra a fonte para conferir; o vídeo abre no momento citado.
           </p>
+          {synthesis.single?.length ? (
+            <div className="review-group">
+              <h4>O que essa fonte diz</h4>
+              <ul>
+                {synthesis.single.map((item) => (
+                  <li key={item.statement}>
+                    {item.statement}
+                    {sources(item.claimIds)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {synthesis.matters.length ? (
             <div className="review-group">
               <h4>O que importa</h4>
@@ -321,47 +427,7 @@ export function ReviewSynthesisCard(props: {
             ) : null}
             <div className="review-group">
               <h4>Fontes lidas</h4>
-              <ul className="review-videos">
-                {run.videos.map((video) => (
-                  <li key={video.id} className="small">
-                    <a
-                      href={youtubeAt(video.id, 0)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => props.onOpen?.(video.id)}
-                    >
-                      {video.title}
-                      <NewTab />
-                    </a>
-                    <span className="muted review-source-meta">
-                      {[
-                        "vídeo",
-                        video.channel,
-                        video.publishedAt ? year.format(new Date(video.publishedAt)) : null,
-                        ...flags(video),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  </li>
-                ))}
-                {pagesRead.map((page) => (
-                  <li key={page.id} className="small">
-                    <a
-                      href={page.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => props.onOpen?.(page.id)}
-                    >
-                      {page.title}
-                      <NewTab />
-                    </a>
-                    <span className="muted review-source-meta">
-                      {[KIND[page.kind], sourceName(page), ratingText(page)].filter(Boolean).join(" · ")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <SourcesRead run={run} onOpen={props.onOpen} />
             </div>
           </details>
         </>
