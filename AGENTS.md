@@ -21,4 +21,5 @@ The interface follows the tone design system, installed as `@toneorg/design` (gi
 
 Checked on 2026-11-15 against v0.1.0. When you touch one of these, bring it to the reference and delete the line.
 
+- The app (`src/conversas`) still uses `ink` for its main action and its "yes" marks. Since v0.4.0 the reference is coral there too (DESIGN.md, "Coral na ação"): the one main action per screen is the `accent` button with `shadow-glow`, tone's "yes" marks and what changed in her favor are coral, the answering card gets the coral ring, and what weighs against stays neutral. Bring each screen there when you touch it.
 - The landing pages (`src/landing`, `src/app/page.tsx`, `src/app/lojas`) still write display text sizes as arbitrary values (`text-[1.5rem]`, `text-[1.0625rem]`). Use the type tokens when you touch them. The app (`src/conversas`) has none left.
