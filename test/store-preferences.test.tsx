@@ -8,7 +8,7 @@ vi.mock("../src/conversas/api", () => ({
   api: { storePreferences: vi.fn(), saveStorePreferences: vi.fn() },
 }));
 const { preferredDomain, saveStorePreferences } = await import("../src/conversas/store-preferences");
-const { StorePreferenceEditor } = await import("../src/conversas/StorePreferences");
+const { StorePreferenceBody } = await import("../src/conversas/StorePreferences");
 
 describe("preferências de lojas", () => {
   it("salvar não pesquisa", async () => {
@@ -53,20 +53,21 @@ describe("preferências de lojas", () => {
     expect(storePreferenceCategory("perfume amadeirado")).toBe("perfumaria");
   });
 
-  it("mostra a pergunta da categoria e as duas ações quando há pesquisa para repetir", () => {
+  it("a folha de lojas pesquisa de novo ou só salva, com as lojas conhecidas da categoria", () => {
     const html = renderToStaticMarkup(
-      <StorePreferenceEditor category="tenis" busy={false} onResearch={async () => undefined} />,
+      <StorePreferenceBody category="eletronicos" suggested={[]} options={[]} busy={false} onResearch={async () => undefined} />,
     );
-    expect(html).toContain("Lojas para tênis");
-    expect(html).toContain("Salvar preferências");
-    expect(html).toContain("Salvar e pesquisar agora");
-    expect(html).toContain("Faltou uma loja?");
+    expect(html).toContain("Pesquisar de novo");
+    expect(html).toContain("Só salvar");
+    expect(html).toContain("Mercado Livre");
+    expect(html).toContain("Magalu");
+    expect(html).toContain("Outra loja");
   });
 
   it("sem pesquisa para repetir, só salva", () => {
-    const html = renderToStaticMarkup(<StorePreferenceEditor category="roupa" busy={false} />);
-    expect(html).toContain("Salvar preferências");
-    expect(html).not.toContain("Salvar e pesquisar agora");
+    const html = renderToStaticMarkup(<StorePreferenceBody category="roupa" suggested={[]} options={[]} busy={false} />);
+    expect(html).toContain("Salvar");
+    expect(html).not.toContain("Pesquisar de novo");
   });
 
   it("o BFF repassa só as categorias conhecidas", () => {

@@ -23,8 +23,11 @@ import {
   type AnswerRatingValue,
   type ChatSession,
   MEDIA_COMPONENT,
+  mediaQuery,
+  reviewSearchQuery,
   PHOTO_FINDS_COMPONENT,
   PhotoFinds,
+  matchRanges,
   type Me,
   type PickedProduct,
   ProductMedia,
@@ -51,7 +54,7 @@ import { filterStores, type Mention, mentionAt, pickStore } from "./store-mentio
 import { SignIn } from "./SignIn";
 import { type ChatTarget, dayLabel, dayStarts, lineKey, startsNewSession } from "./timeline";
 import { outlineButton } from "./ui";
-import { StorePreferenceEditor } from "./StorePreferences";
+import { StorePreferencesSheet } from "./StorePreferences";
 import { WELCOME_FIRST } from "./welcome";
 import { foundOfferUrls, researchContexts } from "./research-context";
 
@@ -130,6 +133,20 @@ function messageText(item: Extract<Item, { kind: "user" | "assistant" }>): strin
     .flatMap((part) => (part.kind === "text" ? [part.text] : []))
     .join("\n\n")
     .trim();
+}
+
+/** Whether a line has the words of a search, as the server matched them (`visibleText`). */
+function saysQuery(item: Item, target: ChatTarget): boolean {
+  const query = target.query ?? "";
+  const text =
+    item.kind === "user" || item.kind === "assistant"
+      ? target.role === item.kind
+        ? messageText(item)
+        : ""
+      : item.kind === "media" && target.role === "assistant"
+        ? `Vídeos de ${item.media.query}`
+        : "";
+  return Boolean(text) && matchRanges(text, query).length > 0;
 }
 
 export function itemsOf(item: TranscriptItem, session = "", index?: number): Item[] {
@@ -424,6 +441,11 @@ export function Conversation(props: {
   // The single chat goes to a line (a search result, an old link): its session is read first,
   // with every session after it, then the line is scrolled to, marked and focused.
   const [found, setFound] = useState<string | null>(null);
+  const [storesOpen, setStoresOpen] = useState(false);
+  const openStores = useCallback(() => {
+    track("store_preferences_opened");
+    setStoresOpen(true);
+  }, []);
   const { target, onArrived } = props;
   useEffect(() => {
     if (!target || !sessions || state !== "ready") return;
@@ -446,7 +468,11 @@ export function Conversation(props: {
       };
     }
     const key = target.index === undefined ? null : lineKey(target.sessionId, target.index);
-    const line = items.find((item) => (key ? item.id === key : item.session === target.sessionId));
+    // A line drawn live in this visit has no saved key yet (25/11/2026: the videos card shown a
+    // minute before was "Não achei essa mensagem"): the newest line of the session with the words.
+    const line =
+      items.find((item) => (key ? item.id === key : item.session === target.sessionId)) ??
+      (target.query ? items.findLast((item) => item.session === target.sessionId && saysQuery(item, target)) : undefined);
     if (!line) {
       onArrived?.(false);
       return;
@@ -468,9 +494,10 @@ export function Conversation(props: {
   }, [found]);
 
 
-  // The page never scrolls by itself while the person reads: no following an answer as it
-  // streams, no keeping the bottom as cards grow. It goes to the end only once, right after the
-  // chat opens or the person sends something, and then leaves the scroll to them.
+  // The page never scrolls by itself: no following an answer as it streams, no keeping the bottom
+  // as cards grow, and since 25/11/2026 ("precisa tirar isso completamente") no jump when the
+  // person sends or taps an answer either. It opens on the newest message, once, like a messaging
+  // app; after that only the person (or a search result she opened) moves it.
   const toEndNext = useRef(true);
   useLayoutEffect(() => {
     if (!toEndNext.current || state !== "ready") return;
@@ -703,7 +730,6 @@ export function Conversation(props: {
       if (picked) setPicked(null);
       const replyTo = reply ?? undefined;
       setReply(null);
-      toEndNext.current = true;
       setItems((list) => [...list, said(session, trimmed, stores, replyTo, photoId)]);
       track("conversation_message_sent", {
         with_product: Boolean(picked),
@@ -766,9 +792,24 @@ export function Conversation(props: {
     setPicked(null);
     try {
       const session = await ensureSession();
-      setItems((list) => [...list, said(session, "O que dizem os reviews deste produto")]);
+      // The message names the product (25/11/2026: "o produto em questão deveria ser mais claro").
+      setItems((list) => [...list, said(session, `O que dizem os reviews do ${reviewSearchQuery(mediaQuery(product.title))}?`)]);
       track("product_reviews_requested");
-      const run = await api.reviews(session, product.title);
+      let store: string | null = null;
+      try {
+        store = new URL(product.url).hostname.replace(/^www\./, "");
+      } catch {
+        store = null;
+      }
+      const run = await api.reviews(session, product.title, {
+        imageUrl: product.image,
+        url: product.url || null,
+        store,
+        priceText:
+          product.price === null
+            ? null
+            : product.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+      });
       setItems((list) => placeReviews(list, [run], session));
       setReviewsSince(Date.now());
     } catch (error) {
@@ -884,7 +925,6 @@ export function Conversation(props: {
         liveRef({ id: sessionId, lastAt: now });
         setSessions((list) => [{ id: sessionId, onboarding: true, startedAt: now, lastAt: now, messages: 0 }, ...(list ?? [])]);
         setLoaded((count) => count + 1);
-        toEndNext.current = true;
         if (greeting) setItems((list) => [...list, { id: uid(), session: sessionId, at: now, kind: "assistant", text: greeting }]);
         setItems((list) => [...list, said(sessionId, WELCOME_FIRST)]);
         await runTurn({ type: "message", text: WELCOME_FIRST }, sessionId);
@@ -1041,7 +1081,6 @@ export function Conversation(props: {
     answer: (answers) => {
       if (busy) return;
       track("conversation_reply_selected", { answers: Object.keys(answers).length });
-      toEndNext.current = true;
       void runTurn({ type: "ui_answer", answers }, item.session);
     },
     say: (text) => {
@@ -1049,7 +1088,6 @@ export function Conversation(props: {
     },
     answerWatch: (watchId, text) => {
       if (busy) return;
-      toEndNext.current = true;
       setItems((list) => [...list, said(item.session, text)]);
       void runTurn({ type: "message", text, intent: "watch", watchId }, item.session);
     },
@@ -1058,7 +1096,6 @@ export function Conversation(props: {
     research: researchFor(item),
     searchAgain: (text, skipPersonal) => {
       if (busy || busyNow.current) return;
-      toEndNext.current = true;
       setItems((list) => [...list, said(item.session, text)]);
       void runTurn(
         { type: "message", text, repeatResearch: true, ...(skipPersonal.length ? { skipPersonal } : {}) },
@@ -1133,9 +1170,19 @@ export function Conversation(props: {
         </p>,
       );
     else if (item.kind === "frame") body = line(<Program code={item.code} streaming={false} host={hostFor(item)} />);
-    else if (item.kind === "research") body = line(<ResearchRunSummary run={item.run} />);
+    else if (item.kind === "research")
+      body = line(<ResearchRunSummary run={item.run} onStores={item.run.runId === storesRunId ? openStores : undefined} />);
     else if (item.kind === "activity")
-      body = line(item.activity.endedAt === undefined ? <LiveActivity activity={item.activity} /> : <ActivitySummary activity={item.activity} />);
+      body = line(
+        item.activity.endedAt === undefined ? (
+          <LiveActivity activity={item.activity} />
+        ) : (
+          <ActivitySummary
+            activity={item.activity}
+            onStores={storesRunId && item.activity.runs[storesRunId] ? openStores : undefined}
+          />
+        ),
+      );
     else if (item.kind === "media") body = line(<ProductVideos media={item.media} />);
     else if (item.kind === "photo_finds")
       body = line(
@@ -1151,7 +1198,13 @@ export function Conversation(props: {
         />,
       );
     else if (item.kind === "reviews")
-      body = line(<ReviewSynthesisCard run={item.run} onOpen={(sourceId) => track("review_link_opened", { source_id: sourceId })} />);
+      body = line(
+        <ReviewSynthesisCard
+          run={item.run}
+          storeHosts={storeHostsOf(me?.stores)}
+          onOpen={(sourceId) => track("review_link_opened", { source_id: sourceId })}
+        />,
+      );
     else
       body = line(
         <div className="flex flex-col items-start gap-2">
@@ -1188,14 +1241,16 @@ export function Conversation(props: {
     ];
   };
 
+  // "Escolher lojas" sits on the line of the latest search of the conversation going on, and only
+  // there: it repeats that search with the stores chosen (25/11/2026, no longer a fixed box).
   const latestResearch = items.flatMap((item) => item.kind === "research" ? [item.run] : item.kind === "activity" ? Object.values(item.activity.runs) : []).filter((run) => run.result).at(-1);
-  const preferenceCategory = storePreferenceCategory(draft.trim() || latestResearch?.result?.intent.query || "");
-  const repeatResearch = latestResearch && preferenceCategory === storePreferenceCategory(latestResearch.result?.intent.query ?? "") ? async () => {
-    if (busy || state !== "ready") return;
-    const text = "Pesquisar de novo com minhas preferências de lojas";
+  const preferenceCategory = storePreferenceCategory(latestResearch?.result?.intent.query ?? "");
+  const storesRunId = latestResearch && latestResearch.sessionId === liveId && stillGoing ? latestResearch.runId : null;
+  const repeatResearch = latestResearch ? async () => {
+    if (busyNow.current || state !== "ready") return;
+    const text = "Pesquisar de novo nas lojas que escolhi";
     const session = latestResearch.sessionId;
     setItems((list) => [...list, said(session, text)]);
-    toEndNext.current = true;
     await runTurn({ type: "message", text, repeatResearch: true }, session);
   } : undefined;
 
@@ -1384,7 +1439,16 @@ export function Conversation(props: {
         </div>
         <div ref={bottom} />
       </div>
-      {state === "ready" && !busy && (latestResearch || preferenceCategory !== "outros") ? <div className="mb-3"><StorePreferenceEditor key={preferenceCategory} category={preferenceCategory} suggested={latestResearch?.result?.offers.map((offer) => offer.store) ?? []} options={me?.stores ?? []} busy={busy} onResearch={repeatResearch} /></div> : null}
+      {storesOpen && latestResearch ? (
+        <StorePreferencesSheet
+          category={preferenceCategory}
+          suggested={latestResearch.result?.offers.map((offer) => offer.store) ?? []}
+          options={me?.stores ?? []}
+          busy={busy}
+          onResearch={repeatResearch}
+          onClose={() => setStoresOpen(false)}
+        />
+      ) : null}
       {composer}
     </main>
   );

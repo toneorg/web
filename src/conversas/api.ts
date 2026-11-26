@@ -324,8 +324,11 @@ export const api = {
   media: async (sessionId: string, productTitle: string) =>
     ProductMedia.parse(await send("media", "POST", { sessionId, productTitle })),
   /** "O que dizem os reviews": starts the synthesis of the picked product; it is then read with reviewRuns. */
-  reviews: async (sessionId: string, productTitle: string) =>
-    ReviewRunState.parse(await send("reviews", "POST", { sessionId, productTitle })),
+  reviews: async (
+    sessionId: string,
+    productTitle: string,
+    product?: { imageUrl: string | null; url: string | null; store: string | null; priceText: string | null },
+  ) => ReviewRunState.parse(await send("reviews", "POST", { sessionId, productTitle, ...(product ? { product } : {}) })),
   /** A reference photo of the conversation: the photo goes as base64, already shrunk by the screen to stay under the host's body limit. */
   uploadPhoto: async (sessionId: string, file: Blob) =>
     PhotoSummary.parse(await send("photos", "POST", { sessionId, data: await fileToBase64(file) })),

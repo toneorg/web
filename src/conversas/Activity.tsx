@@ -219,9 +219,9 @@ function Details(props: { activity: Activity }) {
   );
 }
 
-/** A finished turn, folded: one line, opened on request. */
-export function ActivitySummary(props: { activity: Activity }) {
-  return (
+/** A finished turn, folded: one line, opened on request; the latest search also offers its stores. */
+export function ActivitySummary(props: { activity: Activity; onStores?: () => void }) {
+  const details = (
     <details className="group text-small text-graphite">
       <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full pe-3 marker:hidden hover:text-ink focus-visible:text-ink [&::-webkit-details-marker]:hidden">
         <span aria-hidden="true" className="grid size-6 place-items-center rounded-full bg-sunken text-ink">
@@ -234,6 +234,19 @@ export function ActivitySummary(props: { activity: Activity }) {
       </summary>
       <Details activity={props.activity} />
     </details>
+  );
+  if (!props.onStores) return details;
+  return (
+    <div className="flex flex-wrap items-start gap-x-1">
+      {details}
+      <button
+        type="button"
+        onClick={props.onStores}
+        className="min-h-11 rounded-full px-2 text-small text-ink underline decoration-rule underline-offset-4 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      >
+        Escolher lojas
+      </button>
+    </div>
   );
 }
 
@@ -275,7 +288,7 @@ export function LiveActivity(props: { activity: Activity }) {
 }
 
 /** A research run read back from an earlier visit: the same folded line as a turn that just ended. */
-export function ResearchRunSummary(props: { run: ResearchRunState }) {
+export function ResearchRunSummary(props: { run: ResearchRunState; onStores?: () => void }) {
   const startedAt = Date.parse(props.run.startedAt);
   const endedAt = Date.parse(props.run.updatedAt);
   const activity: Activity = {
@@ -284,5 +297,5 @@ export function ResearchRunSummary(props: { run: ResearchRunState }) {
     startedAt,
     ...(props.run.terminal && Number.isFinite(endedAt) ? { endedAt } : {}),
   };
-  return <ActivitySummary activity={activity} />;
+  return <ActivitySummary activity={activity} onStores={props.onStores} />;
 }

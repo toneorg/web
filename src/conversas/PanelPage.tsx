@@ -78,7 +78,15 @@ export function PanelView(props: {
           {summary ? (
             <>
               <PanelVerdict summary={summary} onStore={() => track("panel_verdict_store_clicked", { verdict: summary.verdict.kind })} />
-              <PanelProducts products={summary.products} />
+              <PanelProducts
+                products={summary.products}
+                selected={chart}
+                onSelect={(index) => {
+                  setChart(index);
+                  document.getElementById("titulo-historico")?.scrollIntoView({ block: "start" });
+                }}
+              />
+              <PanelHistory products={summary.products} selected={chart} onSelect={setChart} target={target} />
             </>
           ) : null}
           {emptyRound ? (
@@ -103,15 +111,13 @@ export function PanelView(props: {
                 </p>
               </div>
             </details>
+            {earlier.length ? (
             <details className={fold}>
               <summary className={foldSummary}>
-                <span>Histórico e leituras</span>
-                <span className="text-small text-graphite">30 dias</span>
+                <span>Leituras anteriores</span>
+                <span className="text-small text-graphite tabular-nums">{earlier.length}</span>
               </summary>
               <div className="flex flex-col gap-4 px-5 pb-5">
-                {summary ? (
-                  <PanelHistory products={summary.products} selected={chart} onSelect={setChart} target={target} />
-                ) : null}
                 {earlier.length ? (
                   <ul className="flex flex-col gap-1 text-caption text-graphite">
                     {earlier.map((result) => (
@@ -124,6 +130,7 @@ export function PanelView(props: {
                 ) : null}
               </div>
             </details>
+            ) : null}
           </div>
         </>
       ) : (

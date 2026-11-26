@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@45eb127c73fd (packages/shared/src/price-signal.ts). Não edite aqui.
+// Gerado de toneorg/server@d32e8f2a3aca (packages/shared/src/price-signal.ts). Não edite aqui.
 // What a price means against its own history (20/11/2026, after researching how price trackers and
 // Google Flights judge a deal). One series per product: the lowest confirmed price of each day.
 // - The normal price is the median of those daily lows, up to 90 days back (Google Flights: the
@@ -116,7 +116,7 @@ export const WatchSummaryProduct = z.object({
   /** The lowest confirmed price of the last day with a reading before this one. */
   previous: z.number().nullable(),
   signal: PriceSignal.nullable(),
-  /** The product's daily lows, the last 30 days. */
+  /** The product's daily lows, the last 90 days, with the store of each low. */
   points: z.array(WatchPricePoint),
 });
 export type WatchSummaryProduct = z.infer<typeof WatchSummaryProduct>;

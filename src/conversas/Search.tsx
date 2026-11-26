@@ -33,7 +33,7 @@ export const whenSaid = (iso: string) => `${dayLabel(iso)}, ${timeLabel(iso)}`;
 
 type State = { kind: "idle" } | { kind: "loading" } | { kind: "done"; matches: MessageMatch[] } | { kind: "failed" };
 
-function SearchBody(props: { onPick: (match: MessageMatch) => void }) {
+function SearchBody(props: { onPick: (match: MessageMatch, query: string) => void }) {
   const close = useSheetClose();
   const id = useId();
   const [query, setQuery] = useState("");
@@ -68,7 +68,7 @@ function SearchBody(props: { onPick: (match: MessageMatch) => void }) {
   const matches = state.kind === "done" ? state.matches : [];
   const pick = (match: MessageMatch, position: number) => {
     track("search_result_opened", { position, role: match.role });
-    props.onPick(match);
+    props.onPick(match, query.trim());
     close();
   };
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -169,7 +169,7 @@ function SearchBody(props: { onPick: (match: MessageMatch) => void }) {
 }
 
 /** The search folha. */
-export function SearchDialog(props: { onClose: () => void; onPick: (match: MessageMatch) => void }) {
+export function SearchDialog(props: { onClose: () => void; onPick: (match: MessageMatch, query: string) => void }) {
   return (
     <Sheet title="Buscar nas mensagens" placement="top" closeButton onClose={props.onClose}>
       <SearchBody onPick={props.onPick} />
