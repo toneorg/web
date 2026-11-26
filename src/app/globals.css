@@ -369,7 +369,7 @@
 
 /*
   Warm light (DESIGN.md, "Coral na ação"): coral glows built from the tokens with
-  color-mix, never behind a skin swatch or a product photo. They sit on their own
+  color-mix, never behind a product swatch or a product photo. They sit on their own
   absolutely placed layer, under the content.
 */
 @utility glow-warm {
