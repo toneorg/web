@@ -164,7 +164,8 @@ export function Chat() {
       setJumpFrom(from);
       setTarget(next);
     }, 200);
-  const pick = (match: MessageMatch) => goTo({ sessionId: match.sessionId, index: match.index }, "search");
+  const pick = (match: MessageMatch, query: string) =>
+    goTo({ sessionId: match.sessionId, index: match.index, role: match.role, query }, "search");
   return (
     <Shell
       me={me}

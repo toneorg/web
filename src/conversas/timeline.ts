@@ -60,7 +60,13 @@ export function dayStarts(lines: { at?: string }[]): Map<number, string> {
 }
 
 /** Where the chat should go: a session (an old link) or one line of it (a search result). */
-export type ChatTarget = { sessionId: string; index?: number };
+export type ChatTarget = {
+  sessionId: string;
+  index?: number;
+  /** From a search: who said it and the words searched, to find a line drawn live in this visit. */
+  role?: "user" | "assistant";
+  query?: string;
+};
 
 /** Reads `?em=<session>` (and `&linha=<n>`) from the chat's address. */
 export function targetFromSearch(search: string): ChatTarget | null {

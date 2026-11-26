@@ -1,4 +1,4 @@
-// Gerado de toneorg/server@45eb127c73fd (packages/shared/src/reviews.ts). Não edite aqui.
+// Gerado de toneorg/server@d32e8f2a3aca (packages/shared/src/reviews.ts). Não edite aqui.
 // Síntese de reviews: reviews read for the person (spec 2026-11-03, ADR 0002):
 // YouTube videos by their captions and, since 15/11/2026, pages of the web
 // (blogs, Reddit threads, buyers' reviews in stores) found on Google. A run is
@@ -107,6 +107,13 @@ export type ReviewStage = z.infer<typeof ReviewStage>;
 
 const ClaimIds = z.array(z.string().min(1).max(40)).min(1).max(12);
 export const ReviewSynthesis = z.object({
+  /** Two or three sentences of what the sources say, in the tone's words; older runs have none. */
+  overview: z.string().max(600).optional(),
+  /** Points of a single source: said by it, not agreed by several (one source found). */
+  single: z
+    .array(z.object({ statement: z.string().max(240), claimIds: ClaimIds }))
+    .max(6)
+    .optional(),
   /** What matters when choosing, the base for suggested criteria. */
   matters: z.array(z.object({ topic: z.string().max(60), why: z.string().max(240), claimIds: ClaimIds })).max(8),
   consensus: z
@@ -136,11 +143,23 @@ export type ReviewSynthesis = z.infer<typeof ReviewSynthesis>;
 export const ReviewRunStatus = z.enum(["running", "completed", "insufficient", "failed"]);
 export type ReviewRunStatus = z.infer<typeof ReviewRunStatus>;
 
+/** The product a review reading is about, as the card it came from showed it. */
+export const ReviewProduct = z.object({
+  title: z.string().max(300),
+  imageUrl: z.string().max(2000).nullable(),
+  url: z.string().max(2000).nullable(),
+  store: z.string().max(120).nullable(),
+  priceText: z.string().max(60).nullable(),
+});
+export type ReviewProduct = z.infer<typeof ReviewProduct>;
+
 export const ReviewRunState = z.object({
   runId: z.string(),
   sessionId: z.string(),
   subject: z.enum(["category", "product"]),
   query: z.string(),
+  /** The product of the card whose button asked for it (25/11/2026: "o produto deveria ser mais claro"). */
+  product: ReviewProduct.nullable().optional(),
   status: ReviewRunStatus,
   /** Fixed server text in Portuguese; never model text. */
   message: z.string().max(200),
@@ -255,18 +274,32 @@ export function aboutProduct(
   const words = new Set(productKey(claimProduct).split(" "));
   const distinctive = distinctiveWords(query);
   if (!distinctive.length) return true;
+  // A model code ("snk355", "wh1000xm5", "a54") names the product alone: "Seiko SNK355" is the
+  // "Relógio Seiko 5 Snk355 Automático Aço Inoxidável Prata" of the listing (25/11/2026).
+  const codes = distinctive.filter(isModelCode);
+  if (codes.length && codes.every((code) => words.has(code))) return true;
   if (!distinctive.filter((word) => /^\d+$/.test(word)).every((word) => words.has(word))) return false;
   const hits = distinctive.filter((word) => words.has(word)).length;
   return hits >= Math.ceil(distinctive.length / 2);
 }
 
-/** The words to search for: the name without measures, which only narrow what reviews talk about. */
+/** Letters and digits together, at least four: a model code, not a size ("42") or a word. */
+export const isModelCode = (word: string) => word.length >= 4 && /[a-z]/.test(word) && /\d/.test(word);
+
+/**
+ * The words to search for: the name without measures, which only narrow what reviews talk about.
+ * A store title goes on past its model ("Relógio Seiko 5 Snk355 Automático Aço Inoxidável Prata"):
+ * the words after the model code are the listing's description and make reviews look absent.
+ */
 export function reviewSearchQuery(query: string): string {
   const cleaned = query
     .replace(/\b\d+([.,]\d+)?\s?(ml|l|g|kg|mg|oz|gb|tb|mah)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return cleaned.length >= 2 ? cleaned : query;
+  const words = cleaned.split(" ");
+  const last = words.findLastIndex((word) => isModelCode(productKey(word).replace(/ /g, "")));
+  const core = last >= 0 ? words.slice(0, last + 1).join(" ") : cleaned;
+  return core.length >= 2 ? core : query;
 }
 
 /** A claim is about the product when every word of the brand and of the model is in its product. */

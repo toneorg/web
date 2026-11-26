@@ -49,6 +49,8 @@ export type WebEvent =
   | "used_filter_change_failed"
   | "product_unpicked"
   | "store_mentioned"
+  | "store_preferences_opened"
+  | "store_preferences_saved"
   | "product_videos_requested"
   | "review_link_opened"
   | "product_videos_failed"

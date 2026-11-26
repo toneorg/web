@@ -8,7 +8,12 @@ import { Sparkline } from "./Sparkline";
 
 const storeName = (store: string) => (store === "google.com" ? "Google Shopping" : store.replace(/^www\./, ""));
 
-export function PanelProducts(props: { products: WatchSummaryProduct[] }) {
+export function PanelProducts(props: {
+  products: WatchSummaryProduct[];
+  /** The product whose history is on screen; a tap on another shows its history. */
+  selected?: number;
+  onSelect?: (index: number) => void;
+}) {
   return (
     <ul aria-label="Produtos" className="flex flex-col rounded-card bg-surface p-1.5 shadow-raised">
       {props.products.map((product, index) => {
@@ -39,7 +44,22 @@ export function PanelProducts(props: { products: WatchSummaryProduct[] }) {
               </span>
             </span>
             <span className="hidden sm:block">
-              {product.points.length >= 2 ? <Sparkline points={product.points} /> : null}
+              {product.points.length >= 2 ? (
+                props.onSelect ? (
+                  // The small line opens its full history, the chart below (25/11/2026: it did nothing).
+                  <button
+                    type="button"
+                    aria-label={`Ver o histórico de preços de ${product.title}`}
+                    aria-pressed={props.selected === index}
+                    onClick={() => props.onSelect?.(index)}
+                    className="press block w-full rounded-thumb p-1 hover:bg-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink aria-pressed:bg-sunken"
+                  >
+                    <Sparkline points={product.points} />
+                  </button>
+                ) : (
+                  <Sparkline points={product.points} />
+                )
+              ) : null}
             </span>
             <span className="flex flex-col items-end gap-0.5">
               {product.best ? <span className="text-ui text-ink tabular-nums">{product.best.priceText}</span> : null}
@@ -66,7 +86,10 @@ export function PanelHistory(props: {
 }) {
   const product = props.products[props.selected] ?? props.products[0];
   return (
-    <div className="flex flex-col gap-3">
+    <section aria-labelledby="titulo-historico" className="flex flex-col gap-4 rounded-card bg-surface p-5 shadow-raised">
+      <h2 id="titulo-historico" className="text-subheading text-ink">
+        Histórico de preços
+      </h2>
       {props.products.length > 1 ? (
         <div role="group" aria-label="Produto do gráfico" className="flex flex-wrap gap-2">
           {props.products.map((item, index) => (
@@ -75,20 +98,21 @@ export function PanelHistory(props: {
               type="button"
               aria-pressed={index === props.selected}
               onClick={() => props.onSelect(index)}
-              className={`press min-h-11 rounded-full px-4 text-ui focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${index === props.selected ? "bg-ink text-on-ink" : "bg-surface text-ink shadow-raised"}`}
+              className={`press min-h-11 max-w-full truncate rounded-full px-4 text-ui focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${index === props.selected ? "bg-ink text-on-ink" : "bg-surface text-ink shadow-raised"}`}
             >
               {item.title}
             </button>
           ))}
         </div>
       ) : null}
-      {product && product.points.length >= 2 ? (
-        <div className="rounded-card bg-surface p-5 shadow-raised">
-          <PriceChart prices={{ points: product.points, target: props.target ?? null }} />
-        </div>
-      ) : (
-        <p className="text-small text-graphite">O gráfico aparece a partir do segundo dia de leitura.</p>
-      )}
-    </div>
+      {product ? (
+        <PriceChart
+          key={`${product.title}-${props.selected}`}
+          prices={{ points: product.points, target: props.target ?? null }}
+          signal={product.signal}
+          current={product.best?.amount ?? null}
+        />
+      ) : null}
+    </section>
   );
 }

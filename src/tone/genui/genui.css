@@ -1,4 +1,4 @@
-/* Gerado de toneorg/server@45eb127c73fd (packages/genui-react/src/genui.css). Não edite aqui. */
+/* Gerado de toneorg/server@d32e8f2a3aca (packages/genui-react/src/genui.css). Não edite aqui. */
 /* The generated components of the tone (src/components.tsx) and the pieces
    they are built from: buttons, choice pills, cards, comparison, fit drawing and
    fields. The neutral bench of the design system: every colour, radius and
@@ -1633,6 +1633,29 @@ fieldset.field legend {
 }
 
 /* Síntese de reviews (Reviews.tsx) */
+.review-product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.review-product-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.review-product-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-weight: 500;
+}
+.reviews .review-overview {
+  margin-top: 12px;
+  text-wrap: pretty;
+}
 .reviews .review-group {
   margin-top: var(--tone-space-lg);
 }
